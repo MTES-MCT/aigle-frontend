@@ -890,7 +890,7 @@ const Component: React.FC<ComponentProps> = ({
                         beforeId={GEOJSON_ANNOTATION_GRID_LAYER_ID}
                         type="symbol"
                         layout={{
-                            'text-field': ['get', 'text'],
+                            'text-field': ['step', ['zoom'], ['get', 'textShort'], 15, ['get', 'text']],
                             'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
                             'text-size': 12,
                             'text-anchor': 'center',
