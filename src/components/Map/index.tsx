@@ -117,6 +117,7 @@ const GEOJSON_LAYER_EXTRA_BOUNDINGS_ID = 'geojson-layer-data-extra-boundings';
 const GEOJSON_PARCEL_LAYER_ID = 'parcel-geojson-layer';
 const GEOJSON_ANNOTATION_GRID_LAYER_ID = 'annotation-grid-geojson-layer';
 const GEOJSON_ANNOTATION_GRID_LABEL_LAYER_ID = 'annotation-grid-label-geojson-layer';
+const GEOJSON_ANNOTATION_GRID_FILL_LAYER_ID = 'annotation-grid-fill-geojson-layer';
 
 const GEOJSON_LAYER_EXTRA_COLOR = '#FF0000';
 
@@ -883,6 +884,7 @@ const Component: React.FC<ComponentProps> = ({
                             'line-opacity': 0.75,
                         }}
                     />
+
                     <Layer
                         id={GEOJSON_ANNOTATION_GRID_LABEL_LAYER_ID}
                         beforeId={GEOJSON_ANNOTATION_GRID_LAYER_ID}
@@ -895,16 +897,40 @@ const Component: React.FC<ComponentProps> = ({
                             'symbol-placement': 'point',
                         }}
                         paint={{
-                            'text-color': '#000000', // Text color
-                            'text-halo-color': '#ffffff', // Add a halo for better readability
+                            'text-color': '#000000',
+                            'text-halo-color': '#ffffff',
                             'text-halo-width': 2,
+                        }}
+                    />
+                    <Layer
+                        id={GEOJSON_ANNOTATION_GRID_FILL_LAYER_ID}
+                        beforeId={GEOJSON_ANNOTATION_GRID_LABEL_LAYER_ID}
+                        type="fill"
+                        paint={{
+                            'fill-opacity': 0.1,
+                            'fill-color': [
+                                'case',
+                                ['==', ['get', 'total'], 0],
+                                'transparent',
+                                [
+                                    'interpolate',
+                                    ['linear'],
+                                    ['/', ['get', 'reviewed'], ['get', 'total']],
+                                    0,
+                                    '#ff0000',
+                                    0.5,
+                                    '#ffa500',
+                                    1,
+                                    '#00ff00',
+                                ],
+                            ],
                         }}
                     />
                 </Source>
                 <Source id="detections-geojson-data" type="geojson" data={data || EMPTY_GEOJSON_FEATURE_COLLECTION}>
                     <Layer
                         id={GEOJSON_DETECTIONS_LAYER_ID}
-                        beforeId={GEOJSON_ANNOTATION_GRID_LABEL_LAYER_ID}
+                        beforeId={GEOJSON_ANNOTATION_GRID_FILL_LAYER_ID}
                         type="fill"
                         paint={{
                             'fill-opacity': 0,
@@ -922,9 +948,9 @@ const Component: React.FC<ComponentProps> = ({
                                     '==',
                                     ['get', 'detectionObjectUuid'],
                                     detectionDetailsShowed?.detectionObjectUuid || null,
-                                ], // condition to check if uuid matches
-                                4, // width for the selected polygon
-                                2, // width for other polygons
+                                ],
+                                4,
+                                2,
                             ],
                         }}
                     />
