@@ -1,9 +1,13 @@
-@import url('@mantine/core/styles.css');
-@import url('@mantine/dates/styles.css');
-@import url('@mantine/notifications/styles.css');
+@import url("@gouvfr/dsfr/dist/dsfr.min.css");
+@import url("@gouvfr/dsfr/dist/utility/utility.min.css");
 
-@import url('mapbox-gl/dist/mapbox-gl.css');
-@import '@/constants.scss';
+@import url("@mantine/core/styles.css");
+@import url("@mantine/dates/styles.css");
+@import url("@mantine/notifications/styles.css");
+@import url("@mantine/charts/styles.css");
+
+@import url("mapbox-gl/dist/mapbox-gl.css");
+@import "@/constants.scss";
 
 // css reset
 
@@ -16,6 +20,15 @@
 * {
     margin: 0;
     padding: 0;
+
+    --title-spacing: 0 0 0;
+    --text-spacing: 0 0 0;
+
+    font-family: Marianne, arial, sans-serif;
+}
+
+p {
+    font-size: 0.9rem;
 }
 
 h1 {
@@ -30,8 +43,8 @@ h3 {
     font-size: 1.1rem;
 }
 
-ul[role='list'],
-ol[role='list'] {
+ul[role="list"],
+ol[role="list"] {
     list-style: none;
 }
 
@@ -138,10 +151,10 @@ a:focus {
     outline-offset: 1px !important;
 }
 
-header {
+header.fr-header {
     height: $header-height;
 
-    position: fixed;
+    position: fixed !important;
 
     right: 0;
     left: 0;
@@ -175,6 +188,18 @@ header {
 .input-label {
     font-weight: 500 !important;
     font-size: var(--input-label-size, var(--mantine-font-size-sm)) !important;
+}
+
+// override dsfr
+
+[href] {
+    background-image: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    button.mantine-Button-root:not(:disabled):hover {
+        background-color: var(--button-hover, var(--mantine-primary-color-filled-hover));
+    }
 }
 
 // mantine
@@ -254,6 +279,29 @@ header {
     }
 }
 
+.mapboxgl-ctrl-top-right {
+    .mapboxgl-ctrl-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: none;
+        box-shadow: none !important;
+
+        margin-top: 20px;
+        margin-right: 20px;
+
+        .mapbox-gl-draw_ctrl-draw-btn {
+            background-color: var(--mantine-color-white);
+            border-radius: 8px;
+            box-shadow: $shadow;
+
+            &:hover {
+                background-color: #f4f4f4;
+            }
+        }
+    }
+}
+
 .mapboxgl-ctrl:not(.mapboxgl-ctrl-geocoder):not(.mapboxgl-ctrl-scale) {
     border-radius: $border-radius-small;
 
@@ -284,8 +332,27 @@ header {
 .mapbox-gl-draw_ctrl-draw-btn {
     height: 36px !important;
     width: 36px !important;
+}
 
-    opacity: 0.575;
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl {
+    margin: 0;
+}
+
+.mapbox-gl-draw_point {
+    background-image: url("@/assets/pencil.svg");
+}
+
+.mapbox-gl-draw_polygon {
+    background-image: url("@/assets/select-all.svg");
+}
+
+.mapbox-gl-draw_line {
+    background-image: url("@/assets/download.svg");
+}
+
+.crisp-client .cc-1brb6 .cc-1yy0g .cc-1m2mf[data-is-failure="false"] {
+    margin-right: 24px !important;
+    margin-bottom: 24px !important;
 }
 
 // custom

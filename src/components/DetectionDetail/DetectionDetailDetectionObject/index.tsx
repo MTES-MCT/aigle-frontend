@@ -3,17 +3,18 @@ import SelectItem from '@/components/ui/SelectItem';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { ObjectType } from '@/models/object-type';
 import api from '@/utils/api';
-import { useMap } from '@/utils/map-context';
-import { Loader as MantineLoader, Select } from '@mantine/core';
+import { useMap } from '@/utils/context/map-context';
+import { Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import classes from './index.module.scss';
 
 interface FormValues {
     objectTypeUuid: string;
+    comment: string;
 }
 
 const postForm = async (detectionUuid: string, values: FormValues) => {
@@ -28,11 +29,24 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             objectTypeUuid: detectionObject.objectType.uuid,
+            comment: detectionObject.comment,
         },
     });
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
     form.watch('objectTypeUuid', () => {
         const formValues = form.getValues();
         handleSubmit(formValues);
+    });
+    form.watch('comment', () => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(() => {
+            const formValues = form.getValues();
+            handleSubmit(formValues);
+        }, 300);
     });
 
     const objectTypesMap: Record<string, ObjectType> = useMemo(() => {
@@ -106,6 +120,14 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
                     {...form.getInputProps('objectTypeUuid')}
                 />
             ) : undefined}
+
+            <Textarea
+                mt="md"
+                label="Commentaire"
+                placeholder="Mon commentaire"
+                {...form.getInputProps('comment')}
+                key={form.key('comment')}
+            />
         </form>
     );
 };

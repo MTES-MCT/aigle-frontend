@@ -4,6 +4,7 @@ import { ObjectType } from '@/models/object-type';
 import { Parcel } from '@/models/parcel';
 import { TileSet } from '@/models/tile-set';
 import { UserGroupRight } from '@/models/user';
+import { UserGroup } from '@/models/user-group';
 import { GeoCustomZone } from './geo/geo-custom-zone';
 
 interface DetectionObjectDetailTilesetPreview {
@@ -14,6 +15,7 @@ interface DetectionObjectDetailTilesetPreview {
 export interface DetectionObjectMinimal extends Uuided, Timestamped {
     id: number;
     address: string;
+    comment: string;
     objectType: ObjectType;
 }
 
@@ -22,7 +24,8 @@ export interface DetectionObjectDetail extends DetectionObjectMinimal {
     tileSets: DetectionObjectDetailTilesetPreview[];
     parcel: Parcel | null;
     userGroupRights: UserGroupRight[];
-    customGeoZones: GeoCustomZone[];
+    geoCustomZones: GeoCustomZone[];
+    userGroupLastUpdate: UserGroup | null;
 }
 
 export interface DetectionObjectHistoryItem {
@@ -34,6 +37,7 @@ export interface DetectionObjectHistory extends Uuided, Timestamped {
     detections: DetectionObjectHistoryItem[];
     id: number;
     address: string;
+    comment: string;
     objectType: ObjectType;
     tileSets: TileSet[];
 }

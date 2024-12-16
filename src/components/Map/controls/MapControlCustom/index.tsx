@@ -77,6 +77,8 @@ const Component: React.FC<ComponentProps> = ({
                                 variant="white"
                                 onClick={() => setIsShowed && setIsShowed(!isShowed)}
                                 disabled={!!disabled}
+                                aria-label={label}
+                                aria-hidden="true"
                             >
                                 {controlInner}
                             </ActionIcon>
@@ -89,6 +91,8 @@ const Component: React.FC<ComponentProps> = ({
                                 checked={isShowed}
                                 onChange={(event) => setIsShowed && setIsShowed(event.currentTarget.checked)}
                                 disabled={!!disabled}
+                                aria-label={label}
+                                aria-hidden="true"
                             />
                         </Tooltip>
                     ) : null}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import {
+    GEO_CUSTOM_ZONE_LIST_ENDPOINT,
     OBJECT_TYPE_CATEGORY_LIST_ENDPOINT,
     USER_GROUP_POST_ENDPOINT,
     getUserDetailEndpoint,
@@ -12,12 +13,14 @@ import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
 import WarningCard from '@/components/ui/WarningCard';
+import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ObjectTypeCategory } from '@/models/object-type-category';
-import { UserGroupDetail } from '@/models/user-group';
+import { UserGroupDetail, UserGroupType, userGroupTypes } from '@/models/user-group';
 import api from '@/utils/api';
+import { USER_GROUP_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
-import { Button, MultiSelect, TextInput } from '@mantine/core';
+import { Button, MultiSelect, Select, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconUserPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
@@ -29,10 +32,12 @@ const BACK_URL = '/admin/user-groups';
 
 interface FormValues {
     name: string;
+    userGroupType: UserGroupType;
     communesUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
     objectTypeCategoriesUuids: string[];
+    geoCustomZonesUuids: string[];
 }
 
 const postForm = async (values: FormValues, uuid?: string) => {
@@ -52,9 +57,10 @@ interface FormProps {
     initialValues: FormValues;
     initialGeoSelectedValues?: GeoValues;
     categories?: ObjectTypeCategory[];
+    geoCustomZones?: GeoCustomZone[];
 }
 
-const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, categories }) => {
+const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, categories, geoCustomZones }) => {
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
 
@@ -114,6 +120,19 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 key={form.key('name')}
                 {...form.getInputProps('name')}
             />
+            <Select
+                allowDeselect={false}
+                label="Type"
+                withAsterisk
+                mt="md"
+                data={userGroupTypes.map((type) => ({
+                    value: type,
+                    label: USER_GROUP_TYPES_NAMES_MAP[type],
+                }))}
+                key={form.key('userGroupType')}
+                {...form.getInputProps('userGroupType')}
+            />
+
             <MultiSelect
                 mt="md"
                 label="Thématiques"
@@ -127,7 +146,19 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 key={form.key('objectTypeCategoriesUuids')}
                 {...form.getInputProps('objectTypeCategoriesUuids')}
             />
-
+            <MultiSelect
+                mt="md"
+                label="Zones"
+                placeholder="Zones à risque fort,..."
+                searchable
+                data={(geoCustomZones || []).map(({ name, uuid }) => ({
+                    value: uuid,
+                    label: name,
+                }))}
+                renderOption={(item) => <SelectItem item={item} />}
+                key={form.key('geoCustomZonesUuids')}
+                {...form.getInputProps('geoCustomZonesUuids')}
+            />
             <h2 className="form-sub-title">Collectivités accessibles par le groupe</h2>
 
             <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
@@ -153,10 +184,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
 const EMPTY_FORM_VALUES: FormValues = {
     name: '',
+    userGroupType: 'COLLECTIVITY',
     communesUuids: [],
     departmentsUuids: [],
     regionsUuids: [],
     objectTypeCategoriesUuids: [],
+    geoCustomZonesUuids: [],
 };
 
 const ComponentInner: React.FC = () => {
@@ -178,6 +211,7 @@ const ComponentInner: React.FC = () => {
             objectTypeCategoriesUuids: res.data.objectTypeCategories.map(
                 (objectTypeCategory) => objectTypeCategory.uuid,
             ),
+            geoCustomZonesUuids: res.data.geoCustomZones.map((geoCustomZone) => geoCustomZone.uuid),
         };
         const initialGeoSelectedValues: GeoValues = {
             region: res.data.regions.map((region) => geoZoneToGeoOption(region)),
@@ -206,6 +240,16 @@ const ComponentInner: React.FC = () => {
         queryFn: () => fetchObjectTypeCategories(),
     });
 
+    const fetchGeoCustomZones = async () => {
+        const res = await api.get<GeoCustomZone[]>(GEO_CUSTOM_ZONE_LIST_ENDPOINT);
+        return res.data;
+    };
+
+    const { data: geoCustomZones } = useQuery({
+        queryKey: [GEO_CUSTOM_ZONE_LIST_ENDPOINT],
+        queryFn: () => fetchGeoCustomZones(),
+    });
+
     if (isLoading) {
         return <Loader />;
     }
@@ -219,6 +263,7 @@ const ComponentInner: React.FC = () => {
             uuid={uuid}
             initialValues={data?.initialValues || EMPTY_FORM_VALUES}
             initialGeoSelectedValues={data?.initialGeoSelectedValues}
+            geoCustomZones={geoCustomZones}
             categories={categories}
         />
     );

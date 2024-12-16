@@ -38,7 +38,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
             <div className={classes['detection-tile-previews-container']}>
                 {tileSetsShowed.map(({ tileSet, preview }) => (
                     <DetectionTilePreview
-                        controlsDisplayed={['DEZOOM', 'EDIT']}
+                        controlsDisplayed={['ZOOM', 'EDIT']}
                         editDetection={() => setTileSetSelected(tileSet)}
                         bounds={previewBounds}
                         key={tileSet.uuid}
@@ -65,7 +65,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
             </div>
 
             {detectionObject.tileSets.length > 3 ? (
-                <Button variant="light" fullWidth onClick={() => setFullHistoryShowed((state) => !state)}>
+                <Button variant="subtle" fullWidth onClick={() => setFullHistoryShowed((state) => !state)}>
                     {fullHistoryShowed ? 'Voir moins' : "Voir tout l'historique"}
                 </Button>
             ) : null}

@@ -11,11 +11,10 @@
         gap: 16px;
 
         .general-informations {
-            .general-informations-item {
-            }
+            .general-informations-item {}
 
-            .mantine-Accordion-panel {
-            }
+            .mantine-Accordion-panel {}
+
             .general-informations-content {
                 .general-informations-content-item {
                     display: flex;
@@ -27,6 +26,10 @@
                     &:not(:last-of-type) {
                         margin-bottom: 8px;
                     }
+                }
+
+                .general-informations-content-item-icon {
+                    flex-shrink: 0;
                 }
 
                 .general-informations-content-item-text {

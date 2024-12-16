@@ -6,19 +6,24 @@ import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import api from '@/utils/api';
 import { Button, ColorInput, Select, TextInput } from '@mantine/core';
-import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
+import { isNotEmpty, useForm, UseFormReturnType } from '@mantine/form';
 import { IconHexagonPlus2 } from '@tabler/icons-react';
-import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, UseMutationResult, useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import InfoCard from '@/components/InfoCard';
 import {
     GeoCustomZone,
     GeoCustomZoneDetail,
     GeoCustomZoneStatus,
     geoCustomZoneStatuses,
+    GeoCustomZoneType,
+    geoCustomZoneTypes,
 } from '@/models/geo/geo-custom-zone';
-import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP } from '@/utils/constants';
+import { UserRole } from '@/models/user';
+import { useAuth } from '@/utils/auth-context';
+import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP, GEO_CUSTOM_ZONE_TYPES_NAMES_MAP } from '@/utils/constants';
 
 const BACK_URL = '/admin/custom-zones';
 
@@ -26,6 +31,7 @@ interface FormValues {
     name: string;
     color: string;
     geoCustomZoneStatus: GeoCustomZoneStatus;
+    geoCustomZoneType: GeoCustomZoneType;
 }
 
 const postForm = async (values: FormValues, uuid?: string) => {
@@ -46,6 +52,7 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
+    const { userMe } = useAuth();
 
     const form: UseFormReturnType<FormValues> = useForm({
         mode: 'uncontrolled',
@@ -73,6 +80,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
         mutation.mutate(values);
     };
 
+    const cannotEdit = userMe?.userRole !== 'SUPER_ADMIN' && initialValues.geoCustomZoneType === 'COMMON';
+
     const label = uuid ? 'Modifier une zone' : 'Ajouter une zone';
 
     return (
@@ -83,10 +92,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                     <p>Voir les indications ci-dessous pour plus d&apos;info</p>
                 </ErrorCard>
             ) : null}
+            {cannotEdit ? (
+                <InfoCard withCloseButton={false}>
+                    <p>Vous ne pouvez pas modifier cette zone car elle est gérée niveau global</p>
+                </InfoCard>
+            ) : null}
             <TextInput
                 mt="md"
                 withAsterisk
                 label="Nom de la zone"
+                disabled={cannotEdit}
                 placeholder="Ma zone"
                 key={form.key('name')}
                 {...form.getInputProps('name')}
@@ -96,22 +111,41 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                 withAsterisk
                 label="Couleur de la zone"
                 placeholder="#000000"
+                disabled={cannotEdit}
                 key={form.key('color')}
                 {...form.getInputProps('color')}
             />
+            {userMe?.userRole === 'SUPER_ADMIN' ? (
+                <Select
+                    allowDeselect={false}
+                    label="Statut"
+                    withAsterisk
+                    mt="md"
+                    data={geoCustomZoneStatuses.map((role) => ({
+                        value: role,
+                        label: GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP[role],
+                    }))}
+                    key={form.key('geoCustomZoneStatus')}
+                    {...form.getInputProps('geoCustomZoneStatus')}
+                />
+            ) : null}
 
-            <Select
-                allowDeselect={false}
-                label="Statut"
-                withAsterisk
-                mt="md"
-                data={geoCustomZoneStatuses.map((role) => ({
-                    value: role,
-                    label: GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP[role],
-                }))}
-                key={form.key('geoCustomZoneStatus')}
-                {...form.getInputProps('geoCustomZoneStatus')}
-            />
+            {userMe?.userRole === 'SUPER_ADMIN' ? (
+                <Select
+                    allowDeselect={false}
+                    label="Type"
+                    withAsterisk
+                    disabled={cannotEdit}
+                    mt="md"
+                    description={`Le type '${GEO_CUSTOM_ZONE_TYPES_NAMES_MAP.COLLECTIVITY_MANAGED}' signifie que la zone peut être géré par la ou les collectivités qui ont accès`}
+                    data={geoCustomZoneTypes.map((role) => ({
+                        value: role,
+                        label: GEO_CUSTOM_ZONE_TYPES_NAMES_MAP[role],
+                    }))}
+                    key={form.key('geoCustomZoneType')}
+                    {...form.getInputProps('geoCustomZoneType')}
+                />
+            ) : null}
 
             <div className="form-actions">
                 <Button
@@ -124,7 +158,11 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                     Annuler
                 </Button>
 
-                <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconHexagonPlus2 />}>
+                <Button
+                    disabled={mutation.status === 'pending' || cannotEdit}
+                    type="submit"
+                    leftSection={<IconHexagonPlus2 />}
+                >
                     {label}
                 </Button>
             </div>
@@ -132,10 +170,19 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
     );
 };
 
-const EMPTY_FORM_VALUES: FormValues = {
-    name: '',
-    color: '',
-    geoCustomZoneStatus: 'ACTIVE',
+const getEmptyFormValues = (userRole: UserRole): FormValues => {
+    const emptyFormValues: FormValues = {
+        name: '',
+        color: '',
+        geoCustomZoneStatus: 'ACTIVE',
+        geoCustomZoneType: 'COLLECTIVITY_MANAGED',
+    };
+
+    if (userRole === 'SUPER_ADMIN') {
+        emptyFormValues.geoCustomZoneType = 'COMMON';
+    }
+
+    return emptyFormValues;
 };
 
 interface ComponentInnerProps {
@@ -143,6 +190,8 @@ interface ComponentInnerProps {
 }
 
 const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
+    const { userMe } = useAuth();
+
     const fetchData = async () => {
         if (!uuid) {
             return;
@@ -153,6 +202,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             name: res.data.name,
             color: res.data.color,
             geoCustomZoneStatus: res.data.geoCustomZoneStatus,
+            geoCustomZoneType: res.data.geoCustomZoneType,
         };
 
         return initialValues;
@@ -176,7 +226,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
         return <ErrorCard>{error.message}</ErrorCard>;
     }
 
-    return <Form uuid={uuid} initialValues={initialValues || EMPTY_FORM_VALUES} />;
+    return <Form uuid={uuid} initialValues={initialValues || getEmptyFormValues(userMe?.userRole || 'ADMIN')} />;
 };
 
 const Component: React.FC = () => {

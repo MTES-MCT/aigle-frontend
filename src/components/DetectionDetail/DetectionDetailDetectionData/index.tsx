@@ -4,6 +4,7 @@ import {
     getDetectionObjectDetailEndpoint,
 } from '@/api-endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
+import InfoBubble from '@/components/InfoBubble';
 import InfoCard from '@/components/InfoCard';
 import ErrorCard from '@/components/ui/ErrorCard';
 import {
@@ -19,13 +20,14 @@ import {
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
+import { useAuth } from '@/utils/auth-context';
 import {
     DEFAULT_DATE_FORMAT,
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
-import { useMap } from '@/utils/map-context';
+import { useMap } from '@/utils/context/map-context';
 import { Button, Checkbox, LoadingOverlay, Loader as MantineLoader, Select, Text } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -91,9 +93,17 @@ const Form: React.FC<FormProps> = ({
     const [error, setError] = useState<AxiosError>();
     const { eventEmitter } = useMap();
 
+    const { getUserGroupType, userMe } = useAuth();
+    const userGroupType = useMemo(() => getUserGroupType(), [userMe]);
+
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
     });
+
+    useEffect(() => {
+        form.setValues(initialValues);
+    }, [initialValues]);
+
     const queryClient = useQueryClient();
 
     const mutation: UseMutationResult<FormValues, AxiosError, FormValues> = useMutation({
@@ -127,6 +137,7 @@ const Form: React.FC<FormProps> = ({
             }
 
             eventEmitter.emit('UPDATE_DETECTIONS');
+            eventEmitter.emit('UPDATE_DETECTION_DETAIL');
         },
         onError: (error) => {
             setError(error);
@@ -168,19 +179,43 @@ const Form: React.FC<FormProps> = ({
                 </ErrorCard>
             ) : null}
 
-            <Select
-                allowDeselect={false}
-                mt="md"
-                label="Statut du contrôle"
-                data={detectionControlStatuses.map((status) => ({
-                    value: status,
-                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[status],
-                }))}
-                key={form.key('detectionControlStatus')}
-                disabled={disabled || mutation.status === 'pending'}
-                rightSection={mutation.status === 'pending' ? <MantineLoader size="xs" /> : null}
-                {...form.getInputProps('detectionControlStatus')}
-            />
+            <Text mt="md" className="input-label">
+                Statut de validation{' '}
+                <InfoBubble>
+                    <>
+                        <p>Aucune sélection: l&apos;objet n&apos;a pas été vérifié par un utilisateur</p>
+                        <p>
+                            Suspect: l&apos;objet est <b>bien présent</b> sur les images et est{' '}
+                            <b>suspecté d&apos;être illégal</b>
+                        </p>
+                        <p>
+                            Légitime: l&apos;objet est <b>bien présent</b> sur les images et <b>légal</b>
+                        </p>
+                        <p>
+                            Invalidé: l&apos;objet est <b>absent</b> sur les images
+                        </p>
+                    </>
+                </InfoBubble>
+            </Text>
+            <div
+                className={clsx(classes['detection-validation-status-select-container'], {
+                    [classes.disabled]: disabled,
+                })}
+            >
+                {detectionValidationStatuses
+                    .filter((status) => status !== 'DETECTED_NOT_VERIFIED')
+                    .map((status) => (
+                        <Button
+                            variant={form.getValues().detectionValidationStatus === status ? 'filled' : 'outline'}
+                            color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
+                            key={status}
+                            disabled={mutation.status === 'pending'}
+                            onClick={() => form.setFieldValue('detectionValidationStatus', status)}
+                        >
+                            {DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
+                        </Button>
+                    ))}
+            </div>
 
             {prescriptionDurationYears ? (
                 <Checkbox
@@ -198,26 +233,19 @@ const Form: React.FC<FormProps> = ({
                 />
             ) : null}
 
-            <Text mt="md" className="input-label">
-                Statut de validation
-            </Text>
-            <div
-                className={clsx(classes['detection-validation-status-select-container'], {
-                    [classes.disabled]: disabled,
-                })}
-            >
-                {detectionValidationStatuses.map((status) => (
-                    <Button
-                        variant={form.getValues().detectionValidationStatus === status ? 'filled' : 'outline'}
-                        color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
-                        key={status}
-                        disabled={mutation.status === 'pending'}
-                        onClick={() => form.setFieldValue('detectionValidationStatus', status)}
-                    >
-                        {DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
-                    </Button>
-                ))}
-            </div>
+            <Select
+                allowDeselect={false}
+                mt="md"
+                label="Statut du contrôle"
+                data={detectionControlStatuses.map((status) => ({
+                    value: status,
+                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[userGroupType][status],
+                }))}
+                key={form.key('detectionControlStatus')}
+                disabled={disabled || mutation.status === 'pending'}
+                rightSection={mutation.status === 'pending' ? <MantineLoader size="xs" /> : null}
+                {...form.getInputProps('detectionControlStatus')}
+            />
         </form>
     );
 };
@@ -293,7 +321,7 @@ const Component: React.FC<ComponentProps> = ({
                 <div className={classes['detection-tile-preview-container']}>
                     <DetectionTilePreview
                         key={`${tileSetSelected.uuid}-${detectionSelected?.uuid}`}
-                        controlsDisplayed={['DEZOOM']}
+                        controlsDisplayed={['ZOOM']}
                         bounds={previewBounds}
                         geometries={[
                             {

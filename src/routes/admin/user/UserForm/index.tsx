@@ -10,6 +10,7 @@ import { SelectOption } from '@/models/ui/select-option';
 import { User, UserRole, UserUserGroupInput, userGroupRights, userRoles } from '@/models/user';
 import { UserGroup, UserGroupDetail } from '@/models/user-group';
 import api from '@/utils/api';
+import { useAuth } from '@/utils/auth-context';
 import { PASSWORD_MIN_LENGTH, ROLES_NAMES_MAP, USER_GROUP_RIGHTS_NAMES_MAP } from '@/utils/constants';
 import {
     ActionIcon,
@@ -30,6 +31,13 @@ import omit from 'lodash/omit';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/users';
+
+const generateRandomPassword = (): string => {
+    const length = PASSWORD_MIN_LENGTH * 2;
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?';
+    return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
 
 interface FormValues {
     email: string;
@@ -67,6 +75,7 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
+    const { userMe } = useAuth();
 
     const [searchGroupValue, setSearchGroupValue] = useState('');
 
@@ -174,10 +183,14 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
                 key={form.key('password')}
                 {...form.getInputProps('password')}
             />
+            <Button mt="xs" variant="light" onClick={() => form.setFieldValue('password', generateRandomPassword())}>
+                Générer un mot de passe aléatoire
+            </Button>
             <Select
                 allowDeselect={false}
                 label="Rôle"
                 withAsterisk
+                disabled={userMe?.userRole === 'ADMIN'}
                 mt="md"
                 data={userRoles.map((role) => ({
                     value: role,

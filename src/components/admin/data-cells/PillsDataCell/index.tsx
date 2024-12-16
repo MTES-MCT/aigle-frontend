@@ -14,7 +14,11 @@ interface ItemPillProps<T extends Uuided> {
 const ItemPill = <T extends Uuided>({ item, toLink, getLabel, getLeftSection }: ItemPillProps<T>) => {
     if (!toLink) {
         return (
-            <Badge className={classes['badge']} color="gray">
+            <Badge
+                className={classes['badge']}
+                color="gray"
+                leftSection={getLeftSection ? getLeftSection(item) : undefined}
+            >
                 {getLabel(item)}
             </Badge>
         );

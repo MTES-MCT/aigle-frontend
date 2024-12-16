@@ -1,11 +1,13 @@
 @import '@/constants.scss';
 
 .content {
-    bottom: 75px; // 19px (mapbox logo) + 10px (mapbox margin) + 20px (switch height) + 10px (switch margin) + 16px (switch padding)
+    bottom: 46px; // 20px (switch height) + 10px (switch margin) + 16px (switch padding)
     left: 0;
 
     margin-left: 10px;
     margin-bottom: 10px;
+
+    z-index: 96;
 
     .empty-filter-text {
         margin-top: var(--mantine-spacing-sm);
@@ -44,11 +46,15 @@
                 margin-bottom: var(--mantine-spacing-xs);
             }
 
-            .legend-item-square {
+            .legend-item-square, .legend-item-round {
                 border: 2px solid;
 
                 width: 16px;
                 height: 16px;
+            }
+
+            .legend-item-round {
+                border-radius: 50%;
             }
 
             .legend-item-square-dashed {
@@ -59,6 +65,8 @@
 }
 
 .container {
+    margin: 0 0 10px 10px;
+
     padding: 8px 12px;
 
     box-shadow: $shadow;

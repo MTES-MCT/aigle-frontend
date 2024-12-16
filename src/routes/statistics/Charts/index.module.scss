@@ -1,0 +1,7 @@
+.charts-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-md);
+
+    margin-top: var(--mantine-spacing-md);
+}

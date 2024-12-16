@@ -1,12 +1,13 @@
 import { DETECTION_POST_ENDPOINT } from '@/api-endpoints';
 import InfoCard from '@/components/InfoCard';
 import Loader from '@/components/ui/Loader';
+import SelectItem from '@/components/ui/SelectItem';
 import { MapTileSetLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import api from '@/utils/api';
 import { DEFAULT_DATE_FORMAT } from '@/utils/constants';
+import { useMap } from '@/utils/context/map-context';
 import { getAddressFromPolygon } from '@/utils/geojson';
-import { useMap } from '@/utils/map-context';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -106,29 +107,36 @@ const Form: React.FC<FormProps> = ({ objectTypes, layers, polygon, hide }) => {
         mutation.mutate(values);
     };
 
+    const objectTypesMap: Record<string, ObjectType> = useMemo(() => {
+        return (objectTypes || []).reduce(
+            (prev, curr) => ({
+                ...prev,
+                [curr.uuid]: curr,
+            }),
+            {},
+        );
+    }, [objectTypes]);
+
     return (
         <form onSubmit={form.onSubmit(handleSubmit)} className={clsx('compact', classes.form)}>
             <InfoCard title="Informations sur l'objet" withCloseButton={false}>
-                <ul>
-                    <li>
-                        Fond de carte associé:{' '}
-                        <b>
-                            {tileSet
-                                ? `${tileSet.name} - ${format(tileSet.date, DEFAULT_DATE_FORMAT)}`
-                                : 'Chargement...'}
-                        </b>
-                    </li>
-                    <li>
-                        Addresse: <b>{address === undefined ? 'Chargement...' : address || 'Inconnue'}</b>
-                    </li>
-                    <li>
-                        Surface: <b>{area(polygon).toFixed(2)} m²</b>
-                    </li>
-                </ul>
+                <p>
+                    Fond de carte associé :{' '}
+                    <b>
+                        {tileSet ? `${tileSet.name} - ${format(tileSet.date, DEFAULT_DATE_FORMAT)}` : 'Chargement...'}
+                    </b>
+                </p>
+                <p>
+                    Addresse : <b>{address === undefined ? 'Chargement...' : address || 'Inconnue'}</b>
+                </p>
+                <p>
+                    Surface : <b>{area(polygon).toFixed(2)} m²</b>
+                </p>
             </InfoCard>
             <Select
                 allowDeselect={false}
                 label="Type d'objet"
+                renderOption={(item) => <SelectItem item={item} color={objectTypesMap[item.option.value].color} />}
                 data={objectTypes.map((type) => ({
                     value: type.uuid,
                     label: type.name,

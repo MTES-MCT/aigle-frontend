@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { TILE_SET_POST_ENDPOINT, getTileSetDetailEndpoint } from '@/api-endpoints';
 import InfoCard from '@/components/InfoCard';
@@ -20,8 +20,9 @@ import {
 } from '@/models/tile-set';
 import api from '@/utils/api';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { useMap } from '@/utils/context/map-context';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
-import { Button, Card, NumberInput, Select, TextInput } from '@mantine/core';
+import { Button, Card, Checkbox, NumberInput, Select, TextInput } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconMapPlus } from '@tabler/icons-react';
@@ -39,10 +40,12 @@ interface MapPreviewProps {
     type: TileSetType;
     scheme: TileSetScheme;
     name: string;
+    monochrome: boolean;
     geometry?: Geometry;
+    uuid?: string;
 }
 
-const MapPreview: React.FC<MapPreviewProps> = ({ url, scheme, name, type, geometry }) => {
+const MapPreview: React.FC<MapPreviewProps> = ({ url, scheme, name, type, monochrome, geometry, uuid }) => {
     const fakeDate = formatISO(new Date());
     const layers: MapTileSetLayer[] = [
         {
@@ -50,11 +53,12 @@ const MapPreview: React.FC<MapPreviewProps> = ({ url, scheme, name, type, geomet
             tileSet: {
                 createdAt: fakeDate,
                 updatedAt: fakeDate,
-                uuid: 'fake-uuid',
+                uuid: uuid || 'fake-uuid',
                 minZoom: null,
                 maxZoom: null,
                 date: fakeDate,
                 name: name,
+                monochrome,
                 url: url || '',
                 tileSetStatus: 'VISIBLE',
                 tileSetScheme: scheme,
@@ -72,16 +76,25 @@ const MapPreview: React.FC<MapPreviewProps> = ({ url, scheme, name, type, geomet
                     Le carré autour de la zone de limite définie la zone dans laquelle les tuiles seront chargées pour
                     l&apos;affichage de la carte
                 </p>
+                {uuid ? (
+                    <p>Les détections associées à ce fond de carte seront affichées</p>
+                ) : (
+                    <p>Enregistrez ce fond de carte et retournez sur cette page pour voir les détections associées</p>
+                )}
             </InfoCard>
             <div>
                 {url ? (
                     <div className={classes['map-preview-content']}>
                         <Map
-                            displayDetections={false}
+                            displayTileSetControls={false}
+                            displayDrawControl={false}
+                            displayDetections={true}
                             layers={layers}
                             displayLayersGeometry={true}
                             boundLayers={false}
                             fitBoundsFirstLayer={true}
+                            skipProcessDetections={true}
+                            displayLayersSelection={false}
                         />
                     </div>
                 ) : (
@@ -97,6 +110,7 @@ interface FormValues {
     tileSetStatus: TileSetStatus;
     tileSetScheme: TileSetScheme;
     tileSetType: TileSetType;
+    monochrome: boolean;
     minZoom: number | null;
     maxZoom: number | null;
     communesUuids: string[];
@@ -128,10 +142,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
     const [mapPreviewProps, setMapPreviewProps] = useState<MapPreviewProps>({
+        uuid,
         url: initialValues.url,
         scheme: initialValues.tileSetScheme,
         name: initialValues.name,
         type: initialValues.tileSetType,
+        monochrome: initialValues.monochrome,
     });
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -216,6 +232,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         setMapPreviewProps((prev) => ({
             ...prev,
             type: value,
+        })),
+    );
+    form.watch('monochrome', ({ value }) =>
+        setMapPreviewProps((prev) => ({
+            ...prev,
+            monochrome: value,
         })),
     );
 
@@ -307,13 +329,19 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 label="Status"
                 withAsterisk
                 mt="md"
-                mb="md"
                 data={tileSetStatuses.map((status) => ({
                     value: status,
                     label: TILE_SET_STATUSES_NAMES_MAP[status],
                 }))}
                 key={form.key('tileSetStatus')}
                 {...form.getInputProps('tileSetStatus')}
+            />
+            <Checkbox
+                checked={form.values.monochrome}
+                mt="md"
+                label="Monochrome"
+                key={form.key('monochrome')}
+                {...form.getInputProps('monochrome')}
             />
             <NumberInput
                 mt="md"
@@ -361,6 +389,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     tileSetStatus: 'VISIBLE',
     tileSetScheme: 'xyz',
     tileSetType: 'BACKGROUND',
+    monochrome: false,
     minZoom: null,
     maxZoom: null,
     date: undefined,
@@ -371,6 +400,19 @@ const EMPTY_FORM_VALUES: FormValues = {
 
 const ComponentInner: React.FC = () => {
     const { uuid } = useParams();
+    const { updateObjectsFilter } = useMap();
+
+    useEffect(() => {
+        updateObjectsFilter({
+            objectTypesUuids: [],
+            detectionValidationStatuses: [],
+            detectionControlStatuses: [],
+            score: 0,
+            prescripted: null,
+            customZonesUuids: [],
+            interfaceDrawn: 'ALL'
+        });
+    }, []);
 
     const fetchData = async () => {
         if (!uuid) {

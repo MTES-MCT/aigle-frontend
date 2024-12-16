@@ -3,11 +3,10 @@ import { DEFAULT_DATE_FORMAT, MAPBOX_TOKEN } from '@/utils/constants';
 import { extendBbox } from '@/utils/geojson';
 import { ActionIcon, Overlay, Tooltip } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
-import { IconPencil, IconZoomOut } from '@tabler/icons-react';
+import { IconPencil, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { Polygon } from 'geojson';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import React, { useEffect, useRef, useState } from 'react';
 import Map, { Layer, MapRef, Source } from 'react-map-gl';
 import classes from './index.module.scss';
@@ -26,7 +25,7 @@ interface ClassNames {
 const GEOJSON_LAYER_ID = 'geojson-layer';
 const IMAGE_LAYER_ID = 'image-layer';
 
-type PreviewControl = 'DEZOOM' | 'EDIT';
+type PreviewControl = 'ZOOM' | 'EDIT';
 
 interface ImageLayer {
     coordinates: [[number, number], [number, number], [number, number], [number, number]];
@@ -46,6 +45,8 @@ interface ComponentProps {
     id?: string;
     imageLayer?: ImageLayer;
     onIdle?: () => void;
+    marker?: React.ReactNode;
+    reuseMaps?: boolean;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -61,6 +62,7 @@ const Component: React.FC<ComponentProps> = ({
     id,
     imageLayer,
     onIdle,
+    reuseMaps = true
 }) => {
     const mapRef = useRef<MapRef>();
     const [currentExtendedLevel, setCurrentExtendedLevel] = useState(extendedLevel);
@@ -81,15 +83,26 @@ const Component: React.FC<ComponentProps> = ({
             <div className={clsx(classes['detection-tile-preview-container'], classNames?.main)} ref={previewRef}>
                 {controlsDisplayed?.length && previewHovered ? (
                     <Overlay blur={4} backgroundOpacity={0} className={classes['detection-tile-preview-controls']}>
-                        {controlsDisplayed.includes('DEZOOM') ? (
-                            <Tooltip label="Dézoomer l'aperçu" position="bottom">
-                                <ActionIcon
-                                    variant="filled"
-                                    onClick={() => setCurrentExtendedLevel((prev) => prev + 1)}
-                                >
-                                    <IconZoomOut size={16} />
-                                </ActionIcon>
-                            </Tooltip>
+                        {controlsDisplayed.includes('ZOOM') ? (
+                            <>
+                                <Tooltip label="Dézoomer l'aperçu" position="bottom">
+                                    <ActionIcon
+                                        variant="filled"
+                                        onClick={() => setCurrentExtendedLevel((prev) => prev + 1)}
+                                    >
+                                        <IconZoomOut size={16} />
+                                    </ActionIcon>
+                                </Tooltip>
+                                <Tooltip label="Zoomer l'aperçu" position="bottom">
+                                    <ActionIcon
+                                        variant="filled"
+                                        onClick={() => setCurrentExtendedLevel((prev) => prev - 1)}
+                                        disabled={currentExtendedLevel === 0}
+                                    >
+                                        <IconZoomIn size={16} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            </>
                         ) : null}
                         {controlsDisplayed.includes('EDIT') ? (
                             <Tooltip label="Editer la détection" position="bottom">
@@ -107,7 +120,7 @@ const Component: React.FC<ComponentProps> = ({
                         style={{ width: '100%', height: '100%' }}
                         mapStyle="mapbox://styles/mapbox/streets-v11"
                         interactive={false}
-                        reuseMaps={true}
+                        reuseMaps={reuseMaps}
                         maxBounds={bounds_}
                         {...(id ? { id } : {})}
                         {...(onIdle ? { onIdle } : {})}
@@ -157,6 +170,7 @@ const Component: React.FC<ComponentProps> = ({
                                 id="raster-layer"
                                 type="raster"
                                 source="raster-source"
+                                paint={tileSet.monochrome ? { 'raster-saturation': -1 } : {}}
                             />
                         </Source>
                     </Map>

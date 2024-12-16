@@ -3,6 +3,7 @@
 .container {
     top: 0;
     padding-right: 0;
+    padding-left: 0;
 
     .avatar-button {
         border: 0;
@@ -26,6 +27,10 @@
             padding: 8px;
         }
     }
+}
+
+.link-icon {
+    margin-right: var(--mantine-spacing-xs);
 }
 
 .tabs,

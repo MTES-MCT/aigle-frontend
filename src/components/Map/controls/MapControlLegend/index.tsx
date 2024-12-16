@@ -4,8 +4,8 @@ import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
-import { PARCEL_COLOR } from '@/utils/constants';
-import { useMap } from '@/utils/map-context';
+import { PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { useMap } from '@/utils/context/map-context';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
@@ -64,6 +64,31 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                 </ul>
             </div>
             <div className={classes['legends-column']}>
+                <div>
+                    <h2>Couche de l&apos;objet</h2>
+
+                    <ul className={classes['legends']}>
+                        <li className={classes['legend-item']}>
+                            <div
+                                className={clsx(classes['legend-item-square'])}
+                                style={{
+                                    borderColor: '#686868',
+                                }}
+                            />
+                            Associé à une couche &quot;{TILE_SET_TYPES_NAMES_MAP.BACKGROUND}&quot;
+                        </li>
+                        <li className={classes['legend-item']}>
+                            <div
+                                className={clsx(classes['legend-item-round'])}
+                                style={{
+                                    borderColor: '#686868',
+                                }}
+                            />
+                            Associé à une couche &quot;{TILE_SET_TYPES_NAMES_MAP.PARTIAL}&quot;
+                        </li>
+                    </ul>
+                </div>
+
                 <div>
                     <h2>Zones à enjeux</h2>
 

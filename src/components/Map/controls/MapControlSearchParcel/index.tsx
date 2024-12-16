@@ -13,7 +13,7 @@ import { Parcel } from '@/models/parcel';
 import { SelectOption } from '@/models/ui/select-option';
 import api from '@/utils/api';
 import { geoZoneToGeoOption } from '@/utils/geojson';
-import { useMap } from '@/utils/map-context';
+import { useMap } from '@/utils/context/map-context';
 import { Autocomplete, Button, Loader as MantineLoader } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { useDebouncedValue } from '@mantine/hooks';

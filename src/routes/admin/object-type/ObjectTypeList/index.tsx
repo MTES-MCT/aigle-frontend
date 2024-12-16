@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { OBJECT_TYPE_CATEGORY_LIST_ENDPOINT, OBJECT_TYPE_LIST_ENDPOINT } from '@/api-endpoints';
 import DataTable from '@/components/admin/DataTable';
-import FiltersSection from '@/components/admin/FiltersSection';
+import SoloAccordion from '@/components/admin/SoloAccordion';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import PillsDataCell from '@/components/admin/data-cells/PillsDataCell';
 import DateInfo from '@/components/ui/DateInfo';
@@ -54,8 +54,8 @@ const Component: React.FC = () => {
             <DataTable<ObjectTypeDetail, DataFilter>
                 endpoint={OBJECT_TYPE_LIST_ENDPOINT}
                 filter={filter}
-                filtersSection={
-                    <FiltersSection filtersSet={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                SoloAccordion={
+                    <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
                         <Input
                             placeholder="Rechercher type d'objet"
                             leftSection={<IconSearch size={16} />}
@@ -86,7 +86,7 @@ const Component: React.FC = () => {
                                 }))
                             }
                         />
-                    </FiltersSection>
+                    </SoloAccordion>
                 }
                 tableHeader={[
                     <Table.Th key="createdAt">Date création</Table.Th>,

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { TILE_SET_LIST_ENDPOINT } from '@/api-endpoints';
 import InfoCard from '@/components/InfoCard';
 import DataTable from '@/components/admin/DataTable';
-import FiltersSection from '@/components/admin/FiltersSection';
+import SoloAccordion from '@/components/admin/SoloAccordion';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import DateInfo from '@/components/ui/DateInfo';
 import { TileSetDetail, TileSetScheme, TileSetStatus, tileSetSchemes, tileSetStatuses } from '@/models/tile-set';
@@ -55,8 +55,8 @@ const Component: React.FC = () => {
             <DataTable<TileSetDetail, DataFilter>
                 endpoint={TILE_SET_LIST_ENDPOINT}
                 filter={filter}
-                filtersSection={
-                    <FiltersSection filtersSet={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                SoloAccordion={
+                    <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
                         <Input
                             placeholder="Rechercher un fond de carte"
                             leftSection={<IconSearch size={16} />}
@@ -108,7 +108,7 @@ const Component: React.FC = () => {
                                 ))}
                             </Stack>
                         </Checkbox.Group>
-                    </FiltersSection>
+                    </SoloAccordion>
                 }
                 tableHeader={[
                     <Table.Th key="id">ID</Table.Th>,

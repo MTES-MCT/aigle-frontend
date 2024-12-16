@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import DataTable from '@/components/admin/DataTable';
-import FiltersSection from '@/components/admin/FiltersSection';
+import SoloAccordion from '@/components/admin/SoloAccordion';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import { CollectivityType, GeoCollectivity, collectivityTypes } from '@/models/geo/_common';
 import { COLLECTIVITY_TYPES_ENDPOINTS_MAP, COLLECTIVITY_TYPES_NAMES_MAP } from '@/utils/constants';
@@ -69,8 +69,8 @@ const Component: React.FC = () => {
             <DataTable<GeoCollectivity, DataFilter>
                 endpoint={endpoint}
                 filter={filter}
-                filtersSection={
-                    <FiltersSection filtersSet={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                SoloAccordion={
+                    <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
                         <Input
                             placeholder={`Rechercher ${COLLECTIVITY_TYPES_NAMES_MAP[collectivityTypeSelected]}`}
                             leftSection={<IconSearch size={16} />}
@@ -83,7 +83,7 @@ const Component: React.FC = () => {
                                 }));
                             }}
                         />
-                    </FiltersSection>
+                    </SoloAccordion>
                 }
                 tableHeader={[<Table.Th key="code">Code</Table.Th>, <Table.Th key="name">Nom</Table.Th>]}
                 tableBodyRenderFns={[(item: GeoCollectivity) => item.code, (item: GeoCollectivity) => item.name]}

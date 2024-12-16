@@ -81,9 +81,14 @@ interface GeoCollectivitiesFormValues {
 interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     form: UseFormReturnType<T>;
     initialGeoSelectedValues?: GeoValues;
+    className?: string;
 }
 
-const Component = <T extends GeoCollectivitiesFormValues>({ form, initialGeoSelectedValues }: ComponentProps<T>) => {
+const Component = <T extends GeoCollectivitiesFormValues>({
+    form,
+    initialGeoSelectedValues,
+    className,
+}: ComponentProps<T>) => {
     const [geoInputValues, setGeoInputValues] = useState<{
         [key in CollectivityType]: string;
     }>({
@@ -151,7 +156,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({ form, initialGeoSele
     };
 
     return (
-        <>
+        <div className={className}>
             <MultiSelect
                 mt="md"
                 label="Regions"
@@ -212,7 +217,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({ form, initialGeoSele
                 onRemove={(uuid) => geoOnRemove(uuid, 'commune')}
                 filter={({ options }) => options}
             />
-        </>
+        </div>
     );
 };
 

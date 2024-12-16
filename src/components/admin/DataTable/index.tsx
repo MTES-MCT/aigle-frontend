@@ -1,6 +1,6 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 
-import FiltersSection from '@/components/admin/FiltersSection';
+import SoloAccordion from '@/components/admin/SoloAccordion';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import { Paginated, Uuided } from '@/models/data';
@@ -15,7 +15,7 @@ import classes from './index.module.scss';
 interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
     endpoint: string;
     filter: T_FILTER;
-    filtersSection: ReactElement<typeof FiltersSection>;
+    SoloAccordion: ReactElement<typeof SoloAccordion>;
     tableHeader: ReactElement<typeof Table.Th>[];
     tableBodyRenderFns: ((item: T_DATA) => React.ReactNode)[];
     onItemClick?: (item: T_DATA) => void;
@@ -24,7 +24,7 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
 const Component = <T_DATA extends Uuided, T_FILTER extends object>({
     endpoint,
     filter,
-    filtersSection,
+    SoloAccordion,
     tableHeader,
     tableBodyRenderFns,
     onItemClick,
@@ -59,7 +59,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
 
     return (
         <>
-            <div className={classes['filters-section']}>{filtersSection}</div>
+            <div className={classes['filters-section']}>{SoloAccordion}</div>
 
             {error ? <ErrorCard className={classes['error-card']}>{error.message}</ErrorCard> : null}
 

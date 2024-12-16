@@ -8,10 +8,10 @@ import Loader from '@/components/ui/Loader';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
+import { useMap } from '@/utils/context/map-context';
 import { formatCommune, formatParcel } from '@/utils/format';
 import { getAddressFromPolygon } from '@/utils/geojson';
-import { useMap } from '@/utils/map-context';
-import { Accordion, ActionIcon, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
+import { Accordion, ActionIcon, Button, Group, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconCalendarClock,
@@ -19,6 +19,7 @@ import {
     IconHexagon,
     IconMap,
     IconMapPin,
+    IconMapPinFilled,
     IconRoute,
     IconX,
 } from '@tabler/icons-react';
@@ -30,7 +31,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
-const getGoogleMapLink = (point: Position) => `https://www.google.com/maps/place/${point[1]},${point[0]}`;
+const getGoogleMapLink = (point: Position) => `https://www.google.com/maps/?t=k&q=${point[1]},${point[0]}`;
 
 const updateAdress = (objectTypeUuid: string, address: string) => {
     return api.patch(getDetectionObjectDetailEndpoint(objectTypeUuid), {
@@ -90,33 +91,50 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <h1>Objet détecté #{detectionObject.id}</h1>
 
                     {onClose ? (
-                        <ActionIcon variant="transparent" onClick={onClose}>
+                        <ActionIcon variant="transparent" onClick={onClose} aria-label="Fermer le détail de détection">
                             <IconX />
                         </ActionIcon>
                     ) : null}
                 </div>
 
                 <div>
-                    <Tooltip label="Télécharger la fiche de signalement" position="bottom-start">
-                        <ActionIcon
-                            variant="transparent"
-                            disabled={signalementPdfLoading}
-                            onClick={() => {
-                                notifications.show({
-                                    title: 'Génération de la fiche de signalement en cours',
-                                    message: 'Le téléchargement se lancera dans quelques instants',
-                                });
-                                setSignalementPdfLoading(true);
-                            }}
-                        >
-                            {signalementPdfLoading ? <MantineLoader size="xs" /> : <IconDownload />}
-                        </ActionIcon>
-                    </Tooltip>
+                    <Group>
+                        <Tooltip label="Télécharger la fiche de signalement" position="bottom-start">
+                            <Button
+                                variant="transparent"
+                                disabled={signalementPdfLoading}
+                                size="xs"
+                                onClick={() => {
+                                    notifications.show({
+                                        title: 'Génération de la fiche de signalement en cours',
+                                        message: 'Le téléchargement se lancera dans quelques instants',
+                                    });
+                                    setSignalementPdfLoading(true);
+                                }}
+                                leftSection={
+                                    signalementPdfLoading ? <MantineLoader size="xs" /> : <IconDownload size={24} />
+                                }
+                            >
+                                Fiche de signalement
+                            </Button>
+                        </Tooltip>
 
+                        <Tooltip label="Ouvrir dans Google Maps" position="bottom-start">
+                            <Button
+                                variant="transparent"
+                                component={Link}
+                                size="xs"
+                                leftSection={<IconMapPinFilled size={24} />}
+                                to={getGoogleMapLink(centerPoint)}
+                                target="_blank"
+                            >
+                                GMaps
+                            </Button>
+                        </Tooltip>
+                    </Group>
                     {signalementPdfLoading ? (
                         <SignalementPDFData
-                            detectionObject={detectionObject}
-                            latLong={latLong}
+                            detectionObjects={[detectionObject]}
                             onGenerationFinished={(error?: string) => {
                                 if (error) {
                                     notifications.show({
@@ -137,7 +155,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         <Accordion.Control>Informations générales</Accordion.Control>
                         <Accordion.Panel className={classes['general-informations-content']}>
                             <p className={classes['general-informations-content-item']}>
-                                <IconRoute size={16} />
+                                <IconRoute size={16} className={classes['general-informations-content-item-icon']} />
                                 <span>
                                     <span className={classes['general-informations-content-item-text']}>
                                         {address ? (
@@ -171,7 +189,16 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 <IconCalendarClock size={16} />{' '}
                                 <span className={classes['general-informations-content-item-text']}>
                                     Dernière mise à jour :&nbsp;
-                                    <DateInfo date={detectionObject.updatedAt} />
+                                    <div>
+                                        {detectionObject.userGroupLastUpdate ? (
+                                            <div>
+                                                <b>{detectionObject.userGroupLastUpdate.name}</b>
+                                            </div>
+                                        ) : (
+                                            <div>Aucun groupe</div>
+                                        )}
+                                        <DateInfo date={detectionObject.updatedAt} />
+                                    </div>
                                 </span>
                             </p>
                             <p className={classes['general-informations-content-item']}>
@@ -213,10 +240,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 <p className={classes['general-informations-content-item']}>
                                     <IconHexagon size={16} />
                                     <span className={classes['general-informations-content-item-text']}>
-                                        {detectionObject.customGeoZones.length ? (
+                                        {detectionObject.geoCustomZones.length ? (
                                             <>
                                                 Zones à enjeux :&nbsp;
-                                                {detectionObject.customGeoZones.map((zone) => zone.name).join(', ')}
+                                                {detectionObject.geoCustomZones.map((zone) => zone.name).join(', ')}
                                             </>
                                         ) : (
                                             <i>Aucune zone à enjeux associée</i>
@@ -228,7 +255,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     </Accordion.Item>
                 </Accordion>
                 <DetectionDetailDetectionObject detectionObject={detectionObject} />
-                <DetectionTileHistory detectionObject={detectionObject} setTileSetSelected={setTileSetSelected} />
                 <DetectionDetailDetectionData
                     detectionObject={detectionObject}
                     detectionRefreshing={detectionObjectRefreshing}
@@ -236,6 +262,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     tileSetSelected={tileSetSelected}
                     setTileSetSelected={setTileSetSelected}
                 />
+                <DetectionTileHistory detectionObject={detectionObject} setTileSetSelected={setTileSetSelected} />
             </div>
         </ScrollArea>
     );
@@ -248,15 +275,27 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ detectionObjectUuid, detectionUuid, onClose }: ComponentProps) => {
+    const { eventEmitter } = useMap();
     const fetchData = async () => {
         const res = await api.get<DetectionObjectDetail>(getDetectionObjectDetailEndpoint(detectionObjectUuid));
 
         return res.data;
     };
-    const { data: detectionObject, isRefetching: detectionObjectRefreshing } = useQuery({
+    const {
+        data: detectionObject,
+        isRefetching: detectionObjectRefreshing,
+        refetch,
+    } = useQuery({
         queryKey: [getDetectionObjectDetailEndpoint(String(detectionObjectUuid))],
         queryFn: () => fetchData(),
     });
+    useEffect(() => {
+        eventEmitter.on('UPDATE_DETECTION_DETAIL', refetch);
+
+        return () => {
+            eventEmitter.off('UPDATE_DETECTION_DETAIL', refetch);
+        };
+    }, []);
 
     if (!detectionObject) {
         return <Loader className={classes.loader} />;

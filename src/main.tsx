@@ -7,16 +7,16 @@ import ReactDOM from 'react-dom/client';
 import './index.scss';
 
 const aigleColors: MantineColorsTuple = [
-    '#e1fff5',
-    '#cffbeb',
-    '#a5f4d5',
-    '#75ecc0',
-    '#4ee6ad',
-    '#34e3a1',
-    '#21e19b',
-    '#0ac785',
-    '#00b275',
-    '#009a63',
+    '#0fffaf',
+    '#16eb9e',
+    '#19cd86',
+    '#18ae77',
+    '#169767',
+    '#138a5d',
+    '#117f58',
+    '#05704b',
+    '#006442',
+    '#005637',
 ];
 
 const theme = createTheme({

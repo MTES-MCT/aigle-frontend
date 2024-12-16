@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 
 import { GEO_CUSTOM_ZONE_LIST_ENDPOINT } from '@/api-endpoints';
 import DataTable from '@/components/admin/DataTable';
-import FiltersSection from '@/components/admin/FiltersSection';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
+import SoloAccordion from '@/components/admin/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
+import { useAuth } from '@/utils/auth-context';
 import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { Button, ColorSwatch, Input, Table } from '@mantine/core';
 import { IconHexagonPlus2, IconSearch } from '@tabler/icons-react';
@@ -23,6 +24,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 const Component: React.FC = () => {
     const navigate = useNavigate();
     const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+    const { userMe } = useAuth();
 
     return (
         <LayoutAdminBase
@@ -38,8 +40,8 @@ const Component: React.FC = () => {
             <DataTable<GeoCustomZone, DataFilter>
                 endpoint={GEO_CUSTOM_ZONE_LIST_ENDPOINT}
                 filter={filter}
-                filtersSection={
-                    <FiltersSection filtersSet={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                SoloAccordion={
+                    <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
                         <Input
                             placeholder="Rechercher une zone"
                             leftSection={<IconSearch size={16} />}
@@ -52,13 +54,13 @@ const Component: React.FC = () => {
                                 }));
                             }}
                         />
-                    </FiltersSection>
+                    </SoloAccordion>
                 }
                 tableHeader={[
                     <Table.Th key="createdAt">Date création</Table.Th>,
                     <Table.Th key="name">Nom</Table.Th>,
                     <Table.Th key="color">Couleur</Table.Th>,
-                    <Table.Th key="status">Statut</Table.Th>,
+                    ...(userMe?.userRole === 'SUPER_ADMIN' ? [<Table.Th key="status">Statut</Table.Th>] : []),
                 ]}
                 tableBodyRenderFns={[
                     (item: GeoCustomZone) => <DateInfo date={item.createdAt} />,
@@ -68,7 +70,9 @@ const Component: React.FC = () => {
                             <ColorSwatch color={item.color} size={24} /> {item.color}
                         </div>
                     ),
-                    (item: GeoCustomZone) => <>{GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP[item.geoCustomZoneStatus]}</>,
+                    ...(userMe?.userRole === 'SUPER_ADMIN'
+                        ? [(item: GeoCustomZone) => GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP[item.geoCustomZoneStatus]]
+                        : []),
                 ]}
                 onItemClick={({ uuid }) => navigate(`/admin/custom-zones/form/${uuid}`)}
             />

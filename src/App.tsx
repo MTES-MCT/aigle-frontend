@@ -1,6 +1,8 @@
-// App.tsx
-import { AUTH_ME_ENDPOINT } from '@/api-endpoints';
+import { MAP_SETTINGS_ENDPOINT, USERS_ME_ENDPOINT } from '@/api-endpoints';
+import { MapSettings } from '@/models/map-settings';
 import { User } from '@/models/user';
+import About from '@/routes/About';
+import Help from '@/routes/Help';
 import Map from '@/routes/Map/index.tsx';
 import CollectiviteForm from '@/routes/admin/collectivite/CollectiviteForm';
 import CollectiviteList from '@/routes/admin/collectivite/CollectiviteList';
@@ -24,17 +26,23 @@ import ProtectedRoute from '@/utils/ProtectedRoute';
 import api from '@/utils/api';
 import { useAuth } from '@/utils/auth-context';
 import { DEFAULT_ROUTE } from '@/utils/constants';
+import { useMap } from '@/utils/context/map-context';
+import { useStatistics } from '@/utils/context/statistics-context';
+import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import Charts from './routes/statistics/Charts';
 
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
+    const { setMapSettings } = useMap();
+    const { setMapSettings: setStatisticsMapSettings } = useStatistics();
 
     const isAuthenticated_ = isAuthenticated();
 
     const getUser = useCallback(async () => {
         try {
-            const res = await api.get<User>(AUTH_ME_ENDPOINT);
+            const res = await api.get<User>(USERS_ME_ENDPOINT);
             setUser(res.data);
         } catch (err) {
             console.error(err);
@@ -42,8 +50,24 @@ const App: React.FC = () => {
     }, [setUser]);
 
     useEffect(() => {
+        Crisp.configure('b7048ccf-68b6-424e-a7c0-0c6e8b5d2724');
+    }, []);
+
+    const getMapSettings = useCallback(async () => {
+        try {
+            const res = await api.get<MapSettings>(MAP_SETTINGS_ENDPOINT);
+            setMapSettings(res.data);
+            setStatisticsMapSettings(res.data);
+            return res.data;
+        } catch (err) {
+            console.error(err);
+        }
+    }, [setMapSettings]);
+
+    useEffect(() => {
         if (isAuthenticated_) {
             getUser();
+            getMapSettings();
         }
     }, [isAuthenticated_, getUser]);
 
@@ -65,6 +89,33 @@ const App: React.FC = () => {
                     element={
                         <ProtectedRoute>
                             <Map />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/statistics"
+                    element={
+                        <ProtectedRoute>
+                            <Charts />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/about"
+                    element={
+                        <ProtectedRoute>
+                            <About />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/help"
+                    element={
+                        <ProtectedRoute>
+                            <Help />
                         </ProtectedRoute>
                     }
                 />

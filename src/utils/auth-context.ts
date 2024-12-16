@@ -1,4 +1,5 @@
 import { User } from '@/models/user';
+import { UserGroupType } from '@/models/user-group';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -11,6 +12,7 @@ interface AuthState {
     setRefreshToken: (refreshToken: string) => void;
     setUser: (userMe?: User) => void;
     logout: () => void;
+    getUserGroupType: () => UserGroupType;
 
     isAuthenticated: () => boolean;
 }
@@ -40,6 +42,19 @@ const useAuth = create<AuthState>()(
                     userMe: undefined,
                 }));
                 window.location.reload();
+            },
+            getUserGroupType: () => {
+                const userMe = get().userMe;
+
+                if (!userMe) {
+                    return 'COLLECTIVITY';
+                }
+
+                if (userMe.userUserGroups.find(({ userGroup }) => userGroup.userGroupType === 'DDTM')) {
+                    return 'DDTM';
+                }
+
+                return 'COLLECTIVITY';
             },
             isAuthenticated: () => !!get().accessToken,
         }),

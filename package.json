@@ -16,7 +16,8 @@
         "scalingo-prebuild": "npm config set legacy-peer-deps true"
     },
     "dependencies": {
-        "@mantine/charts": "^7.10.2",
+        "@gouvfr/dsfr": "^1.12.1",
+        "@mantine/charts": "^7.12.2",
         "@mantine/core": "^7.10.2",
         "@mantine/dates": "^7.10.2",
         "@mantine/dropzone": "^7.10.2",
@@ -32,6 +33,7 @@
         "@turf/turf": "^7.0.0",
         "axios": "^1.7.2",
         "clsx": "^2.1.1",
+        "crisp-sdk-web": "^1.0.25",
         "date-fns": "^3.6.0",
         "dayjs": "^1.11.11",
         "eventemitter3": "^5.0.1",
