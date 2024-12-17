@@ -1,34 +1,32 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
-import { TileSetStatus, TileSetType } from '@/models/tile-set';
 import { useMap } from '@/utils/context/map-context';
 import { SegmentedControl } from '@mantine/core';
-import { format } from 'date-fns';
 import classes from './index.module.scss';
 
-const TILE_SET_TYPES: TileSetType[] = ['BACKGROUND'] as const;
-const TILE_SET_STATUSES: TileSetStatus[] = ['VISIBLE', 'HIDDEN'] as const;
-
 const Component: React.FC = () => {
-    const { getTileSets, getTileSetsUuids, setTileSetVisibility, layers, eventEmitter } = useMap();
+    const { backgroundLayerYears, getBackgroundTileSetYearDisplayed, setBackgroundTileSetYearDisplayed, eventEmitter } =
+        useMap();
 
-    const [value, setValue] = useState<string>();
-    const backgroundTileSets = useMemo(() => getTileSets(TILE_SET_TYPES, TILE_SET_STATUSES), [layers]);
+    const [yearDisplayed, setYearDisplayed] = useState<string>();
+
     useEffect(() => {
-        if (!value) {
+        if (!yearDisplayed) {
             return;
         }
 
-        setTileSetVisibility(value, true);
-    }, [value]);
+        setBackgroundTileSetYearDisplayed(yearDisplayed);
+    }, [yearDisplayed]);
     useEffect(() => {
         const updateLayerDisplayed = () => {
-            const tileSetDisplayedUuid = getTileSetsUuids(TILE_SET_TYPES, TILE_SET_STATUSES, true);
+            const yearDisplayed = getBackgroundTileSetYearDisplayed();
 
-            if (tileSetDisplayedUuid.length) {
-                setValue(tileSetDisplayedUuid[0]);
+            if (!yearDisplayed) {
+                return;
             }
+
+            setYearDisplayed(yearDisplayed);
         };
 
         eventEmitter.on('LAYERS_UPDATED', updateLayerDisplayed);
@@ -50,12 +48,9 @@ const Component: React.FC = () => {
                 fullWidth
                 color="#117f58"
                 orientation="vertical"
-                data={backgroundTileSets.map((tileSet) => ({
-                    label: format(tileSet.date, 'yyyy'),
-                    value: tileSet.uuid,
-                }))}
-                onChange={setValue}
-                value={value}
+                data={backgroundLayerYears || []}
+                onChange={setYearDisplayed}
+                value={yearDisplayed}
             />
         </MapControlCustom>
     );

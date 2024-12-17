@@ -104,7 +104,7 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
                                     title="Accueil - [À MODIFIER - Nom du site / service] - Nom de l’entité (ministère, secrétariat d‘état, gouvernement)"
                                 >
                                     <p className="fr-header__service-title">
-                                        Aigle <p className="fr-badge fr-badge--green-menthe">BETA</p>
+                                        Aigle <span className="fr-badge fr-badge--green-menthe">BETA</span>
                                     </p>
                                 </a>
                                 <p className="fr-header__service-tagline">Détection par IA des irrégularités</p>

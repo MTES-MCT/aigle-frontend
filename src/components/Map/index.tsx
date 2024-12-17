@@ -34,6 +34,7 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { bbox, bboxPolygon, booleanIntersects, centroid, feature, getCoord } from '@turf/turf';
+import { format } from 'date-fns';
 import { FeatureCollection, Geometry, Polygon } from 'geojson';
 import mapboxgl from 'mapbox-gl';
 import DrawRectangle, { DrawStyles } from 'mapbox-gl-draw-rectangle-restrict-area';
@@ -192,6 +193,7 @@ const Component: React.FC<ComponentProps> = ({
         objectsFilter,
         getTileSetsUuids,
         setTileSetsVisibility,
+        backgroundLayerYears,
         settings,
         customZoneLayers,
         annotationLayerVisible,
@@ -342,6 +344,10 @@ const Component: React.FC<ComponentProps> = ({
         const handleModeChange = (event) => {
             const { mode } = event;
 
+            if (!backgroundLayerYears) {
+                throw new Error('backgroundLayerYears is empty');
+            }
+
             if (mode === 'draw_point') {
                 const partialLayersDisplayedUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], true);
                 let partialLayersToDisplayUuids: string[] = [];
@@ -350,14 +356,16 @@ const Component: React.FC<ComponentProps> = ({
                     partialLayersToDisplayUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], false);
                 }
 
-                const mostRecentBackgroundLayer = layers
-                    .sort(
-                        (layer1, layer2) =>
-                            new Date(layer2.tileSet.date).getTime() - new Date(layer1.tileSet.date).getTime(),
+                const mostRecentBackgroundLayerYear = backgroundLayerYears[0];
+                const mostRecentBackgroundLayerUuids = layers
+                    .filter(
+                        (layer) =>
+                            layer.tileSet.tileSetType === 'BACKGROUND' &&
+                            format(layer.tileSet.date, 'yyyy') === mostRecentBackgroundLayerYear,
                     )
-                    .filter((layer) => layer.tileSet.tileSetType === 'BACKGROUND')[0];
+                    .map((layer) => layer.tileSet.uuid);
 
-                setTileSetsVisibility([...partialLayersToDisplayUuids, mostRecentBackgroundLayer.tileSet.uuid], true);
+                setTileSetsVisibility([...partialLayersToDisplayUuids, ...mostRecentBackgroundLayerUuids], true);
 
                 setDrawMode('ADD_DETECTION');
                 setLeftSectionShowed(undefined);
@@ -746,7 +754,7 @@ const Component: React.FC<ComponentProps> = ({
                 onMouseEnter={onPolygonMouseEnter}
                 onMouseLeave={onPolygonMouseLeave}
                 cursor={cursor}
-                mapStyle="mapbox://styles/mapbox/streets-v11"
+                mapStyle="mapbox://styles/mapbox/streets-v12"
                 {...(settings?.globalGeometry ? { maxBounds: bbox(settings.globalGeometry) } : {})}
             >
                 <GeolocateControl

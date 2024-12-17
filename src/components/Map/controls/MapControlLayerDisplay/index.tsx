@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
@@ -11,7 +11,7 @@ import classes from './index.module.scss';
 
 const CONTROL_LABEL = 'Affichage des couches';
 
-type LayersMap = Record<TileSetType, MapTileSetLayer[]>;
+type LayersMap = Record<Exclude<TileSetType, 'BACKGROUND'>, MapTileSetLayer[]>;
 
 interface ComponentInnerProps {
     layers: MapTileSetLayer[];
@@ -20,26 +20,54 @@ interface ComponentInnerProps {
 }
 
 const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayers, displayLayersSelection }) => {
-    const { setTileSetVisibility, setCustomZoneVisibility, annotationLayerVisible, setAnnotationLayerVisibility } =
-        useMap();
+    const {
+        setTileSetVisibility,
+        setCustomZoneVisibility,
+        annotationLayerVisible,
+        setAnnotationLayerVisibility,
+        backgroundLayerYears,
+        getBackgroundTileSetYearDisplayed,
+        setBackgroundTileSetYearDisplayed,
+        eventEmitter,
+    } = useMap();
+    const [backgroundTileSetYearSelected, setBackgroundTileSetYearSelected] = useState<string>(
+        getBackgroundTileSetYearDisplayed() || '',
+    );
 
     const layersMap: LayersMap = useMemo(
         () =>
-            layers.reduce<LayersMap>(
-                (prev, curr) => {
-                    prev[curr.tileSet.tileSetType].push(curr);
-                    return prev;
-                },
-                {
-                    BACKGROUND: [],
-                    PARTIAL: [],
-                    INDICATIVE: [],
-                },
-            ),
+            layers
+                .filter((layer) => layer.tileSet.tileSetType !== 'BACKGROUND')
+                .reduce<LayersMap>(
+                    (prev, curr) => {
+                        // @ts-expect-error TS7053
+                        prev[curr.tileSet.tileSetType].push(curr);
+                        return prev;
+                    },
+                    {
+                        PARTIAL: [],
+                        INDICATIVE: [],
+                    },
+                ),
         [layers],
     );
+    useEffect(() => {
+        const updateBackgrendLayerSelected = () => {
+            const yearDisplayed = getBackgroundTileSetYearDisplayed();
 
-    const backgroundTileSetUuidDisplayed = layersMap.BACKGROUND.find((layer) => layer.displayed)?.tileSet.uuid;
+            if (!yearDisplayed) {
+                return;
+            }
+
+            setBackgroundTileSetYearSelected(yearDisplayed);
+        };
+
+        eventEmitter.on('LAYERS_UPDATED', updateBackgrendLayerSelected);
+
+        return () => {
+            eventEmitter.off('LAYERS_UPDATED', updateBackgrendLayerSelected);
+        };
+    }, []);
 
     return (
         <>
@@ -47,27 +75,19 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
             <div className={classes['layers-sections-container']}>
                 {displayLayersSelection ? (
                     <>
-                        {layersMap.BACKGROUND.length ? (
-                            <div className={classes['layers-section']}>
-                                <h3 className={classes['layers-section-title']}>
-                                    {TILE_SET_TYPES_NAMES_MAP.BACKGROUND}
-                                </h3>
-                                <Radio.Group
-                                    value={backgroundTileSetUuidDisplayed}
-                                    onChange={(uuid) => setTileSetVisibility(uuid, true)}
-                                >
-                                    <Stack className={classes['layers-section-group']} gap="xs">
-                                        {layersMap.BACKGROUND.map((layer) => (
-                                            <Radio
-                                                key={layer.tileSet.uuid}
-                                                label={layer.tileSet.name}
-                                                value={layer.tileSet.uuid}
-                                            />
-                                        ))}
-                                    </Stack>
-                                </Radio.Group>
-                            </div>
-                        ) : null}
+                        <div className={classes['layers-section']}>
+                            <h3 className={classes['layers-section-title']}>{TILE_SET_TYPES_NAMES_MAP.BACKGROUND}</h3>
+                            <Radio.Group
+                                value={backgroundTileSetYearSelected}
+                                onChange={(year) => setBackgroundTileSetYearDisplayed(year)}
+                            >
+                                <Stack className={classes['layers-section-group']} gap="xs">
+                                    {(backgroundLayerYears || []).map((year) => (
+                                        <Radio key={year} label={year} value={year} />
+                                    ))}
+                                </Stack>
+                            </Radio.Group>
+                        </div>
                         {tileSetTypes
                             .filter((type) => type !== 'BACKGROUND')
                             .map((type) =>
