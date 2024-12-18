@@ -1,10 +1,10 @@
-import { detectionControlStatuses, DetectionValidationStatus } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 import { TileSet, TileSetStatus, TileSetType } from '@/models/tile-set';
 import { extractObjectTypesFromSettings } from '@/utils/context/utils';
+import { getInitialObjectFilters, setObjectFilters } from '@/utils/objects-filter';
 import { format } from 'date-fns';
 import EventEmitter from 'eventemitter3';
 import { create } from 'zustand';
@@ -79,6 +79,10 @@ const useMap = create<MapState>()((set, get) => ({
         const { allObjectTypes, objectTypesUuids } = extractObjectTypesFromSettings(settings);
 
         const { layers, backgroundLayerYears } = getInitialLayers(settings);
+        const objectsFilter = getInitialObjectFilters(
+            objectTypesUuids,
+            settings.geoCustomZones.map(({ uuid }) => uuid),
+        );
 
         set(() => ({
             settings,
@@ -90,17 +94,10 @@ const useMap = create<MapState>()((set, get) => ({
                 displayed: false,
             })),
             objectTypes: allObjectTypes,
-            objectsFilter: {
-                objectTypesUuids: Array.from(objectTypesUuids),
-                detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'] as DetectionValidationStatus[],
-                detectionControlStatuses: detectionControlStatuses.filter((status) => status !== 'REHABILITATED'),
-                score: 0.6,
-                prescripted: false,
-                interfaceDrawn: 'ALL',
-                customZonesUuids: settings.geoCustomZones.map(({ uuid }) => uuid),
-            },
             userLastPosition: settings.userLastPosition,
         }));
+        get().updateObjectsFilter(objectsFilter);
+
         document.documentElement.style.setProperty('--nbr-background-layers', backgroundLayerYears.length.toString());
     },
     setAnnotationLayerVisibility: (visible: boolean) => {
@@ -125,12 +122,17 @@ const useMap = create<MapState>()((set, get) => ({
         });
     },
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => {
-        set((state) => ({
-            objectsFilter: {
+        set((state) => {
+            const objectsFilterUpdated = {
                 ...state.objectsFilter,
                 ...objectsFilter,
-            },
-        }));
+            };
+            setObjectFilters(objectsFilterUpdated);
+
+            return {
+                objectsFilter: objectsFilterUpdated,
+            };
+        });
     },
     getDisplayedTileSetUrls: () => {
         return (get().layers || []).filter((layer) => layer.displayed).map((layer) => layer.tileSet.url);
