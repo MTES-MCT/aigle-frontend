@@ -145,3 +145,5 @@ export const COLLECTIVITY_TYPES_ENDPOINTS_MAP: {
 
 export const DEFAULT_DATE_FORMAT = 'dd/MM/yyyy';
 export const DEFAULT_DATETIME_FORMAT = 'dd/MM/yyyy à HH:mm';
+
+export const CUSTOM_ZONE_NEGATIVE_COLOR = '#a9a9a9';

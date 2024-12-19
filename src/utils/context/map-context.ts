@@ -58,6 +58,7 @@ interface MapState {
     settings?: MapSettings;
     userLastPosition?: GeoJSON.Position | null;
     annotationLayerVisible?: boolean;
+    customZoneNegativeFilterVisible?: boolean;
 
     setMapSettings: (settings: MapSettings) => void;
     resetLayers: () => void;
@@ -68,6 +69,7 @@ interface MapState {
     setTileSetsVisibility: (uuids: string[], visible: boolean) => void;
     setCustomZoneVisibility: (uuid: string, visible: boolean) => void;
     setAnnotationLayerVisibility: (visible: boolean) => void;
+    setCustomZoneNegativeFilterVisibility: (visible: boolean) => void;
     getBackgroundTileSetYearDisplayed: () => string | undefined;
     getTileSets: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => TileSet[];
     getTileSetsUuids: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => string[];
@@ -89,6 +91,7 @@ const useMap = create<MapState>()((set, get) => ({
             layers,
             backgroundLayerYears,
             annotationLayerVisible: false,
+            customZoneNegativeFilterVisible: true,
             customZoneLayers: settings.geoCustomZones.map((geoCustomZone) => ({
                 geoCustomZone,
                 displayed: false,
@@ -103,6 +106,11 @@ const useMap = create<MapState>()((set, get) => ({
     setAnnotationLayerVisibility: (visible: boolean) => {
         set({
             annotationLayerVisible: visible,
+        });
+    },
+    setCustomZoneNegativeFilterVisibility: (visible: boolean) => {
+        set({
+            customZoneNegativeFilterVisible: visible,
         });
     },
     resetLayers: () => {

@@ -21,7 +21,7 @@ import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData'
 import { DetectionGeojsonData, DetectionProperties } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { DetectionObjectDetail } from '@/models/detection-object';
-import { GeoCustomZoneGeojsonData } from '@/models/geo/geo-custom-zone';
+import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
@@ -33,7 +33,7 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { bbox, bboxPolygon, booleanIntersects, centroid, feature, getCoord } from '@turf/turf';
+import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
 import { format } from 'date-fns';
 import { FeatureCollection, Geometry, Polygon } from 'geojson';
 import mapboxgl from 'mapbox-gl';
@@ -111,6 +111,10 @@ const DETECTION_ENDPOINT = getDetectionListEndpoint();
 
 const GEOJSON_CUSTOM_ZONES_LAYER_ID = 'custom-zones-geojson-layer';
 const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outline';
+
+const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID = 'custom-zone-negative-geojson-layer';
+const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_OUTLINE_ID = 'custom-zone-negative-geojson-layer-outline';
+
 const GEOJSON_DETECTIONS_LAYER_ID = 'detections-geojson-layer';
 const GEOJSON_DETECTIONS_LAYER_OUTLINE_ID = 'detections-geojson-layer-outline';
 const GEOJSON_LAYER_EXTRA_ID = 'geojson-layer-data-extra';
@@ -197,6 +201,7 @@ const Component: React.FC<ComponentProps> = ({
         settings,
         customZoneLayers,
         annotationLayerVisible,
+        customZoneNegativeFilterVisible,
     } = useMap();
 
     const [cursor, setCursor] = useState<string>();
@@ -571,29 +576,31 @@ const Component: React.FC<ComponentProps> = ({
     // custom zones fetching
 
     const fetchCustomZoneGeometries = async (signal: AbortSignal, mapBounds?: MapBounds) => {
-        if (!mapBounds || customZoneLayersDisplayedUuids.length === 0) {
+        if (!mapBounds || (customZoneLayersDisplayedUuids.length === 0 && !customZoneNegativeFilterVisible)) {
             return null;
         }
 
-        const res = await api.get<GeoCustomZoneGeojsonData>(GET_CUSTOM_GEOMETRY_ENDPOINT, {
+        const res = await api.get<GeoCustomZoneResponse>(GET_CUSTOM_GEOMETRY_ENDPOINT, {
             params: {
                 ...mapBounds,
                 uuids: customZoneLayersDisplayedUuids,
+                uuidsNegative: customZoneNegativeFilterVisible ? objectsFilter?.customZonesUuids || [] : [],
             },
             signal,
         });
 
         return res.data;
     };
-    const { data: customZonesGeometries } = useQuery({
+    const { data: customZonesData } = useQuery({
         queryKey: [
             GET_CUSTOM_GEOMETRY_ENDPOINT,
             ...Object.values(mapBounds || {}),
             customZoneLayersDisplayedUuids.join(','),
+            (objectsFilter?.customZonesUuids || []).join(','),
         ],
         queryFn: ({ signal }) => fetchCustomZoneGeometries(signal, mapBounds),
         placeholderData: keepPreviousData,
-        enabled: !!customZoneLayersDisplayedUuids.length && !!mapBounds,
+        enabled: (!!customZoneLayersDisplayedUuids.length || customZoneNegativeFilterVisible) && !!mapBounds,
     });
 
     // event that makes detections to be reloaded
@@ -727,7 +734,7 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         if (displayDetections) {
-            return GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID;
+            return GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_OUTLINE_ID;
         }
 
         if (displayLayersGeometry) {
@@ -982,7 +989,7 @@ const Component: React.FC<ComponentProps> = ({
                 <Source
                     id="custom-zones-geojson-data"
                     type="geojson"
-                    data={customZonesGeometries || EMPTY_GEOJSON_FEATURE_COLLECTION}
+                    data={customZonesData?.customZones || EMPTY_GEOJSON_FEATURE_COLLECTION}
                 >
                     <Layer
                         id={GEOJSON_CUSTOM_ZONES_LAYER_ID}
@@ -1000,6 +1007,34 @@ const Component: React.FC<ComponentProps> = ({
                         paint={{
                             'line-color': ['get', 'color'],
                             'line-opacity': 0.4,
+                            'line-width': 2,
+                            'line-dasharray': [2, 2],
+                        }}
+                    />
+                </Source>
+                <Source
+                    id="custom-zone-negative-geojson-data"
+                    type="geojson"
+                    data={
+                        customZonesData?.customZoneNegative
+                            ? featureCollection([feature(customZonesData.customZoneNegative)])
+                            : EMPTY_GEOJSON_FEATURE_COLLECTION
+                    }
+                >
+                    <Layer
+                        id={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID}
+                        beforeId={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
+                        type="fill"
+                        paint={{
+                            'fill-color': 'rgba(169, 169, 169, 0.4)', // CUSTOM_ZONE_NEGATIVE_COLOR
+                        }}
+                    />
+                    <Layer
+                        id={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_OUTLINE_ID}
+                        beforeId={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID}
+                        type="line"
+                        paint={{
+                            'line-color': 'rgba(169, 169, 169, 0.6)', // CUSTOM_ZONE_NEGATIVE_COLOR
                             'line-width': 2,
                             'line-dasharray': [2, 2],
                         }}

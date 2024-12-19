@@ -25,6 +25,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
         setCustomZoneVisibility,
         annotationLayerVisible,
         setAnnotationLayerVisibility,
+        customZoneNegativeFilterVisible,
+        setCustomZoneNegativeFilterVisibility,
         backgroundLayerYears,
         getBackgroundTileSetYearDisplayed,
         setBackgroundTileSetYearDisplayed,
@@ -137,6 +139,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                                 }}
                             />
                         ))}
+                        <Checkbox
+                            checked={customZoneNegativeFilterVisible}
+                            label={<div className={classes['checkbox-label']}>Zones exclues par les filtres</div>}
+                            onChange={async (event) =>
+                                setCustomZoneNegativeFilterVisibility(event.currentTarget.checked)
+                            }
+                        />
                     </Stack>
                 </div>
                 <div className={classes['layers-section']}>
