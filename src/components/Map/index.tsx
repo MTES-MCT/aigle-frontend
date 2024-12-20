@@ -108,7 +108,7 @@ const MAP_CONTROLS: {
 const getSourceId = (layer: MapTileSetLayer) => `source-${layer.tileSet.uuid}`;
 const getLayerId = (layer: MapTileSetLayer) => `layer-${layer.tileSet.uuid}`;
 
-const DETECTION_ENDPOINT = getDetectionListEndpoint();
+const DETECTION_ENDPOINT = getDetectionListEndpoint(false, true);
 
 const GEOJSON_CUSTOM_ZONES_LAYER_ID = 'custom-zones-geojson-layer';
 const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outline';

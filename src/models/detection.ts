@@ -46,11 +46,14 @@ export interface DetectionData extends Uuided, Timestamped {
     userLastUpdateUuid: string;
 }
 
-export interface DetectionDetail extends Uuided, Timestamped {
+export interface Detection extends Uuided, Timestamped {
     geometry: Polygon;
     score: number;
     detectionSource: DetectionSource;
     detectionData: DetectionData;
+}
+
+export interface DetectionDetail extends Detection {
     detectionObject: Omit<DetectionObjectDetail, 'detections'>;
 }
 

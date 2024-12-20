@@ -32,6 +32,7 @@ import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Charts from './routes/statistics/Charts';
+import Table from '@/routes/Table';
 
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
@@ -98,6 +99,15 @@ const App: React.FC = () => {
                     element={
                         <ProtectedRoute>
                             <Charts />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/table"
+                    element={
+                        <ProtectedRoute>
+                            <Table />
                         </ProtectedRoute>
                     }
                 />

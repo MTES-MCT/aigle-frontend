@@ -1,5 +1,5 @@
 import { GEO_COMMUNE_LIST_ENDPOINT, GEO_DEPARTMENT_LIST_ENDPOINT, GEO_REGION_LIST_ENDPOINT } from '@/api-endpoints';
-import { DetectionControlStatus, DetectionPrescriptionStatus, DetectionValidationStatus } from '@/models/detection';
+import { DetectionControlStatus, DetectionPrescriptionStatus, DetectionSource, DetectionValidationStatus } from '@/models/detection';
 import { CollectivityType } from '@/models/geo/_common';
 import { GeoCustomZoneStatus, GeoCustomZoneType } from '@/models/geo/geo-custom-zone';
 import { ObjectTypeCategoryObjectTypeStatus } from '@/models/object-type-category';
@@ -133,6 +133,13 @@ export const OBJECT_TYPE_CATEGROY_OBJECT_TYPE_STATUSES_NAMES_MAP: {
 } = {
     VISIBLE: 'Visible par défaut',
     HIDDEN: 'Caché par défaut',
+} as const;
+
+export const DETECTION_SOURCE_NAMES_MAP: {
+    [source in DetectionSource]: string;
+} = {
+    INTERFACE_DRAWN: 'Dessin interface',
+    ANALYSIS: 'Analyse'
 } as const;
 
 export const COLLECTIVITY_TYPES_ENDPOINTS_MAP: {

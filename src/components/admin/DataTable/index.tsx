@@ -63,6 +63,10 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
 
             {error ? <ErrorCard className={classes['error-card']}>{error.message}</ErrorCard> : null}
 
+            {pagination.total != null ? (
+                <p className={classes['nbr-results']}>Nombre de résultats: {pagination.total}</p>
+            ) : null}
+
             <div className={classes['table-container']}>
                 {isLoading ? (
                     <Loader />

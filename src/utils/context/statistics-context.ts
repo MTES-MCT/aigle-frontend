@@ -51,7 +51,7 @@ const useStatistics = create<StatisticsState>()((set, get) => ({
                 objectTypesUuids: Array.from(objectTypesUuids),
                 detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'],
                 detectionControlStatuses: [...detectionControlStatuses],
-                score: 0.6,
+                score: 0.3,
                 prescripted: null,
                 interfaceDrawn: 'ALL',
                 customZonesUuids: settings.geoCustomZones.map(({ uuid }) => uuid),
