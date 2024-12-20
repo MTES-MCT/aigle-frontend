@@ -47,10 +47,12 @@
             }
 
             .legend-item-square, .legend-item-round {
-                border: 2px solid;
-
                 width: 16px;
                 height: 16px;
+            }
+
+            .legend-item-bordered {
+                border: 2px solid;
             }
 
             .legend-item-round {

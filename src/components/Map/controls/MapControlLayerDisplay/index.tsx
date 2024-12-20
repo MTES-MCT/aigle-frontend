@@ -141,7 +141,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                         ))}
                         <Checkbox
                             checked={customZoneNegativeFilterVisible}
-                            label={<div className={classes['checkbox-label']}>Zones exclues par les filtres</div>}
+                            label={
+                                <div className={classes['checkbox-label']}>
+                                    <i>Zones exclues par les filtres</i>
+                                </div>
+                            }
                             onChange={async (event) =>
                                 setCustomZoneNegativeFilterVisibility(event.currentTarget.checked)
                             }

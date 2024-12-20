@@ -1,9 +1,10 @@
 import React from 'react';
 
+import stripePatternImg from '@/assets/stripe-pattern.png';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
-import { CUSTOM_ZONE_NEGATIVE_COLOR, PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -16,7 +17,7 @@ const ObjectTypeLegend: React.FC<ObjectTypeLegendProps> = ({ objectType }) => {
     return (
         <li className={classes['legend-item']}>
             <div
-                className={classes['legend-item-square']}
+                className={clsx(classes['legend-item-square'], classes['legend-item-bordered'])}
                 style={{
                     borderColor: objectType.color,
                 }}
@@ -35,10 +36,33 @@ const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ name, color }) => {
     return (
         <li className={classes['legend-item']}>
             <div
-                className={clsx(classes['legend-item-square'], classes['legend-item-square-dashed'])}
+                className={clsx(
+                    classes['legend-item-square'],
+                    classes['legend-item-bordered'],
+                    classes['legend-item-square-dashed'],
+                )}
                 style={{
                     borderColor: `${color}66`,
                     backgroundColor: `${color}33`,
+                }}
+            />
+            {name}
+        </li>
+    );
+};
+
+interface CustomZoneLegendPatternProps {
+    name: string;
+    pattern: string;
+}
+
+const CustomZoneLegendPattern: React.FC<CustomZoneLegendPatternProps> = ({ name, pattern }) => {
+    return (
+        <li className={classes['legend-item']}>
+            <div
+                className={clsx(classes['legend-item-square'])}
+                style={{
+                    background: `url(${pattern})`,
                 }}
             />
             {name}
@@ -70,7 +94,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                     <ul className={classes['legends']}>
                         <li className={classes['legend-item']}>
                             <div
-                                className={clsx(classes['legend-item-square'])}
+                                className={clsx(classes['legend-item-square'], classes['legend-item-bordered'])}
                                 style={{
                                     borderColor: '#686868',
                                 }}
@@ -79,7 +103,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                         </li>
                         <li className={classes['legend-item']}>
                             <div
-                                className={clsx(classes['legend-item-round'])}
+                                className={clsx(classes['legend-item-round'], classes['legend-item-bordered'])}
                                 style={{
                                     borderColor: '#686868',
                                 }}
@@ -100,7 +124,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                                 color={geoCustomZone.color}
                             />
                         ))}
-                        <CustomZoneLegend name="Zones exclues par les filtres" color={CUSTOM_ZONE_NEGATIVE_COLOR} />
+                        <CustomZoneLegendPattern name="Zones exclues par les filtres" pattern={stripePatternImg} />
                     </ul>
                 </div>
                 <div>
@@ -109,7 +133,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                     <ul className={classes['legends']}>
                         <li className={classes['legend-item']}>
                             <div
-                                className={clsx(classes['legend-item-square'], classes['legend-item-square-dashed'])}
+                                className={clsx(
+                                    classes['legend-item-square'],
+                                    classes['legend-item-bordered'],
+                                    classes['legend-item-square-dashed'],
+                                )}
                                 style={{
                                     borderColor: PARCEL_COLOR,
                                 }}

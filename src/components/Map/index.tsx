@@ -7,6 +7,7 @@ import {
     GET_CUSTOM_GEOMETRY_ENDPOINT,
     getDetectionListEndpoint,
 } from '@/api-endpoints';
+import stripePatternImg from '@/assets/stripe-pattern.png';
 import DetectionDetail from '@/components/DetectionDetail';
 import MapAddAnnotationModal from '@/components/Map/MapAddAnnotationModal';
 import MapEditMultipleDetectionsModal from '@/components/Map/MapEditMultipleDetectionsModal';
@@ -113,7 +114,6 @@ const GEOJSON_CUSTOM_ZONES_LAYER_ID = 'custom-zones-geojson-layer';
 const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outline';
 
 const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID = 'custom-zone-negative-geojson-layer';
-const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_OUTLINE_ID = 'custom-zone-negative-geojson-layer-outline';
 
 const GEOJSON_DETECTIONS_LAYER_ID = 'detections-geojson-layer';
 const GEOJSON_DETECTIONS_LAYER_OUTLINE_ID = 'detections-geojson-layer-outline';
@@ -337,6 +337,16 @@ const Component: React.FC<ComponentProps> = ({
                 control.setAttribute('aria-label', title);
             }
         }, 100);
+
+        // load negative pattern
+
+        node.loadImage(stripePatternImg, (error, image) => {
+            if (error) throw error;
+
+            if (!node.hasImage('striped-pattern')) {
+                node.addImage('striped-pattern', image);
+            }
+        });
     }, []);
 
     useEffect(() => {
@@ -597,10 +607,11 @@ const Component: React.FC<ComponentProps> = ({
             ...Object.values(mapBounds || {}),
             customZoneLayersDisplayedUuids.join(','),
             (objectsFilter?.customZonesUuids || []).join(','),
+            customZoneNegativeFilterVisible,
         ],
         queryFn: ({ signal }) => fetchCustomZoneGeometries(signal, mapBounds),
         placeholderData: keepPreviousData,
-        enabled: (!!customZoneLayersDisplayedUuids.length || customZoneNegativeFilterVisible) && !!mapBounds,
+        enabled: !!mapBounds,
     });
 
     // event that makes detections to be reloaded
@@ -734,7 +745,7 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         if (displayDetections) {
-            return GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_OUTLINE_ID;
+            return GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID;
         }
 
         if (displayLayersGeometry) {
@@ -1026,17 +1037,7 @@ const Component: React.FC<ComponentProps> = ({
                         beforeId={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
                         type="fill"
                         paint={{
-                            'fill-color': 'rgba(169, 169, 169, 0.4)', // CUSTOM_ZONE_NEGATIVE_COLOR
-                        }}
-                    />
-                    <Layer
-                        id={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_OUTLINE_ID}
-                        beforeId={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID}
-                        type="line"
-                        paint={{
-                            'line-color': 'rgba(169, 169, 169, 0.6)', // CUSTOM_ZONE_NEGATIVE_COLOR
-                            'line-width': 2,
-                            'line-dasharray': [2, 2],
+                            'fill-pattern': 'striped-pattern',
                         }}
                     />
                 </Source>
