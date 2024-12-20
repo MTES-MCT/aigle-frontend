@@ -35,12 +35,13 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
         setPagination(PAGINATION_OFFSET_LIMIT_INITIAL_VALUE);
     }, [endpoint, filter]);
 
-    const fetchData = async (pagination: PaginationOffsetLimit) => {
+    const fetchData = async (signal: AbortSignal, pagination: PaginationOffsetLimit) => {
         const res = await api.get<Paginated<T_DATA>>(endpoint, {
             params: {
                 ...pagination,
                 ...filter,
             },
+            signal
         });
         setPagination((pagination) => ({
             ...pagination,
@@ -51,7 +52,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
 
     const { isLoading, error, data, isFetching } = useQuery({
         queryKey: [endpoint, pagination.limit, pagination.offset, ...Object.values(filter)],
-        queryFn: () => fetchData(pagination),
+        queryFn:  ({ signal }) => fetchData(signal, pagination),
         placeholderData: keepPreviousData,
     });
 
