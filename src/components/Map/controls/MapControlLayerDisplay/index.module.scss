@@ -27,19 +27,17 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-gap: 16px;
-        white-space: nowrap;
-    
+    white-space: nowrap;
 
     .layers-section {
-
         .layers-section-title {
             margin-top: var(--mantine-spacing-sm);
-    
+
             &:first-letter {
                 text-transform: uppercase;
             }
         }
-    
+
         .layers-section-group {
             margin-top: var(--mantine-spacing-xs);
         }

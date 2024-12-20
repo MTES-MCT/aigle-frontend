@@ -62,7 +62,7 @@ const Component: React.FC<ComponentProps> = ({
     id,
     imageLayer,
     onIdle,
-    reuseMaps = true
+    reuseMaps = true,
 }) => {
     const mapRef = useRef<MapRef>();
     const [currentExtendedLevel, setCurrentExtendedLevel] = useState(extendedLevel);

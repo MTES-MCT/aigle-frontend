@@ -41,7 +41,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                 ...pagination,
                 ...filter,
             },
-            signal
+            signal,
         });
         setPagination((pagination) => ({
             ...pagination,
@@ -52,7 +52,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
 
     const { isLoading, error, data, isFetching } = useQuery({
         queryKey: [endpoint, pagination.limit, pagination.offset, ...Object.values(filter)],
-        queryFn:  ({ signal }) => fetchData(signal, pagination),
+        queryFn: ({ signal }) => fetchData(signal, pagination),
         placeholderData: keepPreviousData,
     });
 
