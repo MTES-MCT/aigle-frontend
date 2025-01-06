@@ -111,6 +111,7 @@ export const MAP_SETTINGS_ENDPOINT = `${BASE_API}map-settings/`;
 
 const BASE_DETECTION = `${BASE_API}detection/`;
 export const DETECTION_POST_ENDPOINT = `${BASE_DETECTION}`;
+export const DETECTION_LIST_ENDPOINT = `${BASE_API}detection-list/`;
 export const DETECTION_MULTIPLE_POST_ENDPOINT = `${BASE_DETECTION}multiple/`;
 export const getDetectionListEndpoint = (detail: boolean = false, geoFeature: boolean = false) => {
     const searchParams = new URLSearchParams();
@@ -119,11 +120,16 @@ export const getDetectionListEndpoint = (detail: boolean = false, geoFeature: bo
         searchParams.set('detail', 'true');
     }
 
+    let base: string;
+
     if (geoFeature) {
+        base = BASE_DETECTION;
         searchParams.set('geoFeature', 'true');
+    } else {
+        base = DETECTION_LIST_ENDPOINT;
     }
 
-    return `${BASE_DETECTION}?${searchParams.toString()}`;
+    return `${base}?${searchParams.toString()}`;
 };
 export const getDetectionDetailEndpoint = (uuid: string) => `${BASE_DETECTION}${uuid}/`;
 
