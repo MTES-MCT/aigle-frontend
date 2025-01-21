@@ -898,7 +898,7 @@ const Component: React.FC<ComponentProps> = ({
                 <Source
                     id="annotation-grid-data"
                     type="geojson"
-                    data={annotationGrid || EMPTY_GEOJSON_FEATURE_COLLECTION}
+                    data={annotationLayerVisible && annotationGrid ? annotationGrid : EMPTY_GEOJSON_FEATURE_COLLECTION}
                 >
                     <Layer
                         id={GEOJSON_ANNOTATION_GRID_LAYER_ID}
