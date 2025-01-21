@@ -6,13 +6,11 @@ import { FeatureCollection, Polygon } from 'geojson';
 
 export const detectionControlStatuses = [
     'NOT_CONTROLLED',
-    'SIGNALED_COLLECTIVITY',
-    'SIGNALED_COMMUNE',
     'CONTROLLED_FIELD',
     'PRIOR_LETTER_SENT',
     'OFFICIAL_REPORT_DRAWN_UP',
     'OBSERVARTION_REPORT_REDACTED',
-    'VERBALIZED',
+    'ADMINISTRATIVE_CONSTRAINT',
     'REHABILITATED',
 ] as const;
 export type DetectionControlStatus = (typeof detectionControlStatuses)[number];

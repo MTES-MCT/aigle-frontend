@@ -20,7 +20,6 @@ import {
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
-import { useAuth } from '@/utils/auth-context';
 import {
     DEFAULT_DATE_FORMAT,
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
@@ -92,9 +91,6 @@ const Form: React.FC<FormProps> = ({
 }) => {
     const [error, setError] = useState<AxiosError>();
     const { eventEmitter } = useMap();
-
-    const { getUserGroupType, userMe } = useAuth();
-    const userGroupType = useMemo(() => getUserGroupType(), [userMe]);
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
@@ -239,7 +235,7 @@ const Form: React.FC<FormProps> = ({
                 label="Statut du contrôle"
                 data={detectionControlStatuses.map((status) => ({
                     value: status,
-                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[userGroupType][status],
+                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[status],
                 }))}
                 key={form.key('detectionControlStatus')}
                 disabled={disabled || mutation.status === 'pending'}

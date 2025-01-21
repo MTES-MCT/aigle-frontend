@@ -9,7 +9,6 @@ import { DetectionDetail } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
-import { useAuth } from '@/utils/auth-context';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP,
@@ -19,7 +18,7 @@ import {
 import { useStatistics } from '@/utils/context/statistics-context';
 import { Table } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import React, { useMemo } from 'react';
+import React from 'react';
 import classes from './index.module.scss';
 
 const ENDPOINT = getDetectionListEndpoint(true);
@@ -45,9 +44,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     geoCustomZones,
     updateObjectsFilter,
 }: ComponentInnerProps) => {
-    const { getUserGroupType, userMe } = useAuth();
-    const userGroupType = useMemo(() => getUserGroupType(), [userMe]);
-
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             communesUuids: [] as string[],
@@ -88,13 +84,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     (item: DetectionDetail) => Math.round(item.score * 100),
                     (item: DetectionDetail) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,
                     (item: DetectionDetail) => (
-                        <>
-                            {
-                                DETECTION_CONTROL_STATUSES_NAMES_MAP[userGroupType][
-                                    item.detectionData.detectionControlStatus
-                                ]
-                            }
-                        </>
+                        <>{DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionData.detectionControlStatus]}</>
                     ),
                     (item: DetectionDetail) => (
                         <>

@@ -2,13 +2,12 @@ import logoImg from '@/assets/logo.png';
 import prefetHeraultImg from '@/assets/signalement-pdf/prefet_herault.jpg';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { ParcelDetail } from '@/models/parcel';
-import { useAuth } from '@/utils/auth-context';
 import { DEFAULT_DATE_FORMAT, DETECTION_CONTROL_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { formatCommune, formatParcel } from '@/utils/format';
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { centroid } from '@turf/turf';
 import { format } from 'date-fns';
-import React, { useMemo } from 'react';
+import React from 'react';
 
 const countSuspectObjectsParcel = (parcel: ParcelDetail, excludeObjectUuid: string): Record<string, number> | null => {
     const suspectObjectsMap: Record<string, number> = {};
@@ -116,9 +115,6 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, previewImages, p
     } = centroid(detectionObject.detections[0].geometry);
     const latLong = `${centerPoint[1].toFixed(5)}, ${centerPoint[0].toFixed(5)}`;
 
-    const { getUserGroupType, userMe } = useAuth.getState();
-    const userGroupType = useMemo(() => getUserGroupType(), [userMe]);
-
     const suspectObjectsCount = parcel ? countSuspectObjectsParcel(parcel, detectionObject.uuid) : null;
 
     return (
@@ -159,7 +155,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, previewImages, p
                 <Text>
                     Statut:{' '}
                     {
-                        DETECTION_CONTROL_STATUSES_NAMES_MAP[userGroupType][
+                        DETECTION_CONTROL_STATUSES_NAMES_MAP[
                             detectionObject.detections[0].detectionData.detectionControlStatus
                         ]
                     }

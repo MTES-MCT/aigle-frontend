@@ -66,31 +66,17 @@ export const GEO_CUSTOM_ZONE_TYPES_NAMES_MAP: {
     COLLECTIVITY_MANAGED: 'Géré niveau collectivité',
 } as const;
 
-const DETECTION_CONTROL_STATUSES_NAMES_MAP_BASE: {
+export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
     [status in DetectionControlStatus]: string;
 } = {
     NOT_CONTROLLED: 'Non contrôlé',
-    SIGNALED_COLLECTIVITY: 'Signalé à la collectivité',
-    SIGNALED_COMMUNE: 'Signalé à la commune',
-    CONTROLLED_FIELD: 'Contrôlé terrain',
     PRIOR_LETTER_SENT: 'Courrier préalable envoyé',
+    CONTROLLED_FIELD: 'Contrôlé terrain',
     OFFICIAL_REPORT_DRAWN_UP: 'Procès-verbal dressé',
     OBSERVARTION_REPORT_REDACTED: 'Rapport de constatations rédigé',
-    VERBALIZED: 'Verbalisé',
+    ADMINISTRATIVE_CONSTRAINT: 'Astreinte Administrative',
     REHABILITATED: 'Remis en état',
 } as const;
-
-export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
-    [userGroupType in UserGroupType]: {
-        [status in DetectionControlStatus]: string;
-    };
-} = {
-    DDTM: DETECTION_CONTROL_STATUSES_NAMES_MAP_BASE,
-    COLLECTIVITY: {
-        ...DETECTION_CONTROL_STATUSES_NAMES_MAP_BASE,
-        SIGNALED_COLLECTIVITY: 'Signalement effectué par la DDTM',
-    },
-};
 
 export const DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP: {
     [status in DetectionPrescriptionStatus]: string;
