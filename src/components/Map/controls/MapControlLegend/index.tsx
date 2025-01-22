@@ -1,10 +1,9 @@
 import React from 'react';
 
-import stripePatternImg from '@/assets/stripe-pattern.png';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
-import { PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { CUSTOM_ZONE_NEGATIVE_COLOR, PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -30,39 +29,21 @@ const ObjectTypeLegend: React.FC<ObjectTypeLegendProps> = ({ objectType }) => {
 interface CustomZoneLegendProps {
     name: string;
     color: string;
+    withBorder?: boolean;
 }
 
-const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ name, color }) => {
+const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ name, color, withBorder = true }) => {
     return (
         <li className={classes['legend-item']}>
             <div
                 className={clsx(
                     classes['legend-item-square'],
-                    classes['legend-item-bordered'],
-                    classes['legend-item-square-dashed'],
+                    withBorder ? classes['legend-item-bordered'] : null,
+                    withBorder ? classes['legend-item-square-dashed'] : null,
                 )}
                 style={{
                     borderColor: `${color}66`,
                     backgroundColor: `${color}33`,
-                }}
-            />
-            {name}
-        </li>
-    );
-};
-
-interface CustomZoneLegendPatternProps {
-    name: string;
-    pattern: string;
-}
-
-const CustomZoneLegendPattern: React.FC<CustomZoneLegendPatternProps> = ({ name, pattern }) => {
-    return (
-        <li className={classes['legend-item']}>
-            <div
-                className={clsx(classes['legend-item-square'])}
-                style={{
-                    background: `url(${pattern})`,
                 }}
             />
             {name}
@@ -124,7 +105,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                                 color={geoCustomZone.color}
                             />
                         ))}
-                        <CustomZoneLegendPattern name="Zones exclues par les filtres" pattern={stripePatternImg} />
+                        <CustomZoneLegend
+                            name="Zones exclues par les filtres"
+                            withBorder={false}
+                            color={CUSTOM_ZONE_NEGATIVE_COLOR}
+                        />
                     </ul>
                 </div>
                 <div>

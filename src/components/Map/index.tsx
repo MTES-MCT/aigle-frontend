@@ -7,7 +7,6 @@ import {
     GET_CUSTOM_GEOMETRY_ENDPOINT,
     getDetectionListEndpoint,
 } from '@/api-endpoints';
-import stripePatternImg from '@/assets/stripe-pattern.png';
 import DetectionDetail from '@/components/DetectionDetail';
 import MapAddAnnotationModal from '@/components/Map/MapAddAnnotationModal';
 import MapEditMultipleDetectionsModal from '@/components/Map/MapEditMultipleDetectionsModal';
@@ -25,7 +24,7 @@ import { DetectionObjectDetail } from '@/models/detection-object';
 import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
 import api from '@/utils/api';
-import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
+import { CUSTOM_ZONE_NEGATIVE_COLOR, MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -337,16 +336,6 @@ const Component: React.FC<ComponentProps> = ({
                 control.setAttribute('aria-label', title);
             }
         }, 100);
-
-        // load negative pattern
-
-        node.loadImage(stripePatternImg, (error, image) => {
-            if (error) throw error;
-
-            if (!node.hasImage('striped-pattern')) {
-                node.addImage('striped-pattern', image);
-            }
-        });
     }, []);
 
     useEffect(() => {
@@ -1037,7 +1026,7 @@ const Component: React.FC<ComponentProps> = ({
                         beforeId={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
                         type="fill"
                         paint={{
-                            'fill-pattern': 'striped-pattern',
+                            'fill-color': 'rgba(128, 128, 128, 0.5)', // CUSTOM_ZONE_NEGATIVE_COLOR
                         }}
                     />
                 </Source>
