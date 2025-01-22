@@ -9,8 +9,8 @@ export const detectionControlStatuses = [
     'CONTROLLED_FIELD',
     'PRIOR_LETTER_SENT',
     'OFFICIAL_REPORT_DRAWN_UP',
-    'OBSERVARTION_REPORT_REDACTED',
     'ADMINISTRATIVE_CONSTRAINT',
+    'OBSERVARTION_REPORT_REDACTED',
     'REHABILITATED',
 ] as const;
 export type DetectionControlStatus = (typeof detectionControlStatuses)[number];

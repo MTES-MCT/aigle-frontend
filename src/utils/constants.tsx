@@ -72,9 +72,9 @@ export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
     NOT_CONTROLLED: 'Non contrôlé',
     PRIOR_LETTER_SENT: 'Courrier préalable envoyé',
     CONTROLLED_FIELD: 'Contrôlé terrain',
-    OFFICIAL_REPORT_DRAWN_UP: 'Procès-verbal dressé',
-    OBSERVARTION_REPORT_REDACTED: 'Rapport de constatations rédigé',
+    OFFICIAL_REPORT_DRAWN_UP: 'PV dressé',
     ADMINISTRATIVE_CONSTRAINT: 'Astreinte Administrative',
+    OBSERVARTION_REPORT_REDACTED: 'Rapport de constatations rédigé',
     REHABILITATED: 'Remis en état',
 } as const;
 
