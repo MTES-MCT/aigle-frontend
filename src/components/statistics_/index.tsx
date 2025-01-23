@@ -1,5 +1,5 @@
-import ValidationStatusEvolutionChart from '@/components/Statistics/ValidationStatusEvolutionChart';
-import ValidationStatusPieChart from '@/components/Statistics/ValidationStatusPieChart';
+import ValidationStatusEvolutionChart from '@/components/statistics_/ValidationStatusEvolutionChart';
+import ValidationStatusPieChart from '@/components/statistics_/ValidationStatusPieChart';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
 import { useStatistics } from '@/utils/context/statistics-context';
 import { Loader, MultiSelect } from '@mantine/core';

@@ -1,6 +1,6 @@
 import FilterObjects from '@/components/FilterObjects';
 import LayoutBase from '@/components/LayoutBase';
-import Statistics from '@/components/Statistics';
+import Statistics from '@/components/statistics_';
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import { useStatistics } from '@/utils/context/statistics-context';
 import React from 'react';
