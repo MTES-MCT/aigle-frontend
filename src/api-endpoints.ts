@@ -159,3 +159,4 @@ export const GET_ANNOTATION_GRID_ENDPOINT = `${BASE_UTILS}get-annotation-grid/`;
 const BASE_STATISTICS = `${BASE_API}statistics/`;
 export const STATISTICS_VALIDATION_STATUS_EVOLUTION_ENDPOINT = `${BASE_STATISTICS}validation-status-evolution/`;
 export const STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT = `${BASE_STATISTICS}validation-status-global/`;
+export const STATISTICS_VALIDATION_STATUS_OBJECT_TYPES_GLOBAL_ENDPOINT = `${BASE_STATISTICS}validation-status-object-types-global/`;

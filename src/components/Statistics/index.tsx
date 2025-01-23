@@ -6,6 +6,7 @@ import { Loader, MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { useMemo } from 'react';
 import classes from './index.module.scss';
+import ValidationStatusObjectTypesLineChart from '@/components/Statistics/ValidationStatusObjectTypesLineChart';
 
 interface FormValues {
     tileSetsUuids: string[];
@@ -58,6 +59,14 @@ const Component: React.FC = () => {
                         departmentsUuids={form.values.departmentsUuids}
                         regionsUuids={form.values.regionsUuids}
                     />
+
+                    <ValidationStatusObjectTypesLineChart
+                        objectsFilter={objectsFilter}
+                        tileSetsUuids={form.values.tileSetsUuids}
+                        communesUuids={form.values.communesUuids}
+                        departmentsUuids={form.values.departmentsUuids}
+                        regionsUuids={form.values.regionsUuids}
+                        />
                 </>
             ) : (
                 <Loader />
