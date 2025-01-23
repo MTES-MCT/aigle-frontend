@@ -32,7 +32,7 @@ import { useStatistics } from '@/utils/context/statistics-context';
 import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import Charts from './routes/Statistics/Charts';
+import Charts from './routes/Statistics_/Charts';
 
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
