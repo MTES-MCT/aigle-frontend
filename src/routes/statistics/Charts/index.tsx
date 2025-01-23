@@ -1,7 +1,7 @@
 import FilterObjects from '@/components/FilterObjects';
 import LayoutBase from '@/components/LayoutBase';
+import Statistics from '@/components/Statistics';
 import SoloAccordion from '@/components/admin/SoloAccordion';
-import ValidationStatusEvolutionChart from '@/components/statistics/ValidationStatusEvolutionChart';
 import { useStatistics } from '@/utils/context/statistics-context';
 import React from 'react';
 import classes from './index.module.scss';
@@ -24,7 +24,7 @@ const Component: React.FC = () => {
                 />
             </SoloAccordion>
             <div className={classes['charts-container']}>
-                <ValidationStatusEvolutionChart />
+                <Statistics />
             </div>
         </LayoutBase>
     );

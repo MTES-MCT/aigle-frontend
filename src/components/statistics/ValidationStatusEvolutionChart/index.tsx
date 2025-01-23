@@ -89,7 +89,7 @@ interface ComponentInnerProps {
     objectsFilter: ObjectsFilter;
 }
 
-const ComponentInner: React.FC<ComponentInnerProps> = ({ tileSets, objectsFilter }: ComponentInnerProps) => {
+const Component: React.FC<ComponentInnerProps> = ({ tileSets, objectsFilter }: ComponentInnerProps) => {
     const tileSetsValues = useMemo(() => tileSets.map(({ name, uuid }) => ({ value: uuid, label: name })), [tileSets]);
     const series = useMemo(() => {
         return objectsFilter.detectionValidationStatuses.map((status) => ({
@@ -154,21 +154,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ tileSets, objectsFilter
                 />
             </div>
         </div>
-    );
-};
-
-const Component: React.FC = () => {
-    const { layers, objectsFilter } = useStatistics();
-    const tileSets = useMemo(() => (layers || []).map((layer) => layer.tileSet), [layers]);
-
-    return (
-        <>
-            {objectsFilter && tileSets && tileSets.length ? (
-                <ComponentInner objectsFilter={objectsFilter} tileSets={tileSets} />
-            ) : (
-                <Loader />
-            )}
-        </>
     );
 };
 
