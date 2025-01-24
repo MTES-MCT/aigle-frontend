@@ -174,53 +174,6 @@ const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCu
                         </Button>
                     </Button.Group>
 
-                    <Text mt="md" className="input-label">
-                        Détections ajoutées manuellement
-                        <InfoBubble className={classes['manually-added-detections-tooltip']}>
-                            Permet de contrôler les conditions d&apos;affichage des détections dessinées à la main
-                            <ul>
-                                <li>
-                                    Toutes : afficher toutes les détections dessinées à la main quelles que soit leur
-                                    position
-                                </li>
-                                <li>
-                                    Dans les zones à enjeux sélectionnées : afficher toutes les détections dessinées à
-                                    la main seulement si elles sont dans une des zones à enjeux sélectionnée
-                                </li>
-                                <li>Aucune : n&apos;afficher aucune détections dessinées à la main</li>
-                            </ul>
-                        </InfoBubble>
-                    </Text>
-                    <Button.Group className={classes['multiselect-buttons-container']}>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().interfaceDrawn === 'ALL' ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('interfaceDrawn', 'ALL')}
-                        >
-                            Toutes
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().interfaceDrawn === 'INSIDE_SELECTED_ZONES' ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('interfaceDrawn', 'INSIDE_SELECTED_ZONES')}
-                        >
-                            Dans les zones à enjeux sélectionnées
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().interfaceDrawn === 'NONE' ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('interfaceDrawn', 'NONE')}
-                        >
-                            Aucune
-                        </Button>
-                    </Button.Group>
-
                     <MultiSelect
                         className="multiselect-pills-hidden"
                         mt="md"

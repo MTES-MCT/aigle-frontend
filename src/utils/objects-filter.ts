@@ -74,7 +74,7 @@ const objectsFilterToParams = (objectsFilter: ObjectsFilter): QueryParams => {
         detectionControlStatuses: objectsFilter.detectionControlStatuses.join(','),
         score: objectsFilter.score.toString(),
         prescripted: String(objectsFilter.prescripted),
-        interfaceDrawn: objectsFilter.interfaceDrawn,
+        interfaceDrawn: 'ALL',
         customZonesUuids: objectsFilter.customZonesUuids.join(','),
     };
 };
