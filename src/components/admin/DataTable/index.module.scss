@@ -19,6 +19,11 @@ $space-between-elements: 16px;
     }
 }
 
+.nbr-results {
+    font-style: italic;
+    color: var(--mantine-color-gray-text);
+}
+
 .pagination {
     display: flex;
     align-items: center;

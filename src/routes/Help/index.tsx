@@ -1,4 +1,4 @@
-import pdfDoc from '@/assets/Fiche métier - AIGLE - v1.pdf';
+import pdfDoc from '@/assets/Fiche métier - AIGLE - v2.pdf';
 import LayoutBase from '@/components/LayoutBase';
 import { Anchor, Button } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';

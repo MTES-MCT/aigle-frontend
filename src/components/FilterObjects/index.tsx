@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 
+import InfoBubble from '@/components/InfoBubble';
 import SelectItem from '@/components/ui/SelectItem';
 import { detectionControlStatuses, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
-import { useAuth } from '@/utils/auth-context';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_COLORS_MAP,
@@ -39,9 +39,6 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCustomZones, updateObjectsFilter }) => {
-    const { getUserGroupType, userMe } = useAuth();
-    const userGroupType = useMemo(() => getUserGroupType(), [userMe]);
-
     const {
         objectTypesUuids,
         detectionValidationStatuses: detectionValidationStatusesFilter,
@@ -177,39 +174,6 @@ const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCu
                         </Button>
                     </Button.Group>
 
-                    <Text mt="md" className="input-label">
-                        Détections ajoutées manuellement
-                    </Text>
-                    <Button.Group className={classes['multiselect-buttons-container']}>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().interfaceDrawn === 'ALL' ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('interfaceDrawn', 'ALL')}
-                        >
-                            Toutes
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().interfaceDrawn === 'INSIDE_SELECTED_ZONES' ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('interfaceDrawn', 'INSIDE_SELECTED_ZONES')}
-                        >
-                            Dans les zones à enjeux sélectionnées
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().interfaceDrawn === 'NONE' ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('interfaceDrawn', 'NONE')}
-                        >
-                            Aucune
-                        </Button>
-                    </Button.Group>
-
                     <MultiSelect
                         className="multiselect-pills-hidden"
                         mt="md"
@@ -298,7 +262,7 @@ const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCu
                                     <Checkbox
                                         key={status}
                                         value={status}
-                                        label={DETECTION_CONTROL_STATUSES_NAMES_MAP[userGroupType][status]}
+                                        label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
                                     />
                                 ))}
                             </Stack>

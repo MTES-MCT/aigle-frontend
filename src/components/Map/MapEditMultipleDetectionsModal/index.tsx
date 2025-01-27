@@ -9,7 +9,6 @@ import {
 } from '@/models/detection';
 import { ObjectType } from '@/models/object-type';
 import api from '@/utils/api';
-import { useAuth } from '@/utils/auth-context';
 import { DETECTION_CONTROL_STATUSES_NAMES_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { Button, Modal, Select } from '@mantine/core';
@@ -19,7 +18,7 @@ import { IconSelectAll } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import clsx from 'clsx';
-import React, { useMemo } from 'react';
+import React from 'react';
 import classes from './index.module.scss';
 
 const NO_EDIT_TEXT = 'Ne pas éditer';
@@ -69,9 +68,6 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
             detectionValidationStatus: null as DetectionValidationStatusNullable,
         },
     });
-
-    const { getUserGroupType, userMe } = useAuth();
-    const userGroupType = useMemo(() => getUserGroupType(), [userMe]);
 
     const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, detectionsUuids),
@@ -123,7 +119,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
                 label="Statut du contrôle"
                 data={detectionControlStatuses.map((status) => ({
                     value: status,
-                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[userGroupType][status],
+                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[status],
                 }))}
                 clearable
                 placeholder={NO_EDIT_TEXT}

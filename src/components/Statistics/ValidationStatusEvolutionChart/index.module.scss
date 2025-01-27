@@ -1,0 +1,14 @@
+@import '@/constants.scss';
+
+.content {
+    padding: $content-padding;
+}
+
+.title {
+    margin-bottom: var(--mantine-spacing-md);
+}
+
+.chart-container {
+    margin-top: var(--mantine-spacing-sm);
+    position: relative;
+}

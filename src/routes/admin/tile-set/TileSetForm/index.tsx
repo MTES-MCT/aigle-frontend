@@ -410,7 +410,7 @@ const ComponentInner: React.FC = () => {
             score: 0,
             prescripted: null,
             customZonesUuids: [],
-            interfaceDrawn: 'ALL'
+            interfaceDrawn: 'ALL',
         });
     }, []);
 

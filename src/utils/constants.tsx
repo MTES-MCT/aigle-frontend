@@ -1,5 +1,10 @@
 import { GEO_COMMUNE_LIST_ENDPOINT, GEO_DEPARTMENT_LIST_ENDPOINT, GEO_REGION_LIST_ENDPOINT } from '@/api-endpoints';
-import { DetectionControlStatus, DetectionPrescriptionStatus, DetectionValidationStatus } from '@/models/detection';
+import {
+    DetectionControlStatus,
+    DetectionPrescriptionStatus,
+    DetectionSource,
+    DetectionValidationStatus,
+} from '@/models/detection';
 import { CollectivityType } from '@/models/geo/_common';
 import { GeoCustomZoneStatus, GeoCustomZoneType } from '@/models/geo/geo-custom-zone';
 import { ObjectTypeCategoryObjectTypeStatus } from '@/models/object-type-category';
@@ -61,31 +66,17 @@ export const GEO_CUSTOM_ZONE_TYPES_NAMES_MAP: {
     COLLECTIVITY_MANAGED: 'Géré niveau collectivité',
 } as const;
 
-const DETECTION_CONTROL_STATUSES_NAMES_MAP_BASE: {
+export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
     [status in DetectionControlStatus]: string;
 } = {
     NOT_CONTROLLED: 'Non contrôlé',
-    SIGNALED_COLLECTIVITY: 'Signalé à la collectivité',
-    SIGNALED_COMMUNE: 'Signalé à la commune',
-    CONTROLLED_FIELD: 'Contrôlé terrain',
     PRIOR_LETTER_SENT: 'Courrier préalable envoyé',
-    OFFICIAL_REPORT_DRAWN_UP: 'Procès-verbal dressé',
+    CONTROLLED_FIELD: 'Contrôlé terrain',
+    OFFICIAL_REPORT_DRAWN_UP: 'PV dressé',
+    ADMINISTRATIVE_CONSTRAINT: 'Astreinte Administrative',
     OBSERVARTION_REPORT_REDACTED: 'Rapport de constatations rédigé',
-    VERBALIZED: 'Verbalisé',
     REHABILITATED: 'Remis en état',
 } as const;
-
-export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
-    [userGroupType in UserGroupType]: {
-        [status in DetectionControlStatus]: string;
-    };
-} = {
-    DDTM: DETECTION_CONTROL_STATUSES_NAMES_MAP_BASE,
-    COLLECTIVITY: {
-        ...DETECTION_CONTROL_STATUSES_NAMES_MAP_BASE,
-        SIGNALED_COLLECTIVITY: 'Signalement effectué par la DDTM',
-    },
-};
 
 export const DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP: {
     [status in DetectionPrescriptionStatus]: string;
@@ -135,6 +126,13 @@ export const OBJECT_TYPE_CATEGROY_OBJECT_TYPE_STATUSES_NAMES_MAP: {
     HIDDEN: 'Caché par défaut',
 } as const;
 
+export const DETECTION_SOURCE_NAMES_MAP: {
+    [source in DetectionSource]: string;
+} = {
+    INTERFACE_DRAWN: 'Dessin interface',
+    ANALYSIS: 'Analyse',
+} as const;
+
 export const COLLECTIVITY_TYPES_ENDPOINTS_MAP: {
     [role in CollectivityType]: string;
 } = {
@@ -145,3 +143,5 @@ export const COLLECTIVITY_TYPES_ENDPOINTS_MAP: {
 
 export const DEFAULT_DATE_FORMAT = 'dd/MM/yyyy';
 export const DEFAULT_DATETIME_FORMAT = 'dd/MM/yyyy à HH:mm';
+
+export const CUSTOM_ZONE_NEGATIVE_COLOR = '#808080';

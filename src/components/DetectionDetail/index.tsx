@@ -150,7 +150,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     ) : null}
                 </div>
 
-                <Accordion variant="contained" className={classes['general-informations']} defaultValue="infos">
+                <Accordion variant="contained" className={classes['general-informations']} defaultValue={undefined}>
                     <Accordion.Item key="infos" value="infos" className={classes['general-informations-item']}>
                         <Accordion.Control>Informations générales</Accordion.Control>
                         <Accordion.Panel className={classes['general-informations-content']}>

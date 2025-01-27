@@ -1,6 +1,5 @@
 @import '@/constants.scss';
 
-
 .statuses-filters-container {
     display: flex;
     flex-direction: row;
@@ -34,4 +33,8 @@
     .filters-section {
         flex: 1;
     }
+}
+
+.manually-added-detections-tooltip {
+    margin-left: var(--mantine-spacing-xs);
 }

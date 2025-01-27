@@ -21,7 +21,7 @@ import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData'
 import { DetectionGeojsonData, DetectionProperties } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { DetectionObjectDetail } from '@/models/detection-object';
-import { GeoCustomZoneGeojsonData } from '@/models/geo/geo-custom-zone';
+import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
@@ -33,7 +33,8 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { bbox, bboxPolygon, booleanIntersects, centroid, feature, getCoord } from '@turf/turf';
+import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
+import { format } from 'date-fns';
 import { FeatureCollection, Geometry, Polygon } from 'geojson';
 import mapboxgl from 'mapbox-gl';
 import DrawRectangle, { DrawStyles } from 'mapbox-gl-draw-rectangle-restrict-area';
@@ -106,10 +107,13 @@ const MAP_CONTROLS: {
 const getSourceId = (layer: MapTileSetLayer) => `source-${layer.tileSet.uuid}`;
 const getLayerId = (layer: MapTileSetLayer) => `layer-${layer.tileSet.uuid}`;
 
-const DETECTION_ENDPOINT = getDetectionListEndpoint();
+const DETECTION_ENDPOINT = getDetectionListEndpoint(false, true);
 
 const GEOJSON_CUSTOM_ZONES_LAYER_ID = 'custom-zones-geojson-layer';
 const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outline';
+
+const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID = 'custom-zone-negative-geojson-layer';
+
 const GEOJSON_DETECTIONS_LAYER_ID = 'detections-geojson-layer';
 const GEOJSON_DETECTIONS_LAYER_OUTLINE_ID = 'detections-geojson-layer-outline';
 const GEOJSON_LAYER_EXTRA_ID = 'geojson-layer-data-extra';
@@ -192,9 +196,11 @@ const Component: React.FC<ComponentProps> = ({
         objectsFilter,
         getTileSetsUuids,
         setTileSetsVisibility,
+        backgroundLayerYears,
         settings,
         customZoneLayers,
         annotationLayerVisible,
+        customZoneNegativeFilterVisible,
     } = useMap();
 
     const [cursor, setCursor] = useState<string>();
@@ -342,6 +348,10 @@ const Component: React.FC<ComponentProps> = ({
         const handleModeChange = (event) => {
             const { mode } = event;
 
+            if (!backgroundLayerYears) {
+                throw new Error('backgroundLayerYears is empty');
+            }
+
             if (mode === 'draw_point') {
                 const partialLayersDisplayedUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], true);
                 let partialLayersToDisplayUuids: string[] = [];
@@ -350,14 +360,16 @@ const Component: React.FC<ComponentProps> = ({
                     partialLayersToDisplayUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], false);
                 }
 
-                const mostRecentBackgroundLayer = layers
-                    .sort(
-                        (layer1, layer2) =>
-                            new Date(layer2.tileSet.date).getTime() - new Date(layer1.tileSet.date).getTime(),
+                const mostRecentBackgroundLayerYear = backgroundLayerYears[0];
+                const mostRecentBackgroundLayerUuids = layers
+                    .filter(
+                        (layer) =>
+                            layer.tileSet.tileSetType === 'BACKGROUND' &&
+                            format(layer.tileSet.date, 'yyyy') === mostRecentBackgroundLayerYear,
                     )
-                    .filter((layer) => layer.tileSet.tileSetType === 'BACKGROUND')[0];
+                    .map((layer) => layer.tileSet.uuid);
 
-                setTileSetsVisibility([...partialLayersToDisplayUuids, mostRecentBackgroundLayer.tileSet.uuid], true);
+                setTileSetsVisibility([...partialLayersToDisplayUuids, ...mostRecentBackgroundLayerUuids], true);
 
                 setDrawMode('ADD_DETECTION');
                 setLeftSectionShowed(undefined);
@@ -563,29 +575,32 @@ const Component: React.FC<ComponentProps> = ({
     // custom zones fetching
 
     const fetchCustomZoneGeometries = async (signal: AbortSignal, mapBounds?: MapBounds) => {
-        if (!mapBounds || customZoneLayersDisplayedUuids.length === 0) {
+        if (!mapBounds || (customZoneLayersDisplayedUuids.length === 0 && !customZoneNegativeFilterVisible)) {
             return null;
         }
 
-        const res = await api.get<GeoCustomZoneGeojsonData>(GET_CUSTOM_GEOMETRY_ENDPOINT, {
+        const res = await api.get<GeoCustomZoneResponse>(GET_CUSTOM_GEOMETRY_ENDPOINT, {
             params: {
                 ...mapBounds,
                 uuids: customZoneLayersDisplayedUuids,
+                uuidsNegative: customZoneNegativeFilterVisible ? objectsFilter?.customZonesUuids || [] : [],
             },
             signal,
         });
 
         return res.data;
     };
-    const { data: customZonesGeometries } = useQuery({
+    const { data: customZonesData } = useQuery({
         queryKey: [
             GET_CUSTOM_GEOMETRY_ENDPOINT,
             ...Object.values(mapBounds || {}),
             customZoneLayersDisplayedUuids.join(','),
+            (objectsFilter?.customZonesUuids || []).join(','),
+            customZoneNegativeFilterVisible,
         ],
         queryFn: ({ signal }) => fetchCustomZoneGeometries(signal, mapBounds),
         placeholderData: keepPreviousData,
-        enabled: !!customZoneLayersDisplayedUuids.length && !!mapBounds,
+        enabled: !!mapBounds,
     });
 
     // event that makes detections to be reloaded
@@ -719,7 +734,7 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         if (displayDetections) {
-            return GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID;
+            return GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID;
         }
 
         if (displayLayersGeometry) {
@@ -746,7 +761,7 @@ const Component: React.FC<ComponentProps> = ({
                 onMouseEnter={onPolygonMouseEnter}
                 onMouseLeave={onPolygonMouseLeave}
                 cursor={cursor}
-                mapStyle="mapbox://styles/mapbox/streets-v11"
+                mapStyle="mapbox://styles/mapbox/streets-v12"
                 {...(settings?.globalGeometry ? { maxBounds: bbox(settings.globalGeometry) } : {})}
             >
                 <GeolocateControl
@@ -872,7 +887,7 @@ const Component: React.FC<ComponentProps> = ({
                 <Source
                     id="annotation-grid-data"
                     type="geojson"
-                    data={annotationGrid || EMPTY_GEOJSON_FEATURE_COLLECTION}
+                    data={annotationLayerVisible && annotationGrid ? annotationGrid : EMPTY_GEOJSON_FEATURE_COLLECTION}
                 >
                     <Layer
                         id={GEOJSON_ANNOTATION_GRID_LAYER_ID}
@@ -974,7 +989,7 @@ const Component: React.FC<ComponentProps> = ({
                 <Source
                     id="custom-zones-geojson-data"
                     type="geojson"
-                    data={customZonesGeometries || EMPTY_GEOJSON_FEATURE_COLLECTION}
+                    data={customZonesData?.customZones || EMPTY_GEOJSON_FEATURE_COLLECTION}
                 >
                     <Layer
                         id={GEOJSON_CUSTOM_ZONES_LAYER_ID}
@@ -994,6 +1009,24 @@ const Component: React.FC<ComponentProps> = ({
                             'line-opacity': 0.4,
                             'line-width': 2,
                             'line-dasharray': [2, 2],
+                        }}
+                    />
+                </Source>
+                <Source
+                    id="custom-zone-negative-geojson-data"
+                    type="geojson"
+                    data={
+                        customZonesData?.customZoneNegative
+                            ? featureCollection([feature(customZonesData.customZoneNegative)])
+                            : EMPTY_GEOJSON_FEATURE_COLLECTION
+                    }
+                >
+                    <Layer
+                        id={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID}
+                        beforeId={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
+                        type="fill"
+                        paint={{
+                            'fill-color': 'rgba(128, 128, 128, 0.5)', // CUSTOM_ZONE_NEGATIVE_COLOR
                         }}
                     />
                 </Source>

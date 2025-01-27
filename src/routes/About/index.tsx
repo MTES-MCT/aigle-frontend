@@ -1,11 +1,9 @@
-import pdfDoc from '@/assets/Fiche métier - AIGLE - v1.pdf';
 import logoMte from '@/assets/MTE.png';
 import logoDdtm from '@/assets/ddtm.png';
 import logoImg from '@/assets/logo.png';
 import logoPrefet from '@/assets/prefet_herault.png';
 import LayoutBase from '@/components/LayoutBase';
-import { Anchor, Button, Divider, Group, Image } from '@mantine/core';
-import { IconDownload } from '@tabler/icons-react';
+import { Anchor, Divider, Group, Image } from '@mantine/core';
 import React from 'react';
 import classes from './index.module.scss';
 

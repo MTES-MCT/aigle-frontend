@@ -1,10 +1,9 @@
 import React from 'react';
 
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
-import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
-import { PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { CUSTOM_ZONE_NEGATIVE_COLOR, PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -17,7 +16,7 @@ const ObjectTypeLegend: React.FC<ObjectTypeLegendProps> = ({ objectType }) => {
     return (
         <li className={classes['legend-item']}>
             <div
-                className={classes['legend-item-square']}
+                className={clsx(classes['legend-item-square'], classes['legend-item-bordered'])}
                 style={{
                     borderColor: objectType.color,
                 }}
@@ -28,20 +27,26 @@ const ObjectTypeLegend: React.FC<ObjectTypeLegendProps> = ({ objectType }) => {
 };
 
 interface CustomZoneLegendProps {
-    geoCustomZone: GeoCustomZone;
+    name: string;
+    color: string;
+    withBorder?: boolean;
 }
 
-const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ geoCustomZone }) => {
+const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ name, color, withBorder = true }) => {
     return (
         <li className={classes['legend-item']}>
             <div
-                className={clsx(classes['legend-item-square'], classes['legend-item-square-dashed'])}
+                className={clsx(
+                    classes['legend-item-square'],
+                    withBorder ? classes['legend-item-bordered'] : null,
+                    withBorder ? classes['legend-item-square-dashed'] : null,
+                )}
                 style={{
-                    borderColor: `${geoCustomZone.color}66`,
-                    backgroundColor: `${geoCustomZone.color}33`,
+                    borderColor: `${color}66`,
+                    backgroundColor: `${color}33`,
                 }}
             />
-            {geoCustomZone.name}
+            {name}
         </li>
     );
 };
@@ -70,7 +75,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                     <ul className={classes['legends']}>
                         <li className={classes['legend-item']}>
                             <div
-                                className={clsx(classes['legend-item-square'])}
+                                className={clsx(classes['legend-item-square'], classes['legend-item-bordered'])}
                                 style={{
                                     borderColor: '#686868',
                                 }}
@@ -79,7 +84,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                         </li>
                         <li className={classes['legend-item']}>
                             <div
-                                className={clsx(classes['legend-item-round'])}
+                                className={clsx(classes['legend-item-round'], classes['legend-item-bordered'])}
                                 style={{
                                     borderColor: '#686868',
                                 }}
@@ -94,8 +99,17 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
 
                     <ul className={classes['legends']}>
                         {customZoneLayers.map(({ geoCustomZone }) => (
-                            <CustomZoneLegend key={geoCustomZone.uuid} geoCustomZone={geoCustomZone} />
+                            <CustomZoneLegend
+                                key={geoCustomZone.uuid}
+                                name={geoCustomZone.name}
+                                color={geoCustomZone.color}
+                            />
                         ))}
+                        <CustomZoneLegend
+                            name="Zones exclues par les filtres"
+                            withBorder={false}
+                            color={CUSTOM_ZONE_NEGATIVE_COLOR}
+                        />
                     </ul>
                 </div>
                 <div>
@@ -104,7 +118,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZone
                     <ul className={classes['legends']}>
                         <li className={classes['legend-item']}>
                             <div
-                                className={clsx(classes['legend-item-square'], classes['legend-item-square-dashed'])}
+                                className={clsx(
+                                    classes['legend-item-square'],
+                                    classes['legend-item-bordered'],
+                                    classes['legend-item-square-dashed'],
+                                )}
                                 style={{
                                     borderColor: PARCEL_COLOR,
                                 }}

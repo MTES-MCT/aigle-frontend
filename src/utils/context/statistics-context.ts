@@ -28,17 +28,26 @@ const getInitialLayers = (settings: MapSettings) => {
     return layers;
 };
 
+interface ZonesFilter {
+    tileSetsUuids: string[];
+    communesUuids: string[];
+    departmentsUuids: string[];
+    regionsUuids: string[];
+}
+
 interface StatisticsState {
     layers?: MapTileSetLayer[];
     objectsFilter?: ObjectsFilter;
     allObjectTypes?: ObjectType[];
     geoCustomZones?: GeoCustomZone[];
+    zonesFilter?: ZonesFilter;
 
     setMapSettings: (settings: MapSettings) => void;
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
+    updateZonesFilter: (zonesFilter: ZonesFilter) => void;
 }
 
-const useStatistics = create<StatisticsState>()((set, get) => ({
+const useStatistics = create<StatisticsState>()((set) => ({
     setMapSettings: (settings: MapSettings) => {
         const { allObjectTypes, objectTypesUuids } = extractObjectTypesFromSettings(settings);
         const layers = getInitialLayers(settings);
@@ -51,10 +60,16 @@ const useStatistics = create<StatisticsState>()((set, get) => ({
                 objectTypesUuids: Array.from(objectTypesUuids),
                 detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'],
                 detectionControlStatuses: [...detectionControlStatuses],
-                score: 0.6,
+                score: 0.3,
                 prescripted: null,
                 interfaceDrawn: 'ALL',
                 customZonesUuids: settings.geoCustomZones.map(({ uuid }) => uuid),
+            },
+            zonesFilter: {
+                tileSetsUuids: [],
+                communesUuids: [],
+                departmentsUuids: [],
+                regionsUuids: [],
             },
             userLastPosition: settings.userLastPosition,
         }));
@@ -64,6 +79,14 @@ const useStatistics = create<StatisticsState>()((set, get) => ({
             objectsFilter: {
                 ...state.objectsFilter,
                 ...objectsFilter,
+            },
+        }));
+    },
+    updateZonesFilter: (zonesFilter: ZonesFilter) => {
+        set((state) => ({
+            zonesFilter: {
+                ...state.zonesFilter,
+                ...zonesFilter,
             },
         }));
     },

@@ -29,7 +29,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             objectTypeUuid: detectionObject.objectType.uuid,
-            comment: detectionObject.comment,
+            comment: detectionObject.comment || '',
         },
     });
     const debounceRef = useRef<NodeJS.Timeout | null>(null);

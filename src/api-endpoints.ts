@@ -111,15 +111,25 @@ export const MAP_SETTINGS_ENDPOINT = `${BASE_API}map-settings/`;
 
 const BASE_DETECTION = `${BASE_API}detection/`;
 export const DETECTION_POST_ENDPOINT = `${BASE_DETECTION}`;
+export const DETECTION_LIST_ENDPOINT = `${BASE_API}detection-list/`;
 export const DETECTION_MULTIPLE_POST_ENDPOINT = `${BASE_DETECTION}multiple/`;
-export const getDetectionListEndpoint = (detail: boolean = false) => {
+export const getDetectionListEndpoint = (detail: boolean = false, geoFeature: boolean = false) => {
     const searchParams = new URLSearchParams();
 
     if (detail) {
         searchParams.set('detail', 'true');
     }
 
-    return `${BASE_DETECTION}?${searchParams.toString()}`;
+    let base: string;
+
+    if (geoFeature) {
+        base = BASE_DETECTION;
+        searchParams.set('geoFeature', 'true');
+    } else {
+        base = DETECTION_LIST_ENDPOINT;
+    }
+
+    return `${base}?${searchParams.toString()}`;
 };
 export const getDetectionDetailEndpoint = (uuid: string) => `${BASE_DETECTION}${uuid}/`;
 
@@ -147,4 +157,6 @@ export const GET_CUSTOM_GEOMETRY_ENDPOINT = `${BASE_UTILS}get-custom-geometry/`;
 export const GET_ANNOTATION_GRID_ENDPOINT = `${BASE_UTILS}get-annotation-grid/`;
 
 const BASE_STATISTICS = `${BASE_API}statistics/`;
-export const STATISTICS_VALIDATION_STATUS_ENDPOINT = `${BASE_STATISTICS}validation-status-evolution/`;
+export const STATISTICS_VALIDATION_STATUS_EVOLUTION_ENDPOINT = `${BASE_STATISTICS}validation-status-evolution/`;
+export const STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT = `${BASE_STATISTICS}validation-status-global/`;
+export const STATISTICS_VALIDATION_STATUS_OBJECT_TYPES_GLOBAL_ENDPOINT = `${BASE_STATISTICS}validation-status-object-types-global/`;

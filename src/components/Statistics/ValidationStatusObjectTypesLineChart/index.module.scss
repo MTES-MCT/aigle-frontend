@@ -1,4 +1,4 @@
-@import "@/constants.scss";
+@import '@/constants.scss';
 
 .content {
     padding: $content-padding;
@@ -11,6 +11,8 @@
 .chart-container {
     margin-top: var(--mantine-spacing-sm);
     position: relative;
+
+    display: flex;
 }
 
 .geocolectivities-container {
@@ -23,5 +25,15 @@
 
     > div {
         flex: 1;
+    }
+}
+
+.legend-container {
+    .legend-item {
+        display: flex;
+        white-space: nowrap;
+        align-items: center;
+        gap: var(--mantine-spacing-xs);
+        margin-bottom: var(--mantine-spacing-xs);
     }
 }

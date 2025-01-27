@@ -4,6 +4,7 @@ import { User } from '@/models/user';
 import About from '@/routes/About';
 import Help from '@/routes/Help';
 import Map from '@/routes/Map/index.tsx';
+import Table from '@/routes/Table';
 import CollectiviteForm from '@/routes/admin/collectivite/CollectiviteForm';
 import CollectiviteList from '@/routes/admin/collectivite/CollectiviteList';
 import CustomZoneForm from '@/routes/admin/custom-zone/CustomZoneForm';
@@ -31,7 +32,7 @@ import { useStatistics } from '@/utils/context/statistics-context';
 import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import Charts from './routes/statistics/Charts';
+import Charts from './routes/Statistics/Charts';
 
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
@@ -98,6 +99,15 @@ const App: React.FC = () => {
                     element={
                         <ProtectedRoute>
                             <Charts />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/table"
+                    element={
+                        <ProtectedRoute>
+                            <Table />
                         </ProtectedRoute>
                     }
                 />

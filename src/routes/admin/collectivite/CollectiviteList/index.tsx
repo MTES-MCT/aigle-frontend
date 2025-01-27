@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 import DataTable from '@/components/admin/DataTable';
-import SoloAccordion from '@/components/admin/SoloAccordion';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
+import SoloAccordion from '@/components/admin/SoloAccordion';
 import { CollectivityType, GeoCollectivity, collectivityTypes } from '@/models/geo/_common';
 import { COLLECTIVITY_TYPES_ENDPOINTS_MAP, COLLECTIVITY_TYPES_NAMES_MAP } from '@/utils/constants';
 import { Button, Input, Table } from '@mantine/core';

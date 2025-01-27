@@ -12,6 +12,7 @@ import {
     IconLogout,
     IconMap,
     IconReportAnalytics,
+    IconTable,
 } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -92,19 +93,18 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
                             <div className="fr-header__brand-top">
                                 <div className="fr-header__logo">
                                     <p className="fr-logo">
-                                        Ministère de la
+                                        Ministère de
                                         <br />
-                                        transition écologique
+                                        la transition
+                                        <br />
+                                        écologique
                                     </p>
                                 </div>
                             </div>
                             <div className="fr-header__service">
-                                <a
-                                    href="/"
-                                    title="Accueil - [À MODIFIER - Nom du site / service] - Nom de l’entité (ministère, secrétariat d‘état, gouvernement)"
-                                >
+                                <a href="/" title="Accueil - Aigle - Ministère de la transition écologique">
                                     <p className="fr-header__service-title">
-                                        Aigle <p className="fr-badge fr-badge--green-menthe">BETA</p>
+                                        Aigle <span className="fr-badge fr-badge--green-menthe">BETA</span>
                                     </p>
                                 </a>
                                 <p className="fr-header__service-tagline">Détection par IA des irrégularités</p>
@@ -128,6 +128,12 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
                                         </a>
                                     </li>
                                     <li>
+                                        <a className="fr-btn" href="/table">
+                                            <IconTable className={classes['link-icon']} size={16} />
+                                            Tableau
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a className="fr-btn" href="/about">
                                             <IconInfoCircle className={classes['link-icon']} size={16} />A propos
                                         </a>
@@ -138,6 +144,9 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
                                             Besoin d&apos;aide
                                         </a>
                                     </li>
+                                </ul>
+
+                                <ul className="fr-btns-group">
                                     {userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole) ? (
                                         <li>
                                             <a className="fr-btn" href="/admin">
@@ -146,11 +155,8 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
                                             </a>
                                         </li>
                                     ) : null}
-                                </ul>
-
-                                <ul className="fr-btns-group">
                                     <li>
-                                        <a className="fr-btn fr-icon-lock-line" href='/' onClick={() => logout()}>
+                                        <a className="fr-btn fr-icon-lock-line" href="/" onClick={() => logout()}>
                                             Se déconnecter
                                         </a>
                                     </li>
