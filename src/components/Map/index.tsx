@@ -791,7 +791,6 @@ const Component: React.FC<ComponentProps> = ({
                         {displayTileSetControls ? (
                             <>
                                 <MapControlBackgroundSlider />
-                                <MapControlPartialToggle />
                             </>
                         ) : null}
                         <MapControlLegend
