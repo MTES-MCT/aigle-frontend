@@ -22,6 +22,19 @@
     width: 100%;
 }
 
+.object-types-select-container {
+    display: flex;
+    align-items: flex-end;
+
+    .object-types-select {
+        width: 100%;
+    }
+
+    .object-types-selectall-button {
+        margin: 2px;
+    }
+}
+
 .filters-container {
     display: flex;
     flex-direction: row;

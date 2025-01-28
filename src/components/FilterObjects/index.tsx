@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 
-import InfoBubble from '@/components/InfoBubble';
 import SelectItem from '@/components/ui/SelectItem';
 import { detectionControlStatuses, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
@@ -11,9 +10,9 @@ import {
     DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
-import { ActionIcon, Badge, Button, Checkbox, Group, MultiSelect, Slider, Stack, Text } from '@mantine/core';
+import { ActionIcon, Badge, Button, Checkbox, Group, MultiSelect, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import { IconX } from '@tabler/icons-react';
+import { IconChecks, IconX } from '@tabler/icons-react';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
@@ -174,22 +173,46 @@ const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCu
                         </Button>
                     </Button.Group>
 
-                    <MultiSelect
-                        className="multiselect-pills-hidden"
-                        mt="md"
-                        label="Types d'objets"
-                        placeholder="Caravane, piscine,..."
-                        searchable
-                        data={(objectTypes || []).map(({ name, uuid }) => ({
-                            value: uuid,
-                            label: name,
-                        }))}
-                        renderOption={(item) => (
-                            <SelectItem item={item} color={objectTypesMap[item.option.value].color} />
-                        )}
-                        key={form.key('objectTypesUuids')}
-                        {...form.getInputProps('objectTypesUuids')}
-                    />
+                    <div className={classes['object-types-select-container']}>
+                        <MultiSelect
+                            className={clsx('multiselect-pills-hidden', classes['object-types-select'])}
+                            mt="md"
+                            label="Types d'objets"
+                            placeholder="Caravane, piscine,..."
+                            searchable
+                            data={(objectTypes || []).map(({ name, uuid }) => ({
+                                value: uuid,
+                                label: name,
+                            }))}
+                            renderOption={(item) => (
+                                <SelectItem item={item} color={objectTypesMap[item.option.value].color} />
+                            )}
+                            key={form.key('objectTypesUuids')}
+                            {...form.getInputProps('objectTypesUuids')}
+                        />
+
+                        <Tooltip
+                            label={
+                                form.getValues().objectTypesUuids.length ? 'Déselectionner tout' : 'Sélectionner tout'
+                            }
+                        >
+                            <ActionIcon
+                                size="lg"
+                                ml="xs"
+                                className={classes['object-types-selectall-button']}
+                                onClick={() => {
+                                    const objectTypesUuidsSelected = form.getValues().objectTypesUuids;
+                                    form.setFieldValue(
+                                        'objectTypesUuids',
+                                        objectTypesUuidsSelected.length ? [] : objectTypes.map(({ uuid }) => uuid),
+                                    );
+                                }}
+                            >
+                                <IconChecks />
+                            </ActionIcon>
+                        </Tooltip>
+                    </div>
+
                     {form.getValues().objectTypesUuids.length ? (
                         <Group gap="xs" mt="sm">
                             {form.getValues().objectTypesUuids.map((uuid) => (
