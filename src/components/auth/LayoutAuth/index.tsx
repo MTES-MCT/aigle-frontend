@@ -10,7 +10,7 @@ const Component: React.FC<PropsWithChildren> = ({ children }) => {
     return (
         <div className={classes.container}>
             <Link to={DEFAULT_ROUTE}>
-                <Image src={logoImg} className={classes.logo} alt="Logo Aigle" h="100%" fit="contain" />
+                <Image mb="md" src={logoImg} className={classes.logo} alt="Logo Aigle" h="100%" fit="contain" />
             </Link>
 
             {children}
