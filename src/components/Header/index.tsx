@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 
 import logoSmallImg from '@/assets/logo_small.png';
 import { useAuth } from '@/utils/auth-context';
-import { DEFAULT_ROUTE, ROLES_NAMES_MAP } from '@/utils/constants';
+import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
 import { getColorFromString, getEmailInitials } from '@/utils/string';
 import { Avatar, Burger, Button, Image, Menu, Tabs } from '@mantine/core';
 import {
@@ -105,9 +105,12 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
                                 <a href="/" title="Accueil - Aigle - Ministère de la transition écologique">
                                     <p className="fr-header__service-title">
                                         Aigle <span className="fr-badge fr-badge--green-menthe">BETA</span>
+                                        {ENVIRONMENT === 'preprod' ? (
+                                            <span className="fr-badge fr-badge--warning">pré-prod</span>
+                                        ) : null}
                                     </p>
                                 </a>
-                                <p className="fr-header__service-tagline">Détection par IA des irrégularités</p>
+                                <p className="fr-header__service-tagline">Détection par IA des irr.</p>
                                 <p className="fr-header__service-tagline">d&apos;occupation du sol</p>
                             </div>
                         </div>

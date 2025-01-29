@@ -22,6 +22,7 @@ export const TILES_URL_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.pn
 export const PASSWORD_MIN_LENGTH = 8;
 
 export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+export const ENVIRONMENT = import.meta.env.VITE_ENVIRONMENT;
 
 export const PARCEL_COLOR = '#FF6F00';
 

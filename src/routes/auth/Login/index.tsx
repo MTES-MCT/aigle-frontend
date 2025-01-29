@@ -6,8 +6,10 @@ import React, { useState } from 'react';
 import { AUTH_LOGIN_ENDPOINT } from '@/api-endpoints';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
+import WarningCard from '@/components/ui/WarningCard';
 import api from '@/utils/api';
 import { useAuth } from '@/utils/auth-context';
+import { ENVIRONMENT } from '@/utils/constants';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
@@ -63,6 +65,18 @@ const Component: React.FC = () => {
 
     return (
         <LayoutAuth>
+            {ENVIRONMENT === 'preprod' ? (
+                <WarningCard title="Environement de pré-production">
+                    <p>Vous êtes actuellement connecté à l&apos;environement de pré-production</p>
+                    <p>
+                        Pour accéder à la version classique, veuillez cliquer ci-dessous:
+                        <Button mt="md" fullWidth component={Link} to="https://aigle.beta.gouv.fr/">
+                            AIGLE
+                        </Button>
+                    </p>
+                </WarningCard>
+            ) : null}
+
             <form className={classes.form} onSubmit={form.onSubmit(handleSubmit)}>
                 {error ? <ErrorCard className={classes['error-card']}>Identifiants invalides</ErrorCard> : null}
                 <TextInput
