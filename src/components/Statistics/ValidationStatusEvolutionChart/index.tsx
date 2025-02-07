@@ -10,6 +10,7 @@ import { LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import classes from './index.module.scss';
+import { valueFormatter } from '@/components/Statistics/utils';
 
 const formatData = (
     data: ValidationStatusEvolution[],
@@ -144,6 +145,7 @@ const Component: React.FC<ComponentProps> = ({
                     strokeWidth={2}
                     curveType="linear"
                     type="stacked"
+                    valueFormatter={valueFormatter}
                 />
             </div>
         </div>

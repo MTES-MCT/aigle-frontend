@@ -9,6 +9,7 @@ import { PieChart } from '@mantine/charts';
 import { ColorSwatch, LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import classes from './index.module.scss';
+import { valueFormatter } from '@/components/Statistics/utils';
 
 interface ChartData {
     name: string;
@@ -118,6 +119,7 @@ const Component: React.FC<ComponentProps> = ({
                     labelsType="value"
                     withLabels
                     data={statistics}
+                    valueFormatter={valueFormatter}
                 />
                 <Legend />
             </div>

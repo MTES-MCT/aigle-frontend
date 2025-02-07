@@ -1,4 +1,5 @@
 import { STATISTICS_VALIDATION_STATUS_OBJECT_TYPES_GLOBAL_ENDPOINT } from '@/api-endpoints';
+import { valueFormatter } from '@/components/Statistics/utils';
 import Loader from '@/components/ui/Loader';
 import { DetectionValidationStatus, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
@@ -116,7 +117,7 @@ const Component: React.FC<ComponentProps> = ({
 
     return (
         <div>
-            <h2 className={classes.title}>Répartition du nombre de détections par statut de validation</h2>
+            <h2 className={classes.title}>Répartition du nombre de détections par type d&apos;objet</h2>
 
             <div className={classes['chart-container']}>
                 <LoadingOverlay visible={isFetching}>
@@ -130,6 +131,8 @@ const Component: React.FC<ComponentProps> = ({
                     series={SERIES}
                     type="stacked"
                     orientation="vertical"
+                    gridAxis="none"
+                    valueFormatter={valueFormatter}
                 />
             </div>
         </div>
