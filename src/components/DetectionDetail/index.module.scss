@@ -8,14 +8,12 @@
 
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: var(--mantine-spacing-sm);
 
         .general-informations {
-            .general-informations-item {
-            }
+            .general-informations-item {}
 
-            .mantine-Accordion-panel {
-            }
+            .mantine-Accordion-panel {}
 
             .general-informations-content {
                 .general-informations-content-item {
