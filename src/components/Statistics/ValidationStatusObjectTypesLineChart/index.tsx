@@ -56,7 +56,7 @@ const fetchData = async (
         departmentsUuids,
         regionsUuids,
         otherObjectTypesUuids,
-        true
+        true,
     );
 
     if (objectsFilter.prescripted !== null) {
