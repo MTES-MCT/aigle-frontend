@@ -7,9 +7,10 @@ import React from 'react';
 import classes from './index.module.scss';
 
 const Component: React.FC = () => {
-    const { allObjectTypes, objectsFilter, geoCustomZones, updateObjectsFilter } = useStatistics();
+    const { allObjectTypes, objectsFilter, geoCustomZones, updateObjectsFilter, otherObjectTypesUuids } =
+        useStatistics();
 
-    if (!allObjectTypes || !objectsFilter || !geoCustomZones) {
+    if (!allObjectTypes || !objectsFilter || !geoCustomZones || !otherObjectTypesUuids) {
         return null;
     }
 
@@ -21,6 +22,7 @@ const Component: React.FC = () => {
                     objectsFilter={objectsFilter}
                     geoCustomZones={geoCustomZones}
                     updateObjectsFilter={updateObjectsFilter}
+                    otherObjectTypesUuids={otherObjectTypesUuids}
                 />
             </SoloAccordion>
             <div className={classes['charts-container']}>

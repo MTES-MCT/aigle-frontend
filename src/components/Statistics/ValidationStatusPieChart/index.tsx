@@ -1,4 +1,5 @@
 import { STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT } from '@/api-endpoints';
+import { objectsFilterToApiParams, valueFormatter } from '@/components/Statistics/utils';
 import Loader from '@/components/ui/Loader';
 import { detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
@@ -9,7 +10,6 @@ import { PieChart } from '@mantine/charts';
 import { ColorSwatch, LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import classes from './index.module.scss';
-import { valueFormatter } from '@/components/Statistics/utils';
 
 interface ChartData {
     name: string;
@@ -32,18 +32,16 @@ const fetchData = async (
     communesUuids: string[],
     departmentsUuids: string[],
     regionsUuids: string[],
+    otherObjectTypesUuids: Set<string>,
 ): Promise<ChartData[]> => {
-    const params: any = {
-        tileSetsUuids: tileSetsUuids.join(','),
-        detectionControlStatuses: objectsFilter.detectionControlStatuses.join(','),
-        score: objectsFilter.score,
-        objectTypesUuids: objectsFilter.objectTypesUuids.join(','),
-        customZonesUuids: objectsFilter.customZonesUuids.join(','),
-        communesUuids: communesUuids.join(','),
-        departmentsUuids: departmentsUuids.join(','),
-        regionsUuids: regionsUuids.join(','),
-        interfaceDrawn: objectsFilter.interfaceDrawn,
-    };
+    const params = objectsFilterToApiParams(
+        objectsFilter,
+        tileSetsUuids,
+        communesUuids,
+        departmentsUuids,
+        regionsUuids,
+        otherObjectTypesUuids,
+    );
 
     if (objectsFilter.prescripted !== null) {
         params.prescripted = objectsFilter.prescripted;
@@ -76,6 +74,7 @@ interface ComponentProps {
     communesUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
+    otherObjectTypesUuids: Set<string>;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -84,6 +83,7 @@ const Component: React.FC<ComponentProps> = ({
     communesUuids,
     departmentsUuids,
     regionsUuids,
+    otherObjectTypesUuids,
 }: ComponentProps) => {
     const { data: statistics, isFetching } = useQuery({
         queryKey: [
@@ -96,7 +96,15 @@ const Component: React.FC<ComponentProps> = ({
         ],
         placeholderData: keepPreviousData,
         queryFn: ({ signal }) =>
-            fetchData(signal, objectsFilter, tileSetsUuids, communesUuids, departmentsUuids, regionsUuids),
+            fetchData(
+                signal,
+                objectsFilter,
+                tileSetsUuids,
+                communesUuids,
+                departmentsUuids,
+                regionsUuids,
+                otherObjectTypesUuids,
+            ),
     });
 
     if (!statistics) {

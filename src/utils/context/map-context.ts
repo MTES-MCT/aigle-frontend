@@ -59,6 +59,7 @@ interface MapState {
     userLastPosition?: GeoJSON.Position | null;
     annotationLayerVisible?: boolean;
     customZoneNegativeFilterVisible?: boolean;
+    otherObjectTypesUuids?: Set<string>; // contains objectTypes with status OTHER_CATEGORY
 
     setMapSettings: (settings: MapSettings) => void;
     resetLayers: () => void;
@@ -78,11 +79,12 @@ interface MapState {
 
 const useMap = create<MapState>()((set, get) => ({
     setMapSettings: (settings: MapSettings) => {
-        const { allObjectTypes, objectTypesUuids } = extractObjectTypesFromSettings(settings);
+        const { allObjectTypes, visibleObjectTypesUuids, otherObjectTypesUuids } =
+            extractObjectTypesFromSettings(settings);
 
         const { layers, backgroundLayerYears } = getInitialLayers(settings);
         const objectsFilter = getInitialObjectFilters(
-            objectTypesUuids,
+            Array.from(visibleObjectTypesUuids),
             settings.geoCustomZones.map(({ uuid }) => uuid),
         );
 
@@ -92,6 +94,7 @@ const useMap = create<MapState>()((set, get) => ({
             backgroundLayerYears,
             annotationLayerVisible: false,
             customZoneNegativeFilterVisible: true,
+            otherObjectTypesUuids: new Set(otherObjectTypesUuids),
             customZoneLayers: settings.geoCustomZones.map((geoCustomZone) => ({
                 geoCustomZone,
                 displayed: false,
@@ -130,6 +133,8 @@ const useMap = create<MapState>()((set, get) => ({
         });
     },
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => {
+        console.log('UPDATE FROM CONTEXT', objectsFilter);
+
         set((state) => {
             const objectsFilterUpdated = {
                 ...state.objectsFilter,

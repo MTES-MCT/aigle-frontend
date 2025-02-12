@@ -36,6 +36,7 @@ interface ComponentInnerProps {
     objectsFilter: ObjectsFilter;
     geoCustomZones: GeoCustomZone[];
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
+    otherObjectTypesUuids: Set<string>;
 }
 
 const ComponentInner: React.FC<ComponentInnerProps> = ({
@@ -43,6 +44,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     objectsFilter,
     geoCustomZones,
     updateObjectsFilter,
+    otherObjectTypesUuids,
 }: ComponentInnerProps) => {
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
@@ -66,6 +68,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             objectsFilter={objectsFilter}
                             geoCustomZones={geoCustomZones}
                             updateObjectsFilter={updateObjectsFilter}
+                            otherObjectTypesUuids={otherObjectTypesUuids}
                         />
                     </SoloAccordion>
                 }
@@ -105,9 +108,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 };
 
 const Component: React.FC = () => {
-    const { objectsFilter, allObjectTypes, geoCustomZones, updateObjectsFilter } = useStatistics();
+    const { objectsFilter, allObjectTypes, geoCustomZones, updateObjectsFilter, otherObjectTypesUuids } =
+        useStatistics();
 
-    if (!objectsFilter || !allObjectTypes || !geoCustomZones || !updateObjectsFilter) {
+    if (!objectsFilter || !allObjectTypes || !geoCustomZones || !updateObjectsFilter || !otherObjectTypesUuids) {
         return (
             <LayoutBase>
                 <Loader />
@@ -122,6 +126,7 @@ const Component: React.FC = () => {
                 objectsFilter={objectsFilter}
                 geoCustomZones={geoCustomZones}
                 updateObjectsFilter={updateObjectsFilter}
+                otherObjectTypesUuids={otherObjectTypesUuids}
             />
         </LayoutBase>
     );

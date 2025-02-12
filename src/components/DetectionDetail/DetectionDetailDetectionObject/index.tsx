@@ -129,6 +129,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
                     label="Commentaire"
                     placeholder="Mon commentaire"
                     mt="md"
+                    autoFocus
                     {...form.getInputProps('comment')}
                     key={form.key('comment')}
                 />

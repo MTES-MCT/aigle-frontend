@@ -1,7 +1,7 @@
 import { Timestamped, Uuided } from '@/models/data';
 import { ObjectType } from '@/models/object-type';
 
-export const objectTypeCategoryObjectTypeStatuses = ['VISIBLE', 'HIDDEN'] as const;
+export const objectTypeCategoryObjectTypeStatuses = ['VISIBLE', 'OTHER_CATEGORY', 'HIDDEN'] as const;
 export type ObjectTypeCategoryObjectTypeStatus = (typeof objectTypeCategoryObjectTypeStatuses)[number];
 
 export interface ObjectTypeCategoryObjectType {

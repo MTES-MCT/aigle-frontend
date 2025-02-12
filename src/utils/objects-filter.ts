@@ -5,6 +5,7 @@ import {
     detectionValidationStatuses,
 } from '@/models/detection';
 import { InterfaceDrawnFilter, ObjectsFilter } from '@/models/detection-filter';
+import { OTHER_OBJECT_TYPE } from '@/utils/constants';
 import { stringToBoolean, stringToTypedArray } from '@/utils/string';
 
 type QueryParams = Record<string, string>;
@@ -44,7 +45,8 @@ const paramsToObjectsFilter = (
 
     return {
         objectTypesUuids:
-            stringToTypedArray(objectTypesUuids, params.objectTypesUuids) || objectsFilterDefault.objectTypesUuids,
+            stringToTypedArray([...objectTypesUuids, OTHER_OBJECT_TYPE.uuid], params.objectTypesUuids) ||
+            objectsFilterDefault.objectTypesUuids,
 
         detectionValidationStatuses:
             stringToTypedArray<DetectionValidationStatus>(

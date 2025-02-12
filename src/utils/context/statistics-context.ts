@@ -41,6 +41,7 @@ interface StatisticsState {
     allObjectTypes?: ObjectType[];
     geoCustomZones?: GeoCustomZone[];
     zonesFilter?: ZonesFilter;
+    otherObjectTypesUuids?: Set<string>;
 
     setMapSettings: (settings: MapSettings) => void;
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
@@ -49,7 +50,8 @@ interface StatisticsState {
 
 const useStatistics = create<StatisticsState>()((set) => ({
     setMapSettings: (settings: MapSettings) => {
-        const { allObjectTypes, objectTypesUuids } = extractObjectTypesFromSettings(settings);
+        const { allObjectTypes, visibleObjectTypesUuids, otherObjectTypesUuids } =
+            extractObjectTypesFromSettings(settings);
         const layers = getInitialLayers(settings);
 
         set(() => ({
@@ -57,7 +59,7 @@ const useStatistics = create<StatisticsState>()((set) => ({
             allObjectTypes,
             geoCustomZones: settings.geoCustomZones,
             objectsFilter: {
-                objectTypesUuids: Array.from(objectTypesUuids),
+                objectTypesUuids: Array.from(visibleObjectTypesUuids),
                 detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'],
                 detectionControlStatuses: [...detectionControlStatuses],
                 score: 0.3,
@@ -72,6 +74,7 @@ const useStatistics = create<StatisticsState>()((set) => ({
                 regionsUuids: [],
             },
             userLastPosition: settings.userLastPosition,
+            otherObjectTypesUuids: otherObjectTypesUuids,
         }));
     },
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => {

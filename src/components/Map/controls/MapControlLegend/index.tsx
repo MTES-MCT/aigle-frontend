@@ -1,15 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
-import { ObjectType } from '@/models/object-type';
-import { CUSTOM_ZONE_NEGATIVE_COLOR, PARCEL_COLOR, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
+import {
+    CUSTOM_ZONE_NEGATIVE_COLOR,
+    OTHER_OBJECT_TYPE,
+    PARCEL_COLOR,
+    TILE_SET_TYPES_NAMES_MAP,
+} from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
 interface ObjectTypeLegendProps {
-    objectType: ObjectType;
+    objectType: ObjectTypeMinimal;
 }
 
 const ObjectTypeLegend: React.FC<ObjectTypeLegendProps> = ({ objectType }) => {
@@ -54,18 +59,33 @@ const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ name, color, withBo
 interface ComponentInnerProps {
     objectTypes: ObjectType[];
     customZoneLayers: MapGeoCustomZoneLayer[];
+    otherObjectTypesUuids: Set<string>;
 }
 
-const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, customZoneLayers }) => {
+const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, otherObjectTypesUuids, customZoneLayers }) => {
+    const isOtherObjectTypes = useMemo(
+        () => otherObjectTypesUuids && otherObjectTypesUuids.size > 0,
+        [otherObjectTypesUuids],
+    );
+    const objectTypesDisplayed = useMemo(() => {
+        if (otherObjectTypesUuids.size === 0) {
+            return objectTypes;
+        }
+
+        return objectTypes.filter((ot) => !otherObjectTypesUuids.has(ot.uuid));
+    }, [objectTypes, otherObjectTypesUuids]);
+
     return (
         <div className={classes['legends-container']}>
             <div>
                 <h2>Types d&apos;objets</h2>
 
                 <ul className={classes['legends']}>
-                    {objectTypes.map((type) => (
+                    {objectTypesDisplayed.map((type) => (
                         <ObjectTypeLegend key={type.uuid} objectType={type} />
                     ))}
+
+                    {isOtherObjectTypes ? <ObjectTypeLegend objectType={OTHER_OBJECT_TYPE} /> : null}
                 </ul>
             </div>
             <div className={classes['legends-column']}>
@@ -142,9 +162,9 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
-    const { objectTypes, customZoneLayers } = useMap();
+    const { objectTypes, customZoneLayers, otherObjectTypesUuids } = useMap();
 
-    if (!objectTypes || !customZoneLayers) {
+    if (!objectTypes || !customZoneLayers || !otherObjectTypesUuids) {
         return null;
     }
 
@@ -158,7 +178,11 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
             isShowed={isShowed}
             setIsShowed={setIsShowed}
         >
-            <ComponentInner objectTypes={objectTypes} customZoneLayers={customZoneLayers} />
+            <ComponentInner
+                objectTypes={objectTypes}
+                otherObjectTypesUuids={otherObjectTypesUuids}
+                customZoneLayers={customZoneLayers}
+            />
         </MapControlCustom>
     );
 };
