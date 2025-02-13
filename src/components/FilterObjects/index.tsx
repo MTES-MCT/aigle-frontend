@@ -4,11 +4,12 @@ import SelectItem from '@/components/ui/SelectItem';
 import { detectionControlStatuses, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
-import { ObjectType } from '@/models/object-type';
+import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
+    OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
 import { ActionIcon, Badge, Button, Checkbox, Group, MultiSelect, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -34,10 +35,17 @@ interface ComponentProps {
     objectTypes: ObjectType[];
     objectsFilter: ObjectsFilter;
     geoCustomZones: GeoCustomZone[];
+    otherObjectTypesUuids: Set<string>;
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
 }
 
-const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCustomZones, updateObjectsFilter }) => {
+const Component: React.FC<ComponentProps> = ({
+    objectTypes,
+    otherObjectTypesUuids,
+    objectsFilter,
+    geoCustomZones,
+    updateObjectsFilter,
+}) => {
     const {
         objectTypesUuids,
         detectionValidationStatuses: detectionValidationStatusesFilter,
@@ -103,17 +111,33 @@ const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCu
         });
     });
 
-    const objectTypesMap: Record<string, ObjectType> = useMemo(() => {
+    const objectTypesMap: Record<string, ObjectTypeMinimal> = useMemo(() => {
         return (
             objectTypes?.reduce(
                 (prev, curr) => ({
                     ...prev,
                     [curr.uuid]: curr,
                 }),
-                {},
+                {
+                    [OTHER_OBJECT_TYPE.uuid]: OTHER_OBJECT_TYPE,
+                },
             ) || {}
         );
     }, [objectTypes]);
+
+    const objectTypesToDisplay: ObjectTypeMinimal[] = useMemo(() => {
+        if (otherObjectTypesUuids.size == 0) {
+            return objectTypes;
+        }
+
+        const objectTypesToDisplay_: ObjectTypeMinimal[] = objectTypes.filter(
+            (ot) => !otherObjectTypesUuids.has(ot.uuid),
+        );
+        objectTypesToDisplay_.push(OTHER_OBJECT_TYPE);
+        return objectTypesToDisplay_;
+    }, [objectTypes, otherObjectTypesUuids]);
+
+    console.log(objectTypesToDisplay);
 
     return (
         <form className={classes.form}>
@@ -180,7 +204,7 @@ const Component: React.FC<ComponentProps> = ({ objectTypes, objectsFilter, geoCu
                             label="Types d'objets"
                             placeholder="Caravane, piscine,..."
                             searchable
-                            data={(objectTypes || []).map(({ name, uuid }) => ({
+                            data={(objectTypesToDisplay || []).map(({ name, uuid }) => ({
                                 value: uuid,
                                 label: name,
                             }))}

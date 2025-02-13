@@ -14,9 +14,9 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
-    const { objectTypes, customZoneLayers, objectsFilter, updateObjectsFilter } = useMap();
+    const { objectTypes, customZoneLayers, objectsFilter, updateObjectsFilter, otherObjectTypesUuids } = useMap();
 
-    if (!objectTypes || !objectsFilter || !customZoneLayers) {
+    if (!objectTypes || !objectsFilter || !customZoneLayers || !otherObjectTypesUuids) {
         return null;
     }
 
@@ -34,6 +34,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
                 objectsFilter={objectsFilter}
                 geoCustomZones={customZoneLayers.map(({ geoCustomZone }) => geoCustomZone)}
                 updateObjectsFilter={updateObjectsFilter}
+                otherObjectTypesUuids={otherObjectTypesUuids}
             />
         </MapControlCustom>
     );

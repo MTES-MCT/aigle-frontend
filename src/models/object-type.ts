@@ -7,6 +7,8 @@ export interface ObjectType extends Uuided, Timestamped {
     prescriptionDurationYears: number | null;
 }
 
+export type ObjectTypeMinimal = Omit<ObjectType, 'prescriptionDurationYears' | 'createdAt' | 'updatedAt'>;
+
 export interface ObjectTypeDetail extends ObjectType {
     categories: ObjectTypeCategory[];
 }

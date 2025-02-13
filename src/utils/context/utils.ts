@@ -1,24 +1,32 @@
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 
-export const extractObjectTypesFromSettings = (settings: MapSettings) => {
+interface ObjectTypesInitialState {
+    allObjectTypes: ObjectType[];
+    visibleObjectTypesUuids: Set<string>;
+    otherObjectTypesUuids: Set<string>;
+}
+
+export const extractObjectTypesFromSettings = (settings: MapSettings): ObjectTypesInitialState => {
     const allObjectTypes: ObjectType[] = [];
-    const objectTypesUuids = new Set<string>();
+    const visibleObjectTypesUuids = new Set<string>();
+    const otherObjectTypesUuids = new Set<string>();
 
     settings.objectTypeSettings.forEach(({ objectType, objectTypeCategoryObjectTypeStatus }) => {
-        if (objectTypesUuids.has(objectType.uuid)) {
-            return;
-        }
-
         allObjectTypes.push(objectType);
 
         if (objectTypeCategoryObjectTypeStatus === 'VISIBLE') {
-            objectTypesUuids.add(objectType.uuid);
+            visibleObjectTypesUuids.add(objectType.uuid);
+        }
+
+        if (objectTypeCategoryObjectTypeStatus === 'OTHER_CATEGORY') {
+            otherObjectTypesUuids.add(objectType.uuid);
         }
     });
 
     return {
         allObjectTypes,
-        objectTypesUuids: Array.from(objectTypesUuids),
+        visibleObjectTypesUuids: visibleObjectTypesUuids,
+        otherObjectTypesUuids: otherObjectTypesUuids,
     };
 };

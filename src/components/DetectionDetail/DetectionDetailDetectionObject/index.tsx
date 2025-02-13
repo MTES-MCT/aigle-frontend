@@ -4,12 +4,12 @@ import { DetectionObjectDetail } from '@/models/detection-object';
 import { ObjectType } from '@/models/object-type';
 import api from '@/utils/api';
 import { useMap } from '@/utils/context/map-context';
-import { Loader as MantineLoader, Select, Textarea } from '@mantine/core';
+import { Button, Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
 
 interface FormValues {
@@ -33,6 +33,8 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
         },
     });
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [commentInputShowed, setCommentInputShowed] = useState(false);
 
     form.watch('objectTypeUuid', () => {
         const formValues = form.getValues();
@@ -81,6 +83,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
                 },
             );
             eventEmitter.emit('UPDATE_DETECTIONS');
+            eventEmitter.emit('UPDATE_DETECTION_DETAIL');
             notifications.show({
                 title: 'Mise à jour de la détection',
                 message: `L'objet #${detectionObject.id} a été mise à jour avec succès.`,
@@ -121,13 +124,20 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
                 />
             ) : undefined}
 
-            <Textarea
-                mt="md"
-                label="Commentaire"
-                placeholder="Mon commentaire"
-                {...form.getInputProps('comment')}
-                key={form.key('comment')}
-            />
+            {commentInputShowed ? (
+                <Textarea
+                    label="Commentaire"
+                    placeholder="Mon commentaire"
+                    mt="md"
+                    autoFocus
+                    {...form.getInputProps('comment')}
+                    key={form.key('comment')}
+                />
+            ) : (
+                <Button variant="subtle" mt="md" size="compact-sm" onClick={() => setCommentInputShowed(true)}>
+                    Ajouter un commentaire
+                </Button>
+            )}
         </form>
     );
 };

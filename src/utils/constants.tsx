@@ -7,6 +7,7 @@ import {
 } from '@/models/detection';
 import { CollectivityType } from '@/models/geo/_common';
 import { GeoCustomZoneStatus, GeoCustomZoneType } from '@/models/geo/geo-custom-zone';
+import { ObjectTypeMinimal } from '@/models/object-type';
 import { ObjectTypeCategoryObjectTypeStatus } from '@/models/object-type-category';
 import { TileSetStatus, TileSetType } from '@/models/tile-set';
 import { UserGroupRight, UserRole } from '@/models/user';
@@ -125,6 +126,7 @@ export const OBJECT_TYPE_CATEGROY_OBJECT_TYPE_STATUSES_NAMES_MAP: {
 } = {
     VISIBLE: 'Visible par défaut',
     HIDDEN: 'Caché par défaut',
+    OTHER_CATEGORY: 'Visible dans la catégorie "autres"',
 } as const;
 
 export const DETECTION_SOURCE_NAMES_MAP: {
@@ -146,3 +148,9 @@ export const DEFAULT_DATE_FORMAT = 'dd/MM/yyyy';
 export const DEFAULT_DATETIME_FORMAT = 'dd/MM/yyyy à HH:mm';
 
 export const CUSTOM_ZONE_NEGATIVE_COLOR = '#808080';
+
+export const OTHER_OBJECT_TYPE: ObjectTypeMinimal = {
+    name: 'Autres',
+    color: '#808080',
+    uuid: 'OTHER_OBJECT_TYPES',
+} as const;

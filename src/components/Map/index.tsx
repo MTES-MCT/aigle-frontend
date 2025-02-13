@@ -14,8 +14,8 @@ import MapControlBackgroundSlider from '@/components/Map/controls/MapControlBack
 import MapControlFilterDetection from '@/components/Map/controls/MapControlFilterDetection';
 import MapControlLayerDisplay from '@/components/Map/controls/MapControlLayerDisplay';
 import MapControlLegend from '@/components/Map/controls/MapControlLegend';
-import MapControlPartialToggle from '@/components/Map/controls/MapControlPartialToggle';
 import MapControlSearchParcel from '@/components/Map/controls/MapControlSearchParcel';
+import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import { processDetections } from '@/components/Map/utils/process-detections';
 import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
 import { DetectionGeojsonData, DetectionProperties } from '@/models/detection';
@@ -201,6 +201,7 @@ const Component: React.FC<ComponentProps> = ({
         customZoneLayers,
         annotationLayerVisible,
         customZoneNegativeFilterVisible,
+        otherObjectTypesUuids,
     } = useMap();
 
     const [cursor, setCursor] = useState<string>();
@@ -512,7 +513,7 @@ const Component: React.FC<ComponentProps> = ({
     // detections fetching
 
     const fetchDetections = async (signal: AbortSignal, mapBounds?: MapBounds) => {
-        if (!displayDetections || !mapBounds || !objectsFilter) {
+        if (!displayDetections || !mapBounds || !objectsFilter || !otherObjectTypesUuids) {
             return null;
         }
 
@@ -523,7 +524,7 @@ const Component: React.FC<ComponentProps> = ({
         const res = await api.get<DetectionGeojsonData>(DETECTION_ENDPOINT, {
             params: {
                 ...mapBounds,
-                ...objectsFilter,
+                ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
                 tileSetsUuids: tileSetsUuidsDetection,
             },
             signal,
@@ -533,7 +534,7 @@ const Component: React.FC<ComponentProps> = ({
             return res.data;
         }
 
-        return processDetections(res.data);
+        return processDetections(res.data, otherObjectTypesUuids || new Set());
     };
 
     // annotation grid fetching

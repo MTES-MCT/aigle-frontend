@@ -1,4 +1,5 @@
 import ValidationStatusEvolutionChart from '@/components/Statistics/ValidationStatusEvolutionChart';
+import ValidationStatusObjectTypesLineChart from '@/components/Statistics/ValidationStatusObjectTypesLineChart';
 import ValidationStatusPieChart from '@/components/Statistics/ValidationStatusPieChart';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
 import { useStatistics } from '@/utils/context/statistics-context';
@@ -6,7 +7,6 @@ import { Loader, MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { useMemo } from 'react';
 import classes from './index.module.scss';
-import ValidationStatusObjectTypesLineChart from '@/components/Statistics/ValidationStatusObjectTypesLineChart';
 
 interface FormValues {
     tileSetsUuids: string[];
@@ -17,7 +17,7 @@ interface FormValues {
 }
 
 const Component: React.FC = () => {
-    const { layers, objectsFilter } = useStatistics();
+    const { layers, objectsFilter, otherObjectTypesUuids } = useStatistics();
     const tileSets = useMemo(() => (layers || []).map((layer) => layer.tileSet), [layers]);
 
     const tileSetsValues = useMemo(() => tileSets.map(({ name, uuid }) => ({ value: uuid, label: name })), [tileSets]);
@@ -31,46 +31,47 @@ const Component: React.FC = () => {
         },
     });
 
+    if (!objectsFilter || !tileSets || !tileSets.length || !otherObjectTypesUuids) {
+        return <Loader />;
+    }
+
     return (
         <>
-            {objectsFilter && tileSets && tileSets.length ? (
-                <>
-                    <MultiSelect
-                        label="Fonds de carte"
-                        data={tileSetsValues}
-                        key={form.key('tileSetsUuids')}
-                        {...form.getInputProps('tileSetsUuids')}
-                    />
+            <MultiSelect
+                label="Fonds de carte"
+                data={tileSetsValues}
+                key={form.key('tileSetsUuids')}
+                {...form.getInputProps('tileSetsUuids')}
+            />
 
-                    <GeoCollectivitiesMultiSelects form={form} className={classes['geocolectivities-container']} />
-                    <ValidationStatusEvolutionChart
-                        objectsFilter={objectsFilter}
-                        allTileSets={tileSets}
-                        tileSetsUuids={form.values.tileSetsUuids}
-                        communesUuids={form.values.communesUuids}
-                        departmentsUuids={form.values.departmentsUuids}
-                        regionsUuids={form.values.regionsUuids}
-                    />
+            <GeoCollectivitiesMultiSelects form={form} className={classes['geocolectivities-container']} />
+            <ValidationStatusEvolutionChart
+                objectsFilter={objectsFilter}
+                allTileSets={tileSets}
+                tileSetsUuids={form.values.tileSetsUuids}
+                communesUuids={form.values.communesUuids}
+                departmentsUuids={form.values.departmentsUuids}
+                regionsUuids={form.values.regionsUuids}
+                otherObjectTypesUuids={otherObjectTypesUuids}
+            />
 
-                    <ValidationStatusPieChart
-                        objectsFilter={objectsFilter}
-                        tileSetsUuids={form.values.tileSetsUuids}
-                        communesUuids={form.values.communesUuids}
-                        departmentsUuids={form.values.departmentsUuids}
-                        regionsUuids={form.values.regionsUuids}
-                    />
+            <ValidationStatusPieChart
+                objectsFilter={objectsFilter}
+                tileSetsUuids={form.values.tileSetsUuids}
+                communesUuids={form.values.communesUuids}
+                departmentsUuids={form.values.departmentsUuids}
+                regionsUuids={form.values.regionsUuids}
+                otherObjectTypesUuids={otherObjectTypesUuids}
+            />
 
-                    <ValidationStatusObjectTypesLineChart
-                        objectsFilter={objectsFilter}
-                        tileSetsUuids={form.values.tileSetsUuids}
-                        communesUuids={form.values.communesUuids}
-                        departmentsUuids={form.values.departmentsUuids}
-                        regionsUuids={form.values.regionsUuids}
-                        />
-                </>
-            ) : (
-                <Loader />
-            )}
+            <ValidationStatusObjectTypesLineChart
+                objectsFilter={objectsFilter}
+                tileSetsUuids={form.values.tileSetsUuids}
+                communesUuids={form.values.communesUuids}
+                departmentsUuids={form.values.departmentsUuids}
+                regionsUuids={form.values.regionsUuids}
+                otherObjectTypesUuids={otherObjectTypesUuids}
+            />
         </>
     );
 };

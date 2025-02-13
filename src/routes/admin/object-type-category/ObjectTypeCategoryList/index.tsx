@@ -9,10 +9,14 @@ import DateInfo from '@/components/ui/DateInfo';
 import SelectItem from '@/components/ui/SelectItem';
 import { Uuided } from '@/models/data';
 import { ObjectType } from '@/models/object-type';
-import { ObjectTypeCategoryDetail, ObjectTypeCategoryObjectType } from '@/models/object-type-category';
+import {
+    ObjectTypeCategoryDetail,
+    ObjectTypeCategoryObjectType,
+    ObjectTypeCategoryObjectTypeStatus,
+} from '@/models/object-type-category';
 import api from '@/utils/api';
 import { Button, Input, MultiSelect, Table } from '@mantine/core';
-import { IconCategoryPlus, IconEye, IconEyeOff, IconSearch } from '@tabler/icons-react';
+import { IconCategoryPlus, IconEye, IconEyeDotted, IconEyeOff, IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import { Link, useNavigate } from 'react-router-dom';
@@ -30,6 +34,24 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 interface ObjectTypeCategoryObjectTypePill extends Uuided {
     objectTypeCategoryObjectType: ObjectTypeCategoryObjectType;
 }
+
+const OBJECT_TYPE_CATEGORY_ICON_SIZE = 14;
+
+interface ObjectTypeCategoryIconProps {
+    objectTypeCategoryObjectTypeStatus: ObjectTypeCategoryObjectTypeStatus;
+}
+
+const ObjectTypeCategoryIcon: React.FC<ObjectTypeCategoryIconProps> = ({ objectTypeCategoryObjectTypeStatus }) => {
+    if (objectTypeCategoryObjectTypeStatus === 'VISIBLE') {
+        return <IconEye size={OBJECT_TYPE_CATEGORY_ICON_SIZE} />;
+    }
+
+    if (objectTypeCategoryObjectTypeStatus === 'OTHER_CATEGORY') {
+        return <IconEyeDotted size={OBJECT_TYPE_CATEGORY_ICON_SIZE} />;
+    }
+
+    return <IconEyeOff size={14} />;
+};
 
 const Component: React.FC = () => {
     const navigate = useNavigate();
@@ -122,14 +144,11 @@ const Component: React.FC = () => {
                                 `/admin/object-types/form/${item.objectTypeCategoryObjectType.objectType.uuid}`
                             }
                             getLeftSection={(item) => (
-                                <>
-                                    {item.objectTypeCategoryObjectType.objectTypeCategoryObjectTypeStatus ===
-                                    'VISIBLE' ? (
-                                        <IconEye size={14} />
-                                    ) : (
-                                        <IconEyeOff size={14} />
-                                    )}
-                                </>
+                                <ObjectTypeCategoryIcon
+                                    objectTypeCategoryObjectTypeStatus={
+                                        item.objectTypeCategoryObjectType.objectTypeCategoryObjectTypeStatus
+                                    }
+                                />
                             )}
                         />
                     ),
