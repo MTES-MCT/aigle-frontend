@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { TILE_SET_POST_ENDPOINT, getTileSetDetailEndpoint } from '@/api-endpoints';
-import InfoCard from '@/components/InfoCard';
+import InfoCard from '@/components/ui/InfoCard';
 import Map from '@/components/Map';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';

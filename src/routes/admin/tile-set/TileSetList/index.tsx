@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import { TILE_SET_LIST_ENDPOINT } from '@/api-endpoints';
-import InfoCard from '@/components/InfoCard';
+import InfoCard from '@/components/ui/InfoCard';
 import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import SoloAccordion from '@/components/admin/SoloAccordion';

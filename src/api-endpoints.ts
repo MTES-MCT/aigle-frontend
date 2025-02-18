@@ -132,12 +132,14 @@ export const getDetectionListEndpoint = (detail: boolean = false, geoFeature: bo
     return `${base}?${searchParams.toString()}`;
 };
 export const getDetectionDetailEndpoint = (uuid: string) => `${BASE_DETECTION}${uuid}/`;
+export const getDetectionForceVisibleEndpoint = (uuid: string) => `${getDetectionDetailEndpoint(uuid)}force-visible/`;
 
 const BASE_DETECTION_OBJECT = `${BASE_API}detection-object/`;
 export const DETECTION_OBJECT_LIST_ENDPOINT = `${BASE_DETECTION_OBJECT}`;
 export const DETECTION_OBJECT_POST_ENDPOINT = `${BASE_DETECTION_OBJECT}`;
 export const getDetectionObjectDetailEndpoint = (uuid: string) => `${BASE_DETECTION_OBJECT}${uuid}/`;
 export const getDetectionObjectHistoryEndpoint = (uuid: string) => `${BASE_DETECTION_OBJECT}${uuid}/history/`;
+export const DETECTION_OBJECT_FROM_COORDINATES_ENDPOINT = `${BASE_DETECTION_OBJECT}from-coordinates/`;
 
 const BASE_DETECTION_DATA = `${BASE_API}detection-data/`;
 export const DETECTION_DATA_POST_ENDPOINT = `${BASE_DETECTION_DATA}`;

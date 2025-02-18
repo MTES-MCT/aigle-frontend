@@ -1,5 +1,5 @@
 import { DETECTION_POST_ENDPOINT } from '@/api-endpoints';
-import InfoCard from '@/components/InfoCard';
+import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
 import { MapTileSetLayer } from '@/models/map-layer';

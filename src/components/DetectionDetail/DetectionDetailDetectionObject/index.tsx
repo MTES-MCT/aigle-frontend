@@ -11,6 +11,7 @@ import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-
 import { AxiosError } from 'axios';
 import React, { useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
+import { IconMessage } from '@tabler/icons-react';
 
 interface FormValues {
     objectTypeUuid: string;
@@ -134,7 +135,13 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
                     key={form.key('comment')}
                 />
             ) : (
-                <Button variant="subtle" mt="md" size="compact-sm" onClick={() => setCommentInputShowed(true)}>
+                <Button
+                    variant="subtle"
+                    mt="md"
+                    size="compact-sm"
+                    onClick={() => setCommentInputShowed(true)}
+                    leftSection={<IconMessage size={16} />}
+                >
                     Ajouter un commentaire
                 </Button>
             )}

@@ -137,8 +137,6 @@ const Component: React.FC<ComponentProps> = ({
         return objectTypesToDisplay_;
     }, [objectTypes, otherObjectTypesUuids]);
 
-    console.log(objectTypesToDisplay);
-
     return (
         <form className={classes.form}>
             <h2>{CONTROL_LABEL}</h2>

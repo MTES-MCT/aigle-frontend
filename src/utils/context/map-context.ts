@@ -133,8 +133,6 @@ const useMap = create<MapState>()((set, get) => ({
         });
     },
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => {
-        console.log('UPDATE FROM CONTEXT', objectsFilter);
-
         set((state) => {
             const objectsFilterUpdated = {
                 ...state.objectsFilter,

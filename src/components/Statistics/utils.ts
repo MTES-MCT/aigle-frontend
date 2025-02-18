@@ -42,7 +42,6 @@ export const objectsFilterToApiParams = (
         }
     }
 
-    console.log('OUIOUI', { objectTypesUuids, otherObjectTypesUuids });
     params.objectTypesUuids = objectTypesUuids.join(',');
 
     return params;
