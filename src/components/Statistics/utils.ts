@@ -1,12 +1,13 @@
 import { ObjectsFilter } from '@/models/detection-filter';
 import { OTHER_OBJECT_TYPE } from '@/utils/constants';
+import { formatBigInt } from '@/utils/format';
 
 export const valueFormatter = (value: any) => {
     if (typeof value !== 'number') {
         return value;
     }
 
-    return new Intl.NumberFormat('fr-FR').format(value);
+    return formatBigInt(value);
 };
 
 export const objectsFilterToApiParams = (

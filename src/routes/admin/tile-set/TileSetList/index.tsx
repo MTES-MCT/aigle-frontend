@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 
 import { TILE_SET_LIST_ENDPOINT } from '@/api-endpoints';
-import InfoCard from '@/components/ui/InfoCard';
 import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
+import InfoCard from '@/components/ui/InfoCard';
 import { TileSetDetail, TileSetScheme, TileSetStatus, tileSetSchemes, tileSetStatuses } from '@/models/tile-set';
 import { DEFAULT_DATETIME_FORMAT, TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { Button, Checkbox, Input, Stack, Table, Tooltip } from '@mantine/core';
@@ -13,6 +13,7 @@ import { IconLink, IconMapPlus, IconSearch, IconX } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import isEqual from 'lodash/isEqual';
 import { Link, useNavigate } from 'react-router-dom';
+import { formatBigInt } from '@/utils/format';
 
 interface DataFilter {
     q: string;
@@ -114,6 +115,7 @@ const Component: React.FC = () => {
                     <Table.Th key="id">ID</Table.Th>,
                     <Table.Th key="date">Date</Table.Th>,
                     <Table.Th key="name">Nom</Table.Th>,
+                    <Table.Th key="detectionsCount">Nbr détections</Table.Th>,
                     <Table.Th key="type">Type</Table.Th>,
                     <Table.Th key="status">Statut</Table.Th>,
                     <Table.Th key="scheme">Scheme</Table.Th>,
@@ -124,6 +126,7 @@ const Component: React.FC = () => {
                     (item: TileSetDetail) => item.id,
                     (item: TileSetDetail) => <DateInfo date={item.date} hideTooltip={true} />,
                     (item: TileSetDetail) => item.name,
+                    (item: TileSetDetail) => formatBigInt(item.detectionsCount),
                     (item: TileSetDetail) => TILE_SET_TYPES_NAMES_MAP[item.tileSetType],
                     (item: TileSetDetail) => TILE_SET_STATUSES_NAMES_MAP[item.tileSetStatus],
                     (item: TileSetDetail) => item.tileSetScheme,
