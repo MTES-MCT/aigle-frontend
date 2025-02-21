@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 
 import SelectItem from '@/components/ui/SelectItem';
 import { detectionControlStatuses, detectionValidationStatuses } from '@/models/detection';
@@ -11,6 +11,7 @@ import {
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
     OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
+import { useMap } from '@/utils/context/map-context';
 import { ActionIcon, Badge, Button, Checkbox, Group, MultiSelect, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconChecks, IconX } from '@tabler/icons-react';
@@ -46,6 +47,7 @@ const Component: React.FC<ComponentProps> = ({
     geoCustomZones,
     updateObjectsFilter,
 }) => {
+    const { eventEmitter } = useMap();
     const {
         objectTypesUuids,
         detectionValidationStatuses: detectionValidationStatusesFilter,
@@ -110,6 +112,21 @@ const Component: React.FC<ComponentProps> = ({
             interfaceDrawn: value,
         });
     });
+    useEffect(() => {
+        const updateFilters = (newFilters: ObjectsFilter) => {
+            form.setValues(newFilters);
+        };
+
+        if (!eventEmitter) {
+            return;
+        }
+
+        eventEmitter.on('OBJECTS_FILTER_UPDATED', (newFilters: ObjectsFilter) => updateFilters(newFilters));
+
+        return () => {
+            eventEmitter.off('OBJECTS_FILTER_UPDATED', updateFilters);
+        };
+    }, []);
 
     const objectTypesMap: Record<string, ObjectTypeMinimal> = useMemo(() => {
         return (

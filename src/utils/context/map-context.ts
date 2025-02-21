@@ -47,7 +47,13 @@ const getInitialLayers = (settings: MapSettings) => {
     };
 };
 
-type MapEventType = 'UPDATE_DETECTIONS' | 'UPDATE_DETECTION_DETAIL' | 'JUMP_TO' | 'DISPLAY_PARCEL' | 'LAYERS_UPDATED';
+type MapEventType =
+    | 'UPDATE_DETECTIONS'
+    | 'UPDATE_DETECTION_DETAIL'
+    | 'JUMP_TO'
+    | 'DISPLAY_PARCEL'
+    | 'LAYERS_UPDATED'
+    | 'OBJECTS_FILTER_UPDATED';
 
 interface MapState {
     layers?: MapTileSetLayer[];

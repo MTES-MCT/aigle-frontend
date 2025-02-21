@@ -2,6 +2,7 @@ import { getDetectionForceVisibleEndpoint, getDetectionObjectDetailEndpoint } fr
 import DetectionDetailDetectionData from '@/components/DetectionDetail/DetectionDetailDetectionData';
 import DetectionDetailDetectionObject from '@/components/DetectionDetail/DetectionDetailDetectionObject';
 import DetectionTileHistory from '@/components/DetectionDetail/DetectionTileHistory';
+import { getFiltersToMakeVisible } from '@/components/DetectionDetail/utils/force-visible';
 import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
 import DateInfo from '@/components/ui/DateInfo';
 import Loader from '@/components/ui/Loader';
@@ -57,7 +58,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     setDetectionUnhidden,
     onClose,
 }) => {
-    const { eventEmitter } = useMap();
+    const { eventEmitter, objectsFilter, updateObjectsFilter } = useMap();
     const [signalementPdfLoading, setSignalementPdfLoading] = useState(false);
     const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
@@ -165,6 +166,23 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             color="orange"
                             fullWidth
                             onClick={async () => {
+                                if (!objectsFilter) {
+                                    return;
+                                }
+
+                                const newFilters = getFiltersToMakeVisible(
+                                    objectsFilter,
+                                    detectionObject,
+                                    detectionObject.detections[0],
+                                );
+                                updateObjectsFilter(newFilters);
+                                eventEmitter.emit('OBJECTS_FILTER_UPDATED', newFilters);
+
+                                notifications.show({
+                                    title: 'Filtres mis à jour',
+                                    message: 'Les filtres ont été mis à jour pour rendre la détection visible',
+                                });
+
                                 setForceVisibleLoading(true);
                                 await api.patch(getDetectionForceVisibleEndpoint(detectionObject.detections[0].uuid));
                                 setForceVisibleLoading(false);
