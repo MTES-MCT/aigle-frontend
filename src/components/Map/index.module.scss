@@ -1,4 +1,4 @@
-@import "@/constants.scss";
+@import '@/constants.scss';
 
 $panel-position-from-borders: 10px;
 
@@ -30,14 +30,14 @@ $panel-position-from-borders: 10px;
     top: 68px; // searchbar: 48px + margin searchbar: 10px + distance from searchbar: 10px
     left: 10px;
 
-
     display: flex;
     flex-direction: row;
     gap: var(--mantine-spacing-xs);
 
-    .detections-loader-container, .object-from-coordinates-loader-container {
+    .detections-loader-container,
+    .object-from-coordinates-loader-container {
         padding: 8px;
-        
+
         box-shadow: $shadow;
         background-color: #ffffff;
 

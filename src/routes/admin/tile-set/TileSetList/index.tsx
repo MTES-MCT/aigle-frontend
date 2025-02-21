@@ -8,12 +8,12 @@ import DateInfo from '@/components/ui/DateInfo';
 import InfoCard from '@/components/ui/InfoCard';
 import { TileSetDetail, TileSetScheme, TileSetStatus, tileSetSchemes, tileSetStatuses } from '@/models/tile-set';
 import { DEFAULT_DATETIME_FORMAT, TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { formatBigInt } from '@/utils/format';
 import { Button, Checkbox, Input, Stack, Table, Tooltip } from '@mantine/core';
 import { IconLink, IconMapPlus, IconSearch, IconX } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import isEqual from 'lodash/isEqual';
 import { Link, useNavigate } from 'react-router-dom';
-import { formatBigInt } from '@/utils/format';
 
 interface DataFilter {
     q: string;

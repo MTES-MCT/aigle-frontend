@@ -4,9 +4,9 @@ import {
     getDetectionObjectDetailEndpoint,
 } from '@/api-endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
+import ErrorCard from '@/components/ui/ErrorCard';
 import InfoBubble from '@/components/ui/InfoBubble';
 import InfoCard from '@/components/ui/InfoCard';
-import ErrorCard from '@/components/ui/ErrorCard';
 import {
     DetectionControlStatus,
     DetectionData,

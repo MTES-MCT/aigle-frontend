@@ -4,9 +4,9 @@ import { AxiosError } from 'axios';
 import React, { useState } from 'react';
 
 import { AUTH_RESET_PASSWORD_ENDPOINT } from '@/api-endpoints';
-import InfoCard from '@/components/ui/InfoCard';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
+import InfoCard from '@/components/ui/InfoCard';
 import api from '@/utils/api';
 import { DEFAULT_ROUTE } from '@/utils/constants';
 import { IconMailCheck } from '@tabler/icons-react';

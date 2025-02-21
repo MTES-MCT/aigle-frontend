@@ -7,11 +7,11 @@ import { useMap } from '@/utils/context/map-context';
 import { Button, Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { IconMessage } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import React, { useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
-import { IconMessage } from '@tabler/icons-react';
 
 interface FormValues {
     objectTypeUuid: string;

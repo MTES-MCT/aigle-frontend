@@ -27,4 +27,4 @@ const INT_FORMATTER = new Intl.NumberFormat('fr-FR');
 
 export const formatBigInt = (bigInt: number) => {
     return INT_FORMATTER.format(bigInt);
-}
+};
