@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Map, { GeolocateControl, Layer, Source, ViewStateChangeEvent } from 'react-map-gl';
 
 import {
+    DETECTION_OBJECT_FROM_COORDINATES_ENDPOINT,
     DETECTION_OBJECT_LIST_ENDPOINT,
     GET_ANNOTATION_GRID_ENDPOINT,
     GET_CUSTOM_GEOMETRY_ENDPOINT,
@@ -33,7 +34,17 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
+import {
+    bbox,
+    bboxPolygon,
+    booleanIntersects,
+    booleanWithin,
+    centroid,
+    feature,
+    featureCollection,
+    getCoord,
+    point,
+} from '@turf/turf';
 import { format } from 'date-fns';
 import { FeatureCollection, Geometry, Polygon } from 'geojson';
 import mapboxgl from 'mapbox-gl';
@@ -115,6 +126,7 @@ const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outlin
 const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID = 'custom-zone-negative-geojson-layer';
 
 const GEOJSON_DETECTIONS_LAYER_ID = 'detections-geojson-layer';
+const GEOJSON_DETECTION_FROM_COORDINATES_LAYER_ID = 'detection-from-coordinates-geojson-layer';
 const GEOJSON_DETECTIONS_LAYER_OUTLINE_ID = 'detections-geojson-layer-outline';
 const GEOJSON_LAYER_EXTRA_ID = 'geojson-layer-data-extra';
 const GEOJSON_LAYER_EXTRA_BOUNDINGS_ID = 'geojson-layer-data-extra-boundings';
@@ -154,6 +166,24 @@ const getAnnotationGridFilters = (objectsFilter: ObjectsFilter) => {
     return annotationFilter;
 };
 
+type ObjectFromCoordinatesFetchStatus = 'LOADING' | 'IDLE';
+type ObjectFromCoordinates = {
+    uuid: string;
+    geometry: Polygon;
+    objectTypeUuid: string;
+    objectTypeColor: string;
+};
+type ObjectFromCoordinatesState = {
+    objectFromCoordinates?: ObjectFromCoordinates;
+    fetchStatus: ObjectFromCoordinatesFetchStatus;
+};
+
+type DetectionDetailsShowedState = {
+    detectionObjectUuid: string;
+    detectionUuid?: string;
+    detectionHidden?: boolean;
+};
+
 interface ComponentProps {
     layers: MapTileSetLayer[];
     displayDetections?: boolean;
@@ -179,10 +209,7 @@ const Component: React.FC<ComponentProps> = ({
     initialPosition,
 }) => {
     const [mapBounds, setMapBounds] = useState<MapBounds>();
-    const [detectionDetailsShowed, setDetectionDetailsShowed] = useState<{
-        detectionObjectUuid: string;
-        detectionUuid: string;
-    } | null>(null);
+    const [detectionDetailsShowed, setDetectionDetailsShowed] = useState<DetectionDetailsShowedState | null>(null);
     const [leftSectionShowed, setLeftSectionShowed] = useState<LeftSection>();
     const [drawMode, setDrawMode] = useState<DrawMode | null>(null);
 
@@ -190,6 +217,11 @@ const Component: React.FC<ComponentProps> = ({
 
     const [addAnnotationPolygon, setAddAnnotationPolygon] = useState<Polygon>();
     const [multipleEditDetectionsUuids, setMultipleEditDetectionsUuids] = useState<string[] | undefined>(undefined);
+
+    const [objectFromCoordinates, setObjectFromCoordinates] = useState<ObjectFromCoordinatesState>({
+        fetchStatus: 'IDLE',
+        objectFromCoordinates: undefined,
+    });
 
     const {
         eventEmitter,
@@ -685,6 +717,10 @@ const Component: React.FC<ComponentProps> = ({
     const closeDetectionDetail = useCallback(() => {
         setDetectionDetailsShowed(null);
         setLeftSectionShowed(undefined);
+        setObjectFromCoordinates(() => ({
+            fetchStatus: 'IDLE',
+            objectFromCoordinates: undefined,
+        }));
         mapRef?.easeTo({
             padding: {
                 top: 0,
@@ -696,7 +732,8 @@ const Component: React.FC<ComponentProps> = ({
         });
     }, [mapRef]);
 
-    const onMapClick = ({ features, target }: mapboxgl.MapLayerMouseEvent) => {
+    const onMapClick = async (event: mapboxgl.MapLayerMouseEvent) => {
+        const { features, target, lngLat } = event;
         const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
         if (
@@ -704,7 +741,66 @@ const Component: React.FC<ComponentProps> = ({
             !features.length ||
             [DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)
         ) {
+            const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
+
             closeDetectionDetail();
+
+            // if section was open, we just close it
+            if (!noSectionOpen) {
+                return;
+            }
+            // else use clicked when no section was open => we look for a detection
+
+            const { lng, lat } = lngLat;
+            // get the first displayed layer that contains the annotation
+            const point_ = point([lng, lat]);
+            const layer = layers
+                .filter((layer) => ['BACKGROUND', 'PARTIAL'].includes(layer.tileSet.tileSetType))
+                .find((layer) => !layer.tileSet.geometry || booleanWithin(point_, layer.tileSet.geometry));
+
+            if (!layer) {
+                return;
+            }
+
+            setObjectFromCoordinates(() => ({
+                fetchStatus: 'LOADING',
+                objectFromCoordinates: undefined,
+            }));
+
+            const res = await api.get<ObjectFromCoordinates>(DETECTION_OBJECT_FROM_COORDINATES_ENDPOINT, {
+                params: {
+                    lat,
+                    lng,
+                    tileSetUuid: layer.tileSet.uuid,
+                },
+            });
+            const objectFromCoordinates = res.data;
+
+            if (!objectFromCoordinates) {
+                setObjectFromCoordinates(() => ({
+                    fetchStatus: 'IDLE',
+                    objectFromCoordinates: undefined,
+                }));
+                notifications.show({
+                    title: 'Aucun objet détecté ici',
+                    message: "Aucun objet, même non-visible n'a été détecté ici",
+                });
+                return;
+            }
+
+            notifications.show({
+                title: 'Un objet masqué par les filtres actuels a été détecté ici',
+                message: 'Vous pouvez le rendre visible dans le panneau latéral',
+            });
+            setDetectionDetailsShowed({
+                detectionObjectUuid: objectFromCoordinates.uuid,
+                detectionHidden: true,
+            });
+            setObjectFromCoordinates(() => ({
+                fetchStatus: 'IDLE',
+                objectFromCoordinates,
+            }));
+
             return;
         }
 
@@ -818,9 +914,21 @@ const Component: React.FC<ComponentProps> = ({
                             hide={() => setMultipleEditDetectionsUuids(undefined)}
                             detectionsUuids={multipleEditDetectionsUuids}
                         />
-                        {isDetectionsFetching ? (
-                            <div className={classes['detections-loader-container']}>
-                                <MantineLoader size="sm" />
+                        {isDetectionsFetching || objectFromCoordinates.fetchStatus === 'LOADING' ? (
+                            <div className={classes['loaders-container']}>
+                                {isDetectionsFetching ? (
+                                    <div className={classes['detections-loader-container']}>
+                                        <MantineLoader size="sm" />
+                                        <div className={classes['loader-text']}>Chargement des détections</div>
+                                    </div>
+                                ) : null}
+                                {objectFromCoordinates.fetchStatus === 'LOADING' ? (
+                                    <div className={classes['object-from-coordinates-loader-container']}>
+                                        <MantineLoader size="sm" />
+
+                                        <div className={classes['loader-text']}>Recherche d&apos;une détection</div>
+                                    </div>
+                                ) : null}
                             </div>
                         ) : null}
                     </>
@@ -942,6 +1050,7 @@ const Component: React.FC<ComponentProps> = ({
                         }}
                     />
                 </Source>
+
                 <Source id="detections-geojson-data" type="geojson" data={data || EMPTY_GEOJSON_FEATURE_COLLECTION}>
                     <Layer
                         id={GEOJSON_DETECTIONS_LAYER_ID}
@@ -971,13 +1080,33 @@ const Component: React.FC<ComponentProps> = ({
                     />
                 </Source>
                 <Source
+                    id="detection-from-coordinate-geojson-data"
+                    type="geojson"
+                    data={objectFromCoordinates.objectFromCoordinates?.geometry || EMPTY_GEOJSON_FEATURE_COLLECTION}
+                >
+                    <Layer
+                        id={GEOJSON_DETECTION_FROM_COORDINATES_LAYER_ID}
+                        beforeId={GEOJSON_DETECTIONS_LAYER_OUTLINE_ID}
+                        type="line"
+                        paint={{
+                            'line-width': 2,
+                            'line-dasharray': [2, 2],
+                            ...(objectFromCoordinates.objectFromCoordinates?.objectTypeColor
+                                ? {
+                                      'line-color': objectFromCoordinates.objectFromCoordinates?.objectTypeColor,
+                                  }
+                                : {}),
+                        }}
+                    />
+                </Source>
+                <Source
                     id="parcel-geojson-data"
                     type="geojson"
                     data={parcelPolygonDisplayed || EMPTY_GEOJSON_FEATURE_COLLECTION}
                 >
                     <Layer
                         id={GEOJSON_PARCEL_LAYER_ID}
-                        beforeId={GEOJSON_DETECTIONS_LAYER_OUTLINE_ID}
+                        beforeId={GEOJSON_DETECTION_FROM_COORDINATES_LAYER_ID}
                         type="line"
                         paint={{
                             'line-width': 2,
@@ -1080,6 +1209,14 @@ const Component: React.FC<ComponentProps> = ({
                         <DetectionDetail
                             detectionObjectUuid={detectionDetailsShowed.detectionObjectUuid}
                             detectionUuid={detectionDetailsShowed.detectionUuid}
+                            detectionHidden={!!objectFromCoordinates.objectFromCoordinates}
+                            setDetectionUnhidden={() => {
+                                refetch();
+                                setObjectFromCoordinates(() => ({
+                                    fetchStatus: 'IDLE',
+                                    objectFromCoordinates: undefined,
+                                }));
+                            }}
                             onClose={() => closeDetectionDetail()}
                         />
                     </div>

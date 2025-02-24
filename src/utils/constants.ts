@@ -151,6 +151,6 @@ export const CUSTOM_ZONE_NEGATIVE_COLOR = '#808080';
 
 export const OTHER_OBJECT_TYPE: ObjectTypeMinimal = {
     name: 'Autres',
-    color: '#808080',
+    color: '#FFFFFF',
     uuid: 'OTHER_OBJECT_TYPES',
 } as const;

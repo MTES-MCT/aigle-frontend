@@ -7,6 +7,7 @@ import { useMap } from '@/utils/context/map-context';
 import { Button, Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { IconMessage } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import React, { useMemo, useRef, useState } from 'react';
@@ -134,7 +135,13 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
                     key={form.key('comment')}
                 />
             ) : (
-                <Button variant="subtle" mt="md" size="compact-sm" onClick={() => setCommentInputShowed(true)}>
+                <Button
+                    variant="subtle"
+                    mt="md"
+                    size="compact-sm"
+                    onClick={() => setCommentInputShowed(true)}
+                    leftSection={<IconMessage size={16} />}
+                >
                     Ajouter un commentaire
                 </Button>
             )}

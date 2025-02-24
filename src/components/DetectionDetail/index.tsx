@@ -1,10 +1,12 @@
-import { getDetectionObjectDetailEndpoint } from '@/api-endpoints';
+import { getDetectionForceVisibleEndpoint, getDetectionObjectDetailEndpoint } from '@/api-endpoints';
 import DetectionDetailDetectionData from '@/components/DetectionDetail/DetectionDetailDetectionData';
 import DetectionDetailDetectionObject from '@/components/DetectionDetail/DetectionDetailDetectionObject';
 import DetectionTileHistory from '@/components/DetectionDetail/DetectionTileHistory';
+import { getFiltersToMakeVisible } from '@/components/DetectionDetail/utils/force-visible';
 import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
 import DateInfo from '@/components/ui/DateInfo';
 import Loader from '@/components/ui/Loader';
+import WarningCard from '@/components/ui/WarningCard';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
@@ -42,7 +44,9 @@ const updateAdress = (objectTypeUuid: string, address: string) => {
 interface ComponentInnerProps {
     detectionObject: DetectionObjectDetail;
     detectionObjectRefreshing: boolean;
-    detectionUuid: string;
+    detectionUuid?: string;
+    detectionHidden?: boolean;
+    setDetectionUnhidden?: () => void;
     onClose: () => void;
 }
 
@@ -50,10 +54,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     detectionObject,
     detectionObjectRefreshing,
     detectionUuid,
+    detectionHidden,
+    setDetectionUnhidden,
     onClose,
 }) => {
-    const { eventEmitter } = useMap();
+    const { eventEmitter, objectsFilter, updateObjectsFilter } = useMap();
     const [signalementPdfLoading, setSignalementPdfLoading] = useState(false);
+    const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
     const initialDetection =
         detectionObject.detections.find((detection) => detection.uuid === detectionUuid) ||
@@ -149,6 +156,44 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         />
                     ) : null}
                 </div>
+
+                {detectionHidden ? (
+                    <WarningCard title="Détection cachée">
+                        <p>Cette détection est cachée par les filtres actuels.</p>
+                        <p>Appuyez sur le bouton ci-dessous pour forcer son affichage</p>
+                        <Button
+                            mt="md"
+                            color="orange"
+                            fullWidth
+                            onClick={async () => {
+                                if (!objectsFilter) {
+                                    return;
+                                }
+
+                                const newFilters = getFiltersToMakeVisible(
+                                    objectsFilter,
+                                    detectionObject,
+                                    detectionObject.detections[0],
+                                );
+                                updateObjectsFilter(newFilters);
+                                eventEmitter.emit('OBJECTS_FILTER_UPDATED', newFilters);
+
+                                notifications.show({
+                                    title: 'Filtres mis à jour',
+                                    message: 'Les filtres ont été mis à jour pour rendre la détection visible',
+                                });
+
+                                setForceVisibleLoading(true);
+                                await api.patch(getDetectionForceVisibleEndpoint(detectionObject.detections[0].uuid));
+                                setForceVisibleLoading(false);
+                                setDetectionUnhidden && setDetectionUnhidden();
+                            }}
+                            disabled={forceVisibleLoading}
+                        >
+                            Rendre visible
+                        </Button>
+                    </WarningCard>
+                ) : null}
 
                 <Accordion variant="contained" className={classes['general-informations']} defaultValue={undefined}>
                     <Accordion.Item key="infos" value="infos" className={classes['general-informations-item']}>
@@ -270,11 +315,19 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 
 interface ComponentProps {
     detectionObjectUuid: string;
-    detectionUuid: string;
+    detectionUuid?: string;
+    detectionHidden?: boolean;
+    setDetectionUnhidden?: () => void;
     onClose: () => void;
 }
 
-const Component: React.FC<ComponentProps> = ({ detectionObjectUuid, detectionUuid, onClose }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({
+    detectionObjectUuid,
+    detectionUuid,
+    detectionHidden = false,
+    setDetectionUnhidden,
+    onClose,
+}: ComponentProps) => {
     const { eventEmitter } = useMap();
     const fetchData = async () => {
         const res = await api.get<DetectionObjectDetail>(getDetectionObjectDetailEndpoint(detectionObjectUuid));
@@ -303,9 +356,11 @@ const Component: React.FC<ComponentProps> = ({ detectionObjectUuid, detectionUui
 
     return (
         <ComponentInner
+            detectionHidden={detectionHidden}
             detectionObject={detectionObject}
             detectionObjectRefreshing={detectionObjectRefreshing}
             detectionUuid={detectionUuid}
+            setDetectionUnhidden={setDetectionUnhidden}
             onClose={onClose}
         />
     );

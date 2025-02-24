@@ -34,6 +34,7 @@ export interface TileSetDetail extends TileSet {
     id: number;
     lastImportEndedAt: string | null;
     lastImportStartedAt: string | null;
+    detectionsCount: number;
 }
 
 export interface TileSetDetailWithGeometry extends TileSetDetail {
