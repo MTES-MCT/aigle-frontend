@@ -213,6 +213,8 @@ const Component: React.FC<ComponentProps> = ({
     const [leftSectionShowed, setLeftSectionShowed] = useState<LeftSection>();
     const [drawMode, setDrawMode] = useState<DrawMode | null>(null);
 
+    const [isDragging, setIsDragging] = useState(false);
+
     const [parcelPolygonDisplayed, setParcelPolygonDisplayed] = useState<Polygon>();
 
     const [addAnnotationPolygon, setAddAnnotationPolygon] = useState<Polygon>();
@@ -732,7 +734,7 @@ const Component: React.FC<ComponentProps> = ({
         });
     }, [mapRef]);
 
-    const onMapClick = async (event: mapboxgl.MapLayerMouseEvent) => {
+    const onMapClick = async (event: mapboxgl.MapLayerMouseEvent | mapboxgl.MapLayerTouchEvent) => {
         const { features, target, lngLat } = event;
         const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
@@ -801,6 +803,16 @@ const Component: React.FC<ComponentProps> = ({
                 objectFromCoordinates,
             }));
 
+            target.setPadding({
+                top: 0,
+                right: 500, // $detection-detail-panel-width
+                bottom: 0,
+                left: 0,
+            });
+            target.flyTo({
+                center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
+            });
+
             return;
         }
 
@@ -840,6 +852,20 @@ const Component: React.FC<ComponentProps> = ({
 
         return undefined;
     };
+    const handleTouchStart = () => {
+        setIsDragging(false); // Reset drag state
+    };
+
+    const handleMove = () => {
+        setIsDragging(true); // User is dragging
+    };
+
+    const handleTouchEnd = (e: mapboxgl.MapLayerTouchEvent) => {
+        e.preventDefault();
+        if (!isDragging) {
+            onMapClick(e); // Trigger click only if no drag happened
+        }
+    };
 
     return (
         <div className={classes.container}>
@@ -855,6 +881,10 @@ const Component: React.FC<ComponentProps> = ({
                 onMoveEnd={loadDataFromBounds}
                 interactiveLayerIds={[GEOJSON_DETECTIONS_LAYER_ID]}
                 onClick={onMapClick}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleMove}
+                onMouseMove={handleMove}
+                onTouchEnd={handleTouchEnd}
                 onMouseEnter={onPolygonMouseEnter}
                 onMouseLeave={onPolygonMouseLeave}
                 cursor={cursor}
@@ -1091,11 +1121,7 @@ const Component: React.FC<ComponentProps> = ({
                         paint={{
                             'line-width': 2,
                             'line-dasharray': [2, 2],
-                            ...(objectFromCoordinates.objectFromCoordinates?.objectTypeColor
-                                ? {
-                                      'line-color': objectFromCoordinates.objectFromCoordinates?.objectTypeColor,
-                                  }
-                                : {}),
+                            'line-color': objectFromCoordinates.objectFromCoordinates?.objectTypeColor || 'transparent',
                         }}
                     />
                 </Source>

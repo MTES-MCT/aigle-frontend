@@ -183,6 +183,35 @@ header.fr-header {
             margin-right: $content-padding;
         }
     }
+
+    .fr-header__brand-top.fr-hidden-lg {
+        max-width: 6rem;
+    }
+
+    .fr-header__service::before {
+        display: none;
+    }
+
+    .fr-header__body {
+        height: 100%;
+        width: 100%;
+
+        .fr-container {
+            height: 100%;
+        }
+
+        .fr-header__body-row {
+            height: 100%;
+
+            .fr-header__brand {
+                height: 100%;
+            }
+        }
+    }
+}
+
+.fr-btns-group .fr-btn {
+    margin: 0 0.5rem 0.5rem;
 }
 
 .input-label {

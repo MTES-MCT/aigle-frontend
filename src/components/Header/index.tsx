@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 
 import logoSmallImg from '@/assets/logo_small.png';
+import marianneImg from '@/assets/marianne.svg';
 import { useAuth } from '@/utils/auth-context';
 import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
 import { getColorFromString, getEmailInitials } from '@/utils/string';
 import { Avatar, Burger, Button, Image, Menu, Tabs } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
     IconAdjustments,
     IconHelp,
@@ -45,19 +47,72 @@ interface AvatarState {
     color?: string;
 }
 
-interface BurgerState {
-    opened: boolean;
-    toggle: () => void;
-}
+const NavMenu: React.FC = () => {
+    const { userMe, logout } = useAuth();
 
-interface ComponentProps {
-    burgerState?: BurgerState;
-}
+    return (
+        <>
+            <ul className="fr-btns-group">
+                <li>
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/map">
+                        <IconMap className={classes['link-icon']} size={16} />
+                        Carte
+                    </a>
+                </li>
+                <li>
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/statistics">
+                        <IconReportAnalytics className={classes['link-icon']} size={16} />
+                        Stats
+                    </a>
+                </li>
+                <li>
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/table">
+                        <IconTable className={classes['link-icon']} size={16} />
+                        Tableau
+                    </a>
+                </li>
+                <li>
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/about">
+                        <IconInfoCircle className={classes['link-icon']} size={16} />A propos
+                    </a>
+                </li>
+                <li>
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/help">
+                        <IconHelp className={classes['link-icon']} size={16} />
+                        Besoin d&apos;aide
+                    </a>
+                </li>
+            </ul>
 
-const Component: React.FC<ComponentProps> = ({ burgerState }) => {
+            <ul className="fr-btns-group">
+                {userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole) ? (
+                    <li>
+                        <a className="fr-btn fr-btn--tertiary-no-outline" href="/admin">
+                            <IconAdjustments className={classes['link-icon']} size={16} />
+                            Admin
+                        </a>
+                    </li>
+                ) : null}
+                <li>
+                    <a
+                        className="fr-btn fr-icon-lock-line fr-btn--tertiary-no-outline"
+                        href="/"
+                        onClick={() => logout()}
+                    >
+                        Se déconnecter
+                    </a>
+                </li>
+            </ul>
+        </>
+    );
+};
+
+const Component: React.FC = () => {
     const { userMe, logout } = useAuth();
     const { pathname } = useLocation();
     const navigate = useNavigate();
+
+    const [burgerOpened, { toggle: toggleBurgerOpened }] = useDisclosure();
 
     const avatarState: AvatarState = useMemo(
         () =>
@@ -89,8 +144,13 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
             <div className="fr-header__body">
                 <div className="fr-container">
                     <div className="fr-header__body-row">
-                        <div className="fr-header__brand fr-enlarge-link">
-                            <div className="fr-header__brand-top">
+                        <div className="fr-header__brand">
+                            <img
+                                className="fr-header__brand-top fr-hidden-lg"
+                                src={marianneImg}
+                                alt="République française"
+                            />
+                            <div className="fr-header__brand-top fr-hidden fr-unhidden-lg">
                                 <div className="fr-header__logo">
                                     <p className="fr-logo">
                                         Ministère de
@@ -110,82 +170,43 @@ const Component: React.FC<ComponentProps> = ({ burgerState }) => {
                                         ) : null}
                                     </p>
                                 </a>
-                                <p className="fr-header__service-tagline">Détection par IA des irr.</p>
-                                <p className="fr-header__service-tagline">d&apos;occupation du sol</p>
+                                <p className="fr-header__service-tagline fr-hidden fr-unhidden-xl">
+                                    Détection par IA des irr.
+                                    <br />
+                                    d&apos;occupation du sol
+                                </p>
                             </div>
                         </div>
 
-                        <div className={clsx('fr-header__tools', classes['header-tools'])}>
-                            <div className={clsx('fr-header__tools-links', classes['tools-links'])}>
-                                <ul className="fr-btns-group">
-                                    <li>
-                                        <a className="fr-btn" href="/map">
-                                            <IconMap className={classes['link-icon']} size={16} />
-                                            Carte
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a className="fr-btn" href="/statistics">
-                                            <IconReportAnalytics className={classes['link-icon']} size={16} />
-                                            Stats
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a className="fr-btn" href="/table">
-                                            <IconTable className={classes['link-icon']} size={16} />
-                                            Tableau
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a className="fr-btn" href="/about">
-                                            <IconInfoCircle className={classes['link-icon']} size={16} />A propos
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a className="fr-btn" href="/help">
-                                            <IconHelp className={classes['link-icon']} size={16} />
-                                            Besoin d&apos;aide
-                                        </a>
-                                    </li>
-                                </ul>
+                        <Burger
+                            opened={burgerOpened}
+                            onClick={toggleBurgerOpened}
+                            hiddenFrom="md"
+                            size="sm"
+                            mr="md"
+                            ml="md"
+                        />
 
-                                <ul className="fr-btns-group">
-                                    {userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole) ? (
-                                        <li>
-                                            <a className="fr-btn" href="/admin">
-                                                <IconAdjustments className={classes['link-icon']} size={16} />
-                                                Admin
-                                            </a>
-                                        </li>
-                                    ) : null}
-                                    <li>
-                                        <a className="fr-btn fr-icon-lock-line" href="/" onClick={() => logout()}>
-                                            Se déconnecter
-                                        </a>
-                                    </li>
-                                </ul>
+                        <div className="fr-header__tools">
+                            <div className="fr-header__tools-links">
+                                <NavMenu />
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {burgerOpened ? (
+                <div className={classes['mobile-menu']}>
+                    <NavMenu />
+                </div>
+            ) : null}
         </header>
     );
 
     return (
         <header className={classes.container}>
             <div className="navigation-items">
-                {burgerState ? (
-                    <Burger
-                        opened={burgerState.opened}
-                        onClick={burgerState.toggle}
-                        hiddenFrom="md"
-                        size="sm"
-                        mr="md"
-                        ml="md"
-                    />
-                ) : null}
-
                 <Link to={DEFAULT_ROUTE} className={classes['logo-container']}>
                     <Image src={logoSmallImg} alt="Logo Aigle" h="100%" fit="contain" />
                 </Link>
