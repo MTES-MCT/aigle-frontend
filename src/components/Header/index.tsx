@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 
 import logoSmallImg from '@/assets/logo_small.png';
 import marianneImg from '@/assets/marianne.svg';
@@ -6,7 +6,7 @@ import { useAuth } from '@/utils/auth-context';
 import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
 import { getColorFromString, getEmailInitials } from '@/utils/string';
 import { Avatar, Burger, Button, Image, Menu, Tabs } from '@mantine/core';
-import { useClickOutside, useDisclosure } from '@mantine/hooks';
+import { useDisclosure } from '@mantine/hooks';
 import {
     IconAdjustments,
     IconHelp,
@@ -113,20 +113,6 @@ const Component: React.FC = () => {
     const navigate = useNavigate();
 
     const [burgerOpened, { toggle: toggleBurgerOpened }] = useDisclosure();
-    const mobileMenu = useRef<HTMLButtonElement>();
-    const mobileBurger = useRef<HTMLDivElement>();
-
-    useClickOutside(
-        () => {
-            if (!burgerOpened) {
-                return;
-            }
-
-            toggleBurgerOpened();
-        },
-        null,
-        [mobileMenu, mobileBurger],
-    );
 
     const avatarState: AvatarState = useMemo(
         () =>
@@ -195,7 +181,6 @@ const Component: React.FC = () => {
                         <Burger
                             opened={burgerOpened}
                             onClick={toggleBurgerOpened}
-                            ref={mobileMenu}
                             hiddenFrom="md"
                             size="sm"
                             mr="md"
@@ -212,7 +197,7 @@ const Component: React.FC = () => {
             </div>
 
             {burgerOpened ? (
-                <div className={classes['mobile-menu']} ref={mobileBurger}>
+                <div className={classes['mobile-menu']}>
                     <NavMenu />
                 </div>
             ) : null}

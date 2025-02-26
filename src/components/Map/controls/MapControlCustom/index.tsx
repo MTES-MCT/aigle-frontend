@@ -108,7 +108,7 @@ const Component: React.FC<ComponentProps> = ({
                 {setIsShowed ? (
                     <ActionIcon
                         variant="transparent"
-                        className={classes["close-button"]}
+                        className={classes['close-button']}
                         onClick={() => setIsShowed(false)}
                         aria-label="Fermer la section"
                     >

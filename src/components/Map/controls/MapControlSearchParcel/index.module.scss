@@ -5,7 +5,7 @@
 
     width: 400px;
 
-    max-height: calc(100% - 20px - 14px*2 - 10px*2 - 10px); // total size of search bar + margins
+    max-height: calc(100% - 20px - 14px * 2 - 10px * 2 - 10px); // total size of search bar + margins
 
     margin-left: $margin-map-elements;
     margin-top: $margin-map-elements;
@@ -15,7 +15,9 @@
 
     @media screen and (max-width: 992px) {
         top: calc(58px + 34px + 10px); // initial top + control buttons on tablet
-        max-height: calc(100% - 20px - 14px*2 - 10px*2 - 10px - 34px - 10px); // total size of search bar + margins + control buttons on tablet
+        max-height: calc(
+            100% - 20px - 14px * 2 - 10px * 2 - 10px - 34px - 10px
+        ); // total size of search bar + margins + control buttons on tablet
     }
 
     .empty-filter-text {

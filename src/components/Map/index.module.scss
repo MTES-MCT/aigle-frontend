@@ -38,10 +38,10 @@ $panel-position-from-borders: 10px;
     flex-direction: row;
     gap: var(--mantine-spacing-xs);
 
-    
     @media screen and (max-width: 992px) {
-        top: calc(68px + 36px + $margin-map-elements); // searchbar: 48px + margin searchbar: 10px + distance from searchbar: 10px
-
+        top: calc(
+            68px + 36px + $margin-map-elements
+        ); // searchbar: 48px + margin searchbar: 10px + distance from searchbar: 10px
     }
 
     .detections-loader-container,

@@ -1,24 +1,24 @@
 @import '@/constants.scss';
 
-
 .content {
     z-index: 100;
 
     width: 1000px;
 
-    max-height: calc(100% - 20px - 14px*2 - 10px*2 - 10px); // total size of search bar + margins
+    max-height: calc(100% - 20px - 14px * 2 - 10px * 2 - 10px); // total size of search bar + margins
 
-    
     margin-left: $margin-map-elements;
     margin-top: $margin-map-elements;
-    
+
     overflow-y: auto;
 
     top: 58px; // 10px margin of searchar bar + 48px total size of search bar
 
     @media screen and (max-width: 992px) {
         top: calc(58px + 34px + 10px); // initial top + control buttons on tablet
-        max-height: calc(100% - 20px - 14px*2 - 10px*2 - 10px - 34px - 10px); // total size of search bar + margins + control buttons on tablet
+        max-height: calc(
+            100% - 20px - 14px * 2 - 10px * 2 - 10px - 34px - 10px
+        ); // total size of search bar + margins + control buttons on tablet
     }
 
     .empty-filter-text {
@@ -36,4 +36,3 @@
     background: #ffffff;
     border-radius: $border-radius-small;
 }
-
