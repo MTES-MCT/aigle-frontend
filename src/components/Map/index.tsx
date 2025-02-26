@@ -746,9 +746,8 @@ const Component: React.FC<ComponentProps> = ({
         const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
         if (
-            !features ||
-            !features.length ||
-            [DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)
+            (!features || !features.length) &&
+            ![DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)
         ) {
             const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
 
@@ -820,6 +819,10 @@ const Component: React.FC<ComponentProps> = ({
                 center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
             });
 
+            return;
+        }
+
+        if (!features || !features.length) {
             return;
         }
 
