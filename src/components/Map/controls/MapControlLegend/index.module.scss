@@ -4,8 +4,8 @@
     bottom: 46px; // 20px (switch height) + 10px (switch margin) + 16px (switch padding)
     left: 0;
 
-    margin-left: 10px;
-    margin-bottom: 10px;
+    margin-left: $margin-map-elements;
+    margin-bottom: $margin-map-elements;
 
     z-index: 96;
 
@@ -68,7 +68,7 @@
 }
 
 .container {
-    margin: 0 0 10px 10px;
+    margin: 0 0 $margin-map-elements $margin-map-elements;
 
     padding: 8px 12px;
 

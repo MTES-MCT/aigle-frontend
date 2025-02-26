@@ -316,7 +316,7 @@ header.fr-header {
     .mapboxgl-ctrl-group {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: $margin-map-elements;
         background: none;
         box-shadow: none !important;
 
@@ -353,7 +353,7 @@ header.fr-header {
     flex-direction: row;
     align-items: center;
 
-    max-width: calc(100vw - 20px - 36px - 10px);
+    max-width: calc(100vw - 20px - 36px - $margin-map-elements);
 
     @media screen and (max-width: 992px) {
         flex-wrap: wrap;

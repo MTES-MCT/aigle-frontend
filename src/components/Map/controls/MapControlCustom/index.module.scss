@@ -1,5 +1,7 @@
 @import '@/constants.scss';
 
+$content-padding: 24px;
+
 .wrapper {
     position: relative;
 }
@@ -18,11 +20,20 @@
 
     background: #ffffff99;
 
-    padding: 24px;
+    padding: $content-padding;
+    
+    max-width: calc(100% - 2 * $margin-map-elements);
 
     display: none;
 
     &.showed {
         display: block;
+    }
+
+    .close-button {
+        position: absolute;
+
+        right: $content-padding;
+        top: $content-padding;
     }
 }

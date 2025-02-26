@@ -1,4 +1,5 @@
 import { ActionIcon, Switch, Tooltip } from '@mantine/core';
+import { IconX } from '@tabler/icons-react';
 import clsx from 'clsx';
 import React, { PropsWithChildren, useMemo, useRef } from 'react';
 import { ControlPosition, useControl } from 'react-map-gl';
@@ -104,6 +105,16 @@ const Component: React.FC<ComponentProps> = ({
                     [classes.showed]: isShowed || controlType === 'SIMPLE',
                 })}
             >
+                {setIsShowed ? (
+                    <ActionIcon
+                        variant="transparent"
+                        className={classes["close-button"]}
+                        onClick={() => setIsShowed(false)}
+                        aria-label="Fermer la section"
+                    >
+                        <IconX />
+                    </ActionIcon>
+                ) : null}
                 {children}
             </div>
         </>
