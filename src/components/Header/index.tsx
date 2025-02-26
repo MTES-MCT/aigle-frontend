@@ -6,7 +6,7 @@ import { useAuth } from '@/utils/auth-context';
 import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
 import { getColorFromString, getEmailInitials } from '@/utils/string';
 import { Avatar, Burger, Button, Image, Menu, Tabs } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useClickOutside, useDisclosure } from '@mantine/hooks';
 import {
     IconAdjustments,
     IconHelp,
@@ -113,6 +113,7 @@ const Component: React.FC = () => {
     const navigate = useNavigate();
 
     const [burgerOpened, { toggle: toggleBurgerOpened }] = useDisclosure();
+    const mobileMenuRef = useClickOutside(toggleBurgerOpened);
 
     const avatarState: AvatarState = useMemo(
         () =>
@@ -197,7 +198,7 @@ const Component: React.FC = () => {
             </div>
 
             {burgerOpened ? (
-                <div className={classes['mobile-menu']}>
+                <div className={classes['mobile-menu']} ref={mobileMenuRef}>
                     <NavMenu />
                 </div>
             ) : null}
