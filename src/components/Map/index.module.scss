@@ -20,6 +20,10 @@ $panel-position-from-borders: 10px;
 
         z-index: 93;
         background: #ffffff;
+
+        @media screen and (max-width: 992px) {
+            width: calc(100% - 2 * $panel-position-from-borders);
+        }
     }
 }
 
@@ -33,6 +37,12 @@ $panel-position-from-borders: 10px;
     display: flex;
     flex-direction: row;
     gap: var(--mantine-spacing-xs);
+
+    
+    @media screen and (max-width: 992px) {
+        top: calc(68px + 36px + 10px); // searchbar: 48px + margin searchbar: 10px + distance from searchbar: 10px
+
+    }
 
     .detections-loader-container,
     .object-from-coordinates-loader-container {

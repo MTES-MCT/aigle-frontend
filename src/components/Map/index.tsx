@@ -28,6 +28,7 @@ import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
+import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
@@ -243,6 +244,8 @@ const Component: React.FC<ComponentProps> = ({
 
     const [detectionObjectsToDownload, setDetectionObjectsToDownload] = useState<DetectionObjectDetail[]>();
     const [detectionObjectsNbrToDownloadProcessed, setDetectionObjectsNbrToDownloadProcessed] = useState(0);
+
+    const { width } = useViewportSize();
 
     const customZoneLayersDisplayedUuids = (customZoneLayers || [])
         .filter(({ displayed }) => displayed)
@@ -735,6 +738,10 @@ const Component: React.FC<ComponentProps> = ({
     }, [mapRef]);
 
     const onMapClick = async (event: mapboxgl.MapLayerMouseEvent | mapboxgl.MapLayerTouchEvent) => {
+        if (isDragging) {
+            return;
+        }
+
         const { features, target, lngLat } = event;
         const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
@@ -853,18 +860,26 @@ const Component: React.FC<ComponentProps> = ({
         return undefined;
     };
     const handleTouchStart = () => {
-        setIsDragging(false); // Reset drag state
+        setIsDragging(false);
     };
 
     const handleMove = () => {
-        setIsDragging(true); // User is dragging
+        setIsDragging(true);
     };
 
     const handleTouchEnd = (e: mapboxgl.MapLayerTouchEvent) => {
         e.preventDefault();
         if (!isDragging) {
-            onMapClick(e); // Trigger click only if no drag happened
+            onMapClick(e);
         }
+    };
+
+    const handleZoom = () => {
+        setIsDragging(true);
+    };
+
+    const handleZoomEnd = () => {
+        setIsDragging(false);
     };
 
     return (
@@ -885,6 +900,8 @@ const Component: React.FC<ComponentProps> = ({
                 onTouchMove={handleMove}
                 onMouseMove={handleMove}
                 onTouchEnd={handleTouchEnd}
+                onZoom={handleZoom}
+                onZoomEnd={handleZoomEnd}
                 onMouseEnter={onPolygonMouseEnter}
                 onMouseLeave={onPolygonMouseLeave}
                 cursor={cursor}
@@ -894,10 +911,12 @@ const Component: React.FC<ComponentProps> = ({
                 <GeolocateControl
                     position="top-left"
                     style={{
-                        position: 'fixed',
-                        left: '300px', // searchbar width
+                        position: 'absolute',
+                        top: '24px',
+                        right: '0px',
                         zIndex: 10,
-                        transform: 'translateX(calc(-10px - 100%))',
+                        transform:
+                            width < 992 ? 'translate(-50%, -50%)' : 'translate(calc(-50% - 36px*3 - 10px*3), -50%)', // if screen is big, there is button at the right, if small, no buttons
                         background: 'none',
                     }}
                 />
@@ -915,11 +934,7 @@ const Component: React.FC<ComponentProps> = ({
                                 setLeftSectionShowed(state ? 'FILTER_DETECTION' : undefined);
                             }}
                         />
-                        {displayTileSetControls ? (
-                            <>
-                                <MapControlBackgroundSlider />
-                            </>
-                        ) : null}
+                        {displayTileSetControls ? <MapControlBackgroundSlider /> : null}
                         <MapControlLegend
                             isShowed={leftSectionShowed === 'LEGEND'}
                             setIsShowed={(state: boolean) => {
