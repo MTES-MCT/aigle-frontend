@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 
 import logoSmallImg from '@/assets/logo_small.png';
 import marianneImg from '@/assets/marianne.svg';
@@ -113,7 +113,20 @@ const Component: React.FC = () => {
     const navigate = useNavigate();
 
     const [burgerOpened, { toggle: toggleBurgerOpened }] = useDisclosure();
-    const mobileMenuRef = useClickOutside(toggleBurgerOpened);
+    const mobileMenu = useRef<HTMLButtonElement>();
+    const mobileBurger = useRef<HTMLDivElement>();
+
+    useClickOutside(
+        () => {
+            if (!burgerOpened) {
+                return;
+            }
+
+            toggleBurgerOpened();
+        },
+        null,
+        [mobileMenu, mobileBurger],
+    );
 
     const avatarState: AvatarState = useMemo(
         () =>
@@ -182,6 +195,7 @@ const Component: React.FC = () => {
                         <Burger
                             opened={burgerOpened}
                             onClick={toggleBurgerOpened}
+                            ref={mobileMenu}
                             hiddenFrom="md"
                             size="sm"
                             mr="md"
@@ -198,7 +212,7 @@ const Component: React.FC = () => {
             </div>
 
             {burgerOpened ? (
-                <div className={classes['mobile-menu']} ref={mobileMenuRef}>
+                <div className={classes['mobile-menu']} ref={mobileBurger}>
                     <NavMenu />
                 </div>
             ) : null}
