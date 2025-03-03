@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
-import { GEO_CUSTOM_ZONE_POST_ENDPOINT, getGeoCustomZoneDetailEndpoint } from '@/api-endpoints';
+import {
+    GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT,
+    GEO_CUSTOM_ZONE_POST_ENDPOINT,
+    getGeoCustomZoneDetailEndpoint,
+} from '@/api-endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
@@ -12,18 +16,21 @@ import { useMutation, UseMutationResult, useQuery } from '@tanstack/react-query'
 import { AxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
 import InfoCard from '@/components/ui/InfoCard';
 import {
-    GeoCustomZone,
     GeoCustomZoneDetail,
     GeoCustomZoneStatus,
     geoCustomZoneStatuses,
     GeoCustomZoneType,
     geoCustomZoneTypes,
+    GeoCustomZoneWithCollectivities,
 } from '@/models/geo/geo-custom-zone';
+import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 import { UserRole } from '@/models/user';
 import { useAuth } from '@/utils/auth-context';
 import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP, GEO_CUSTOM_ZONE_TYPES_NAMES_MAP } from '@/utils/constants';
+import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 
 const BACK_URL = '/admin/custom-zones';
 
@@ -32,6 +39,10 @@ interface FormValues {
     color: string;
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
+    communesUuids: string[];
+    departmentsUuids: string[];
+    regionsUuids: string[];
+    geoCustomZoneCategoryUuid?: string;
 }
 
 const postForm = async (values: FormValues, uuid?: string) => {
@@ -47,18 +58,25 @@ const postForm = async (values: FormValues, uuid?: string) => {
 interface FormProps {
     uuid?: string;
     initialValues: FormValues;
+    initialGeoSelectedValues?: GeoValues;
+    geoCustomZoneCategories: GeoCustomZoneCategory[];
 }
 
-const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
+const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geoCustomZoneCategories }) => {
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
     const { userMe } = useAuth();
 
     const form: UseFormReturnType<FormValues> = useForm({
-        mode: 'uncontrolled',
         initialValues,
         validate: {
-            name: isNotEmpty("Le nom d'de la zone est requis"),
+            color: (value: string, formValues: FormValues) => {
+                if (formValues.geoCustomZoneCategoryUuid) {
+                    return undefined;
+                }
+
+                return isNotEmpty(value) ? undefined : "La couleur est requise si aucune catégorie n'est sélectionnée";
+            },
         },
     });
 
@@ -84,6 +102,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
 
     const label = uuid ? 'Modifier une zone' : 'Ajouter une zone';
 
+    console.log("CATID", form.getValues().geoCustomZoneCategoryUuid);
+
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
             <h1>{label}</h1>
@@ -97,6 +117,21 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                     <p>Vous ne pouvez pas modifier cette zone car elle est gérée niveau global</p>
                 </InfoCard>
             ) : null}
+
+            <Select
+                mt="md"
+                label="Catégorie"
+                placeholder="Aucune catégorie"
+                description="Ne sélectionner aucune catégorie pour donner une couleur spécifique à cette zone"
+                clearable
+                data={geoCustomZoneCategories.map((category) => ({
+                    value: category.uuid,
+                    label: category.name,
+                }))}
+                key={form.key('geoCustomZoneCategoryUuid')}
+                {...form.getInputProps('geoCustomZoneCategoryUuid')}
+            />
+
             <TextInput
                 mt="md"
                 withAsterisk
@@ -106,15 +141,17 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                 key={form.key('name')}
                 {...form.getInputProps('name')}
             />
-            <ColorInput
-                mt="md"
-                withAsterisk
-                label="Couleur de la zone"
-                placeholder="#000000"
-                disabled={cannotEdit}
-                key={form.key('color')}
-                {...form.getInputProps('color')}
-            />
+            {!form.getValues().geoCustomZoneCategoryUuid ? (
+                <ColorInput
+                    mt="md"
+                    withAsterisk
+                    label="Couleur de la zone"
+                    placeholder="#000000"
+                    disabled={cannotEdit}
+                    key={form.key('color')}
+                    {...form.getInputProps('color')}
+                />
+            ) : null}
             {userMe?.userRole === 'SUPER_ADMIN' ? (
                 <Select
                     allowDeselect={false}
@@ -147,6 +184,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                 />
             ) : null}
 
+            <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
+
             <div className="form-actions">
                 <Button
                     disabled={mutation.status === 'pending'}
@@ -170,12 +209,21 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
     );
 };
 
+const fetchGeoCustomZoneCategories = async () => {
+    const response = await api.get<GeoCustomZoneCategory[]>(GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT);
+    return response.data;
+};
+
 const getEmptyFormValues = (userRole: UserRole): FormValues => {
     const emptyFormValues: FormValues = {
         name: '',
         color: '',
         geoCustomZoneStatus: 'ACTIVE',
         geoCustomZoneType: 'COLLECTIVITY_MANAGED',
+        communesUuids: [],
+        departmentsUuids: [],
+        regionsUuids: [],
+        geoCustomZoneCategoryUuid: undefined,
     };
 
     if (userRole === 'SUPER_ADMIN') {
@@ -197,28 +245,42 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             return;
         }
 
-        const res = await api.get<GeoCustomZone>(getGeoCustomZoneDetailEndpoint(uuid));
+        const res = await api.get<GeoCustomZoneWithCollectivities>(getGeoCustomZoneDetailEndpoint(uuid), {
+            params: {
+                with_collectivities: true,
+            },
+        });
         const initialValues: FormValues = {
             name: res.data.name,
             color: res.data.color,
             geoCustomZoneStatus: res.data.geoCustomZoneStatus,
             geoCustomZoneType: res.data.geoCustomZoneType,
+            communesUuids: res.data.communes.map((commune) => commune.uuid),
+            departmentsUuids: res.data.departments.map((department) => department.uuid),
+            regionsUuids: res.data.regions.map((region) => region.uuid),
+            geoCustomZoneCategoryUuid: res.data.geoCustomZoneCategory?.uuid,
+        };
+        const initialGeoSelectedValues: GeoValues = {
+            region: res.data.regions.map((region) => geoZoneToGeoOption(region)),
+            department: res.data.departments.map((department) => geoZoneToGeoOption(department)),
+            commune: res.data.communes.map((commune) => geoZoneToGeoOption(commune)),
         };
 
-        return initialValues;
+        return { initialValues, initialGeoSelectedValues };
     };
 
-    const {
-        isLoading,
-        error,
-        data: initialValues,
-    } = useQuery({
+    const { isLoading, error, data } = useQuery({
         queryKey: [getGeoCustomZoneDetailEndpoint(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });
 
-    if (isLoading) {
+    const { data: geoCustomZoneCategories } = useQuery({
+        queryKey: [GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT],
+        queryFn: () => fetchGeoCustomZoneCategories(),
+    });
+
+    if (isLoading || !geoCustomZoneCategories) {
         return <Loader />;
     }
 
@@ -226,7 +288,14 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
         return <ErrorCard>{error.message}</ErrorCard>;
     }
 
-    return <Form uuid={uuid} initialValues={initialValues || getEmptyFormValues(userMe?.userRole || 'ADMIN')} />;
+    return (
+        <Form
+            uuid={uuid}
+            initialValues={data?.initialValues || getEmptyFormValues(userMe?.userRole || 'ADMIN')}
+            initialGeoSelectedValues={data?.initialGeoSelectedValues}
+            geoCustomZoneCategories={geoCustomZoneCategories}
+        />
+    );
 };
 
 const Component: React.FC = () => {

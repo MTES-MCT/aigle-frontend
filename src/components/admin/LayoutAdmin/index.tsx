@@ -62,7 +62,7 @@ const Component: React.FC<PropsWithChildren> = ({ children }) => {
                     />
                 ) : null}
                 <NavLink
-                    label="Zones"
+                    label="Zones à enjeux"
                     href="/admin/custom-zones"
                     active={pathname.includes('/admin/custom-zones')}
                     leftSection={<IconHexagon size={16} />}

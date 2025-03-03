@@ -1,13 +1,13 @@
-@import url('@gouvfr/dsfr/dist/dsfr.min.css');
-@import url('@gouvfr/dsfr/dist/utility/utility.min.css');
+@import url("@gouvfr/dsfr/dist/dsfr.min.css");
+@import url("@gouvfr/dsfr/dist/utility/utility.min.css");
 
-@import url('@mantine/core/styles.css');
-@import url('@mantine/dates/styles.css');
-@import url('@mantine/notifications/styles.css');
-@import url('@mantine/charts/styles.css');
+@import url("@mantine/core/styles.css");
+@import url("@mantine/dates/styles.css");
+@import url("@mantine/notifications/styles.css");
+@import url("@mantine/charts/styles.css");
 
-@import url('mapbox-gl/dist/mapbox-gl.css');
-@import '@/constants.scss';
+@import url("mapbox-gl/dist/mapbox-gl.css");
+@import "@/constants.scss";
 
 // css reset
 
@@ -43,8 +43,8 @@ h3 {
     font-size: 1.1rem;
 }
 
-ul[role='list'],
-ol[role='list'] {
+ul[role="list"],
+ol[role="list"] {
     list-style: none;
 }
 
@@ -55,6 +55,8 @@ html:focus-within {
 a:not([class]) {
     text-decoration-skip-ink: auto;
 }
+
+
 
 img,
 picture,
@@ -197,6 +199,7 @@ header.fr-header {
         width: 100%;
 
         .fr-container {
+            max-width: unset;
             height: 100%;
         }
 
@@ -232,6 +235,13 @@ header.fr-header {
 }
 
 // mantine
+
+a.mantine-Button-root {
+    --hover-tint: var(--button-hover, var(--mantine-primary-color-filled-hover)) !important;
+}
+a.mantine-NavLink-root {
+    --hover-tint: var(--mantine-color-gray-0) !important;
+}
 
 .mantine-Pagination-root {
     padding-bottom: var(--mantine-spacing-xl);
@@ -378,18 +388,18 @@ header.fr-header {
 }
 
 .mapbox-gl-draw_point {
-    background-image: url('@/assets/pencil.svg');
+    background-image: url("@/assets/pencil.svg");
 }
 
 .mapbox-gl-draw_polygon {
-    background-image: url('@/assets/select-all.svg');
+    background-image: url("@/assets/select-all.svg");
 }
 
 .mapbox-gl-draw_line {
-    background-image: url('@/assets/download.svg');
+    background-image: url("@/assets/download.svg");
 }
 
-.crisp-client .cc-1brb6 .cc-1yy0g .cc-1m2mf[data-is-failure='false'] {
+.crisp-client .cc-1brb6 .cc-1yy0g .cc-1m2mf[data-is-failure="false"] {
     margin-right: 24px !important;
     margin-bottom: 24px !important;
 }
@@ -423,4 +433,16 @@ $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
 
 .detection-tile-preview-title {
     width: $tile-preview-detail-size;
+}
+
+.admin-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 16px;
+
+    .admin-tab {
+        text-transform: capitalize;
+    }
 }

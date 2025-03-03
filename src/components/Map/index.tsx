@@ -901,7 +901,6 @@ const Component: React.FC<ComponentProps> = ({
                 onClick={onMapClick}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleMove}
-                onMouseMove={handleMove}
                 onTouchEnd={handleTouchEnd}
                 onZoom={handleZoom}
                 onZoomEnd={handleZoomEnd}
