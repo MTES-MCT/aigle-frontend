@@ -118,12 +118,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, otherObjec
                     <h2>Zones à enjeux</h2>
 
                     <ul className={classes['legends']}>
-                        {customZoneLayers.map(({ geoCustomZone }) => (
-                            <CustomZoneLegend
-                                key={geoCustomZone.uuid}
-                                name={geoCustomZone.name}
-                                color={geoCustomZone.color}
-                            />
+                        {customZoneLayers.map(({ name, color, customZoneUuids }) => (
+                            <CustomZoneLegend key={customZoneUuids.join(',')} name={name} color={color} />
                         ))}
                         <CustomZoneLegend
                             name="Zones exclues par les filtres"

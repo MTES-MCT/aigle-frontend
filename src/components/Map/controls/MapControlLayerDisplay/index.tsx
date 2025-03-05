@@ -121,21 +121,14 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                 <div className={classes['layers-section']}>
                     <h3 className={classes['layers-section-title']}>Contours des zones à enjeux</h3>
                     <Stack className={classes['layers-section-group']} gap="xs">
-                        {customZoneLayers.map((customZoneLayer) => (
+                        {customZoneLayers.map(({ name, color, customZoneUuids, displayed }) => (
                             <Checkbox
-                                key={customZoneLayer.geoCustomZone.uuid}
-                                checked={customZoneLayer.displayed}
-                                label={
-                                    <div className={classes['checkbox-label']}>
-                                        {customZoneLayer.geoCustomZone.name}
-                                    </div>
-                                }
-                                color={customZoneLayer.geoCustomZone.color}
+                                key={customZoneUuids.join(',')}
+                                checked={displayed}
+                                label={<div className={classes['checkbox-label']}>{name}</div>}
+                                color={color}
                                 onChange={async (event) => {
-                                    setCustomZoneVisibility(
-                                        customZoneLayer.geoCustomZone.uuid,
-                                        event.currentTarget.checked,
-                                    );
+                                    setCustomZoneVisibility(customZoneUuids, event.currentTarget.checked);
                                 }}
                             />
                         ))}

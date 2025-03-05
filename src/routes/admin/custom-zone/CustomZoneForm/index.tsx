@@ -75,7 +75,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     return undefined;
                 }
 
-                return isNotEmpty(value) ? undefined : "La couleur est requise si aucune catégorie n'est sélectionnée";
+                return isNotEmpty("La couleur est requise si aucune catégorie n'est sélectionnée")(value);
             },
         },
     });
@@ -101,8 +101,6 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
     const cannotEdit = userMe?.userRole !== 'SUPER_ADMIN' && initialValues.geoCustomZoneType === 'COMMON';
 
     const label = uuid ? 'Modifier une zone' : 'Ajouter une zone';
-
-    console.log("CATID", form.getValues().geoCustomZoneCategoryUuid);
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -252,7 +250,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
         });
         const initialValues: FormValues = {
             name: res.data.name,
-            color: res.data.color,
+            color: res.data.color || '',
             geoCustomZoneStatus: res.data.geoCustomZoneStatus,
             geoCustomZoneType: res.data.geoCustomZoneType,
             communesUuids: res.data.communes.map((commune) => commune.uuid),

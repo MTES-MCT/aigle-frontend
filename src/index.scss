@@ -137,6 +137,7 @@ form {
 
 table {
     .empty-results-cell {
+        cursor: not-allowed;
         text-align: center;
     }
 
@@ -364,6 +365,8 @@ a.mantine-NavLink-root {
     align-items: center;
 
     max-width: calc(100vw - 20px - 36px - $margin-map-elements);
+
+    z-index: 95;
 
     @media screen and (max-width: 992px) {
         flex-wrap: wrap;

@@ -249,7 +249,8 @@ const Component: React.FC<ComponentProps> = ({
 
     const customZoneLayersDisplayedUuids = (customZoneLayers || [])
         .filter(({ displayed }) => displayed)
-        .map(({ geoCustomZone }) => geoCustomZone.uuid);
+        .map(({ customZoneUuids }) => customZoneUuids)
+        .flat();
 
     // we get detections for all the layers available for the user, even if they are not displayed
     const tileSetsUuidsDetection = useMemo(
