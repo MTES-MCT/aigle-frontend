@@ -18,7 +18,9 @@ import {
     tileSetStatuses,
     tileSetTypes,
 } from '@/models/tile-set';
+import { User } from '@/models/user';
 import api from '@/utils/api';
+import { useAuth } from '@/utils/auth-context';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
@@ -136,9 +138,10 @@ interface FormProps {
     initialValues: FormValues;
     initialGeoSelectedValues?: GeoValues;
     geometry?: Geometry;
+    userMe: User;
 }
 
-const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geometry }) => {
+const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geometry, userMe }) => {
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
     const [mapPreviewProps, setMapPreviewProps] = useState<MapPreviewProps>({
@@ -360,7 +363,9 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 {...form.getInputProps('maxZoom')}
             />
 
-            <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
+            {userMe.userRole === 'SUPER_ADMIN' ? (
+                <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
+            ) : null}
 
             <MapPreview {...mapPreviewProps} geometry={geometry} key={mapPreviewProps.scheme} />
 
@@ -401,6 +406,7 @@ const EMPTY_FORM_VALUES: FormValues = {
 const ComponentInner: React.FC = () => {
     const { uuid } = useParams();
     const { updateObjectsFilter } = useMap();
+    const { userMe } = useAuth();
 
     useEffect(() => {
         updateObjectsFilter({
@@ -442,7 +448,7 @@ const ComponentInner: React.FC = () => {
         queryFn: () => fetchData(),
     });
 
-    if (isLoading) {
+    if (isLoading || !userMe) {
         return <Loader />;
     }
 
@@ -456,6 +462,7 @@ const ComponentInner: React.FC = () => {
             initialValues={data?.initialValues || EMPTY_FORM_VALUES}
             initialGeoSelectedValues={data?.initialGeoSelectedValues}
             geometry={data?.geometry}
+            userMe={userMe}
         />
     );
 };

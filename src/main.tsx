@@ -39,7 +39,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <QueryClientProvider client={queryClient}>
             <MantineProvider theme={theme}>
-                <Notifications />
+                <Notifications position="top-right" zIndex={2000} />
                 <App />
             </MantineProvider>
         </QueryClientProvider>

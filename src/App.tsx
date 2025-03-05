@@ -33,6 +33,7 @@ import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Charts from './routes/Statistics/Charts';
+import CustomZoneCategoryForm from '@/routes/admin/custom-zone/CustomZoneCategoryForm';
 
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
@@ -202,6 +203,23 @@ const App: React.FC = () => {
                     element={
                         <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
                             <CustomZoneForm />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/custom-zones/category-form"
+                    element={
+                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                            <CustomZoneCategoryForm />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/custom-zones/category-form/:uuid"
+                    element={
+                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                            <CustomZoneCategoryForm />
                         </ProtectedRoute>
                     }
                 />

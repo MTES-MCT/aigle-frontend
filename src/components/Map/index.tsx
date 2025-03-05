@@ -28,6 +28,7 @@ import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
+import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
@@ -213,6 +214,8 @@ const Component: React.FC<ComponentProps> = ({
     const [leftSectionShowed, setLeftSectionShowed] = useState<LeftSection>();
     const [drawMode, setDrawMode] = useState<DrawMode | null>(null);
 
+    const [isDragging, setIsDragging] = useState(false);
+
     const [parcelPolygonDisplayed, setParcelPolygonDisplayed] = useState<Polygon>();
 
     const [addAnnotationPolygon, setAddAnnotationPolygon] = useState<Polygon>();
@@ -242,9 +245,12 @@ const Component: React.FC<ComponentProps> = ({
     const [detectionObjectsToDownload, setDetectionObjectsToDownload] = useState<DetectionObjectDetail[]>();
     const [detectionObjectsNbrToDownloadProcessed, setDetectionObjectsNbrToDownloadProcessed] = useState(0);
 
+    const { width } = useViewportSize();
+
     const customZoneLayersDisplayedUuids = (customZoneLayers || [])
         .filter(({ displayed }) => displayed)
-        .map(({ geoCustomZone }) => geoCustomZone.uuid);
+        .map(({ customZoneUuids }) => customZoneUuids)
+        .flat();
 
     // we get detections for all the layers available for the user, even if they are not displayed
     const tileSetsUuidsDetection = useMemo(
@@ -732,14 +738,17 @@ const Component: React.FC<ComponentProps> = ({
         });
     }, [mapRef]);
 
-    const onMapClick = async (event: mapboxgl.MapLayerMouseEvent) => {
+    const onMapClick = async (event: mapboxgl.MapLayerMouseEvent | mapboxgl.MapLayerTouchEvent) => {
+        if (isDragging) {
+            return;
+        }
+
         const { features, target, lngLat } = event;
         const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
         if (
-            !features ||
-            !features.length ||
-            [DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)
+            (!features || !features.length) &&
+            ![DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)
         ) {
             const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
 
@@ -801,6 +810,20 @@ const Component: React.FC<ComponentProps> = ({
                 objectFromCoordinates,
             }));
 
+            target.setPadding({
+                top: 0,
+                right: 500, // $detection-detail-panel-width
+                bottom: 0,
+                left: 0,
+            });
+            target.flyTo({
+                center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
+            });
+
+            return;
+        }
+
+        if (!features || !features.length) {
             return;
         }
 
@@ -840,6 +863,28 @@ const Component: React.FC<ComponentProps> = ({
 
         return undefined;
     };
+    const handleTouchStart = () => {
+        setIsDragging(false);
+    };
+
+    const handleMove = () => {
+        setIsDragging(true);
+    };
+
+    const handleTouchEnd = (e: mapboxgl.MapLayerTouchEvent) => {
+        e.preventDefault();
+        if (!isDragging) {
+            onMapClick(e);
+        }
+    };
+
+    const handleZoom = () => {
+        setIsDragging(true);
+    };
+
+    const handleZoomEnd = () => {
+        setIsDragging(false);
+    };
 
     return (
         <div className={classes.container}>
@@ -855,6 +900,11 @@ const Component: React.FC<ComponentProps> = ({
                 onMoveEnd={loadDataFromBounds}
                 interactiveLayerIds={[GEOJSON_DETECTIONS_LAYER_ID]}
                 onClick={onMapClick}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleTouchEnd}
+                onZoom={handleZoom}
+                onZoomEnd={handleZoomEnd}
                 onMouseEnter={onPolygonMouseEnter}
                 onMouseLeave={onPolygonMouseLeave}
                 cursor={cursor}
@@ -864,10 +914,12 @@ const Component: React.FC<ComponentProps> = ({
                 <GeolocateControl
                     position="top-left"
                     style={{
-                        position: 'fixed',
-                        left: '300px', // searchbar width
+                        position: 'absolute',
+                        top: '24px',
+                        right: '0px',
                         zIndex: 10,
-                        transform: 'translateX(calc(-10px - 100%))',
+                        transform:
+                            width < 992 ? 'translate(-50%, -50%)' : 'translate(calc(-50% - 36px*3 - 10px*3), -50%)', // if screen is big, there is button at the right, if small, no buttons
                         background: 'none',
                     }}
                 />
@@ -885,11 +937,7 @@ const Component: React.FC<ComponentProps> = ({
                                 setLeftSectionShowed(state ? 'FILTER_DETECTION' : undefined);
                             }}
                         />
-                        {displayTileSetControls ? (
-                            <>
-                                <MapControlBackgroundSlider />
-                            </>
-                        ) : null}
+                        {displayTileSetControls ? <MapControlBackgroundSlider /> : null}
                         <MapControlLegend
                             isShowed={leftSectionShowed === 'LEGEND'}
                             setIsShowed={(state: boolean) => {
@@ -1091,11 +1139,7 @@ const Component: React.FC<ComponentProps> = ({
                         paint={{
                             'line-width': 2,
                             'line-dasharray': [2, 2],
-                            ...(objectFromCoordinates.objectFromCoordinates?.objectTypeColor
-                                ? {
-                                      'line-color': objectFromCoordinates.objectFromCoordinates?.objectTypeColor,
-                                  }
-                                : {}),
+                            'line-color': objectFromCoordinates.objectFromCoordinates?.objectTypeColor || 'transparent',
                         }}
                     />
                 </Source>

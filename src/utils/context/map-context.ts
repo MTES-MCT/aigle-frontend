@@ -7,6 +7,7 @@ import { extractObjectTypesFromSettings } from '@/utils/context/utils';
 import { getInitialObjectFilters, setObjectFilters } from '@/utils/objects-filter';
 import { format } from 'date-fns';
 import EventEmitter from 'eventemitter3';
+import { isEqual } from 'lodash';
 import { create } from 'zustand';
 
 const getInitialLayers = (settings: MapSettings) => {
@@ -47,6 +48,23 @@ const getInitialLayers = (settings: MapSettings) => {
     };
 };
 
+const getInitialMapGeoCustomZoneLayers = (settings: MapSettings): MapGeoCustomZoneLayer[] => {
+    return [
+        ...settings.geoCustomZonesUncategorized.map(({ name, color, uuid }) => ({
+            displayed: false,
+            name,
+            color,
+            customZoneUuids: [uuid],
+        })),
+        ...settings.geoCustomZoneCategories.map(({ geoCustomZoneCategory, geoCustomZones }) => ({
+            displayed: false,
+            name: geoCustomZoneCategory.name,
+            color: geoCustomZoneCategory.color,
+            customZoneUuids: geoCustomZones.map(({ uuid }) => uuid),
+        })),
+    ];
+};
+
 type MapEventType =
     | 'UPDATE_DETECTIONS'
     | 'UPDATE_DETECTION_DETAIL'
@@ -74,7 +92,7 @@ interface MapState {
     setBackgroundTileSetYearDisplayed: (year: string) => void;
     setTileSetVisibility: (uuid: string, visible: boolean) => void;
     setTileSetsVisibility: (uuids: string[], visible: boolean) => void;
-    setCustomZoneVisibility: (uuid: string, visible: boolean) => void;
+    setCustomZoneVisibility: (uuids: string[], visible: boolean) => void;
     setAnnotationLayerVisibility: (visible: boolean) => void;
     setCustomZoneNegativeFilterVisibility: (visible: boolean) => void;
     getBackgroundTileSetYearDisplayed: () => string | undefined;
@@ -89,9 +107,10 @@ const useMap = create<MapState>()((set, get) => ({
             extractObjectTypesFromSettings(settings);
 
         const { layers, backgroundLayerYears } = getInitialLayers(settings);
+        const initialMapGeoCustomZoneLayers = getInitialMapGeoCustomZoneLayers(settings);
         const objectsFilter = getInitialObjectFilters(
             Array.from(visibleObjectTypesUuids),
-            settings.geoCustomZones.map(({ uuid }) => uuid),
+            initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
         );
 
         set(() => ({
@@ -101,10 +120,7 @@ const useMap = create<MapState>()((set, get) => ({
             annotationLayerVisible: false,
             customZoneNegativeFilterVisible: true,
             otherObjectTypesUuids: new Set(otherObjectTypesUuids),
-            customZoneLayers: settings.geoCustomZones.map((geoCustomZone) => ({
-                geoCustomZone,
-                displayed: false,
-            })),
+            customZoneLayers: initialMapGeoCustomZoneLayers,
             objectTypes: allObjectTypes,
             userLastPosition: settings.userLastPosition,
         }));
@@ -242,13 +258,13 @@ const useMap = create<MapState>()((set, get) => ({
             };
         });
     },
-    setCustomZoneVisibility: (uuid: string, visible: boolean) => {
+    setCustomZoneVisibility: (uuids: string[], visible: boolean) => {
         set((state) => {
             if (!state.customZoneLayers) {
                 return {};
             }
 
-            const layerIndex = state.customZoneLayers.findIndex((layer) => layer.geoCustomZone.uuid === uuid);
+            const layerIndex = state.customZoneLayers.findIndex((layer) => isEqual(layer.customZoneUuids, uuids));
 
             if (layerIndex === -1) {
                 return {};

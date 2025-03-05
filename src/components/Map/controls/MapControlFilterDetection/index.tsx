@@ -32,7 +32,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
             <FilterObjects
                 objectTypes={objectTypes}
                 objectsFilter={objectsFilter}
-                geoCustomZones={customZoneLayers.map(({ geoCustomZone }) => geoCustomZone)}
+                mapGeoCustomZoneLayers={customZoneLayers}
                 updateObjectsFilter={updateObjectsFilter}
                 otherObjectTypesUuids={otherObjectTypesUuids}
             />

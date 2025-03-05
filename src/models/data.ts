@@ -1,3 +1,5 @@
+import { GeoZone } from '@/models/geo/geo-zone';
+
 export interface Paginated<T> {
     count: number;
     next: string | null;
@@ -12,4 +14,10 @@ export interface Timestamped {
 
 export interface Uuided {
     uuid: string;
+}
+
+export interface WithCollectivities {
+    communes: GeoZone[];
+    departments: GeoZone[];
+    regions: GeoZone[];
 }

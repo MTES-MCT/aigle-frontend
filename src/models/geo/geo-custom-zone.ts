@@ -1,3 +1,5 @@
+import { WithCollectivities } from '@/models/data';
+import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 import { GeoZone, GeoZoneDetail } from '@/models/geo/geo-zone';
 import { Feature, MultiPolygon, Polygon } from 'geojson';
 
@@ -11,7 +13,9 @@ export interface GeoCustomZone extends GeoZone {
     color: string;
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
+    geoCustomZoneCategory: GeoCustomZoneCategory | null;
 }
+export interface GeoCustomZoneWithCollectivities extends GeoCustomZone, WithCollectivities {}
 
 export interface GeoCustomZoneDetail extends GeoCustomZone, GeoZoneDetail {}
 

@@ -1,6 +1,5 @@
-import { Timestamped, Uuided } from '@/models/data';
+import { Timestamped, Uuided, WithCollectivities } from '@/models/data';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
-import { GeoZone } from '@/models/geo/geo-zone';
 import { ObjectTypeCategory } from '@/models/object-type-category';
 
 export const userGroupTypes = ['DDTM', 'COLLECTIVITY'] as const;
@@ -11,10 +10,7 @@ export interface UserGroup extends Uuided, Timestamped {
     userGroupType: UserGroupType;
 }
 
-export interface UserGroupDetail extends UserGroup {
-    communes: GeoZone[];
-    departments: GeoZone[];
-    regions: GeoZone[];
+export interface UserGroupDetail extends UserGroup, WithCollectivities {
     objectTypeCategories: ObjectTypeCategory[];
     geoCustomZones: GeoCustomZone[];
 }

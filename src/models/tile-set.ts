@@ -1,7 +1,4 @@
-import { Timestamped, Uuided } from '@/models/data';
-import { GeoCommune } from '@/models/geo/geo-commune';
-import { GeoDepartment } from '@/models/geo/geo-department';
-import { GeoRegion } from '@/models/geo/geo-region';
+import { Timestamped, Uuided, WithCollectivities } from '@/models/data';
 import { Geometry } from 'geojson';
 
 export const tileSetStatuses = ['VISIBLE', 'HIDDEN', 'DEACTIVATED'] as const;
@@ -26,11 +23,7 @@ export interface TileSet extends Uuided, Timestamped {
     monochrome: boolean;
 }
 
-export interface TileSetDetail extends TileSet {
-    communes: GeoCommune[];
-    departments: GeoDepartment[];
-    regions: GeoRegion[];
-
+export interface TileSetDetail extends TileSet, WithCollectivities {
     id: number;
     lastImportEndedAt: string | null;
     lastImportStartedAt: string | null;

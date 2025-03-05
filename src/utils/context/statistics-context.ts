@@ -57,7 +57,7 @@ const useStatistics = create<StatisticsState>()((set) => ({
         set(() => ({
             layers,
             allObjectTypes,
-            geoCustomZones: settings.geoCustomZones,
+            geoCustomZones: settings.geoCustomZonesUncategorized,
             objectsFilter: {
                 objectTypesUuids: Array.from(visibleObjectTypesUuids),
                 detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'],
@@ -65,7 +65,7 @@ const useStatistics = create<StatisticsState>()((set) => ({
                 score: 0.3,
                 prescripted: null,
                 interfaceDrawn: 'ALL',
-                customZonesUuids: settings.geoCustomZones.map(({ uuid }) => uuid),
+                customZonesUuids: settings.geoCustomZonesUncategorized.map(({ uuid }) => uuid),
             },
             zonesFilter: {
                 tileSetsUuids: [],

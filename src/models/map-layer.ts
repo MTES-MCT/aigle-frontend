@@ -1,4 +1,3 @@
-import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { TileSet } from '@/models/tile-set';
 
 interface MapLayer {
@@ -10,5 +9,7 @@ export interface MapTileSetLayer extends MapLayer {
 }
 
 export interface MapGeoCustomZoneLayer extends MapLayer {
-    geoCustomZone: GeoCustomZone;
+    customZoneUuids: string[];
+    name: string;
+    color: string;
 }

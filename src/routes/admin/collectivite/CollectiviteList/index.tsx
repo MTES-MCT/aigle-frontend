@@ -9,7 +9,6 @@ import { Button, Input, Table } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import isEqual from 'lodash/isEqual';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import classes from './index.module.scss';
 
 const COLLECTIVITY_TYPE_SEARCH_PARAM = 'collectivityType';
 
@@ -54,13 +53,13 @@ const Component: React.FC = () => {
 
     return (
         <LayoutAdminBase title={`Liste des collectivités`}>
-            <Button.Group className={classes['collectivity-type-selection']}>
+            <Button.Group className="admin-tabs">
                 {collectivityTypes.map((type) => (
                     <Button
                         key={type}
                         variant={collectivityTypeSelected === type ? 'filled' : 'outline'}
                         onClick={() => setCollectivityTypeSelected(type)}
-                        className={classes['collectivity-type-selection-button']}
+                        className="admin-tab"
                     >
                         {COLLECTIVITY_TYPES_NAMES_MAP[type]}
                     </Button>

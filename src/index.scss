@@ -1,13 +1,13 @@
-@import url('@gouvfr/dsfr/dist/dsfr.min.css');
-@import url('@gouvfr/dsfr/dist/utility/utility.min.css');
+@import url("@gouvfr/dsfr/dist/dsfr.min.css");
+@import url("@gouvfr/dsfr/dist/utility/utility.min.css");
 
-@import url('@mantine/core/styles.css');
-@import url('@mantine/dates/styles.css');
-@import url('@mantine/notifications/styles.css');
-@import url('@mantine/charts/styles.css');
+@import url("@mantine/core/styles.css");
+@import url("@mantine/dates/styles.css");
+@import url("@mantine/notifications/styles.css");
+@import url("@mantine/charts/styles.css");
 
-@import url('mapbox-gl/dist/mapbox-gl.css');
-@import '@/constants.scss';
+@import url("mapbox-gl/dist/mapbox-gl.css");
+@import "@/constants.scss";
 
 // css reset
 
@@ -43,8 +43,8 @@ h3 {
     font-size: 1.1rem;
 }
 
-ul[role='list'],
-ol[role='list'] {
+ul[role="list"],
+ol[role="list"] {
     list-style: none;
 }
 
@@ -55,6 +55,8 @@ html:focus-within {
 a:not([class]) {
     text-decoration-skip-ink: auto;
 }
+
+
 
 img,
 picture,
@@ -135,6 +137,7 @@ form {
 
 table {
     .empty-results-cell {
+        cursor: not-allowed;
         text-align: center;
     }
 
@@ -167,7 +170,7 @@ header.fr-header {
     border-bottom: 1px solid var(--mantine-color-gray-3);
     background: #ffffff;
 
-    z-index: 1000;
+    z-index: 150;
 
     .navigation-items {
         height: 100%;
@@ -183,6 +186,36 @@ header.fr-header {
             margin-right: $content-padding;
         }
     }
+
+    .fr-header__brand-top.fr-hidden-lg {
+        max-width: 6rem;
+    }
+
+    .fr-header__service::before {
+        display: none;
+    }
+
+    .fr-header__body {
+        height: 100%;
+        width: 100%;
+
+        .fr-container {
+            max-width: unset;
+            height: 100%;
+        }
+
+        .fr-header__body-row {
+            height: 100%;
+
+            .fr-header__brand {
+                height: 100%;
+            }
+        }
+    }
+}
+
+.fr-btns-group .fr-btn {
+    margin: 0 0.5rem 0.5rem;
 }
 
 .input-label {
@@ -203,6 +236,13 @@ header.fr-header {
 }
 
 // mantine
+
+a.mantine-Button-root {
+    --hover-tint: var(--button-hover, var(--mantine-primary-color-filled-hover)) !important;
+}
+a.mantine-NavLink-root {
+    --hover-tint: var(--mantine-color-gray-0) !important;
+}
 
 .mantine-Pagination-root {
     padding-bottom: var(--mantine-spacing-xl);
@@ -246,6 +286,10 @@ header.fr-header {
     min-width: 300px !important;
     max-width: 100%;
 
+    @media screen and (max-width: 992px) {
+        width: 100%;
+    }
+
     .suggestions {
         border-radius: $border-radius-medium;
     }
@@ -283,7 +327,7 @@ header.fr-header {
     .mapboxgl-ctrl-group {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: $margin-map-elements;
         background: none;
         box-shadow: none !important;
 
@@ -319,6 +363,14 @@ header.fr-header {
     display: flex;
     flex-direction: row;
     align-items: center;
+
+    max-width: calc(100vw - 20px - 36px - $margin-map-elements);
+
+    z-index: 95;
+
+    @media screen and (max-width: 992px) {
+        flex-wrap: wrap;
+    }
 }
 
 .mapboxgl-ctrl-group {
@@ -339,18 +391,18 @@ header.fr-header {
 }
 
 .mapbox-gl-draw_point {
-    background-image: url('@/assets/pencil.svg');
+    background-image: url("@/assets/pencil.svg");
 }
 
 .mapbox-gl-draw_polygon {
-    background-image: url('@/assets/select-all.svg');
+    background-image: url("@/assets/select-all.svg");
 }
 
 .mapbox-gl-draw_line {
-    background-image: url('@/assets/download.svg');
+    background-image: url("@/assets/download.svg");
 }
 
-.crisp-client .cc-1brb6 .cc-1yy0g .cc-1m2mf[data-is-failure='false'] {
+.crisp-client .cc-1brb6 .cc-1yy0g .cc-1m2mf[data-is-failure="false"] {
     margin-right: 24px !important;
     margin-bottom: 24px !important;
 }
@@ -384,4 +436,16 @@ $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
 
 .detection-tile-preview-title {
     width: $tile-preview-detail-size;
+}
+
+.admin-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 16px;
+
+    .admin-tab {
+        text-transform: capitalize;
+    }
 }

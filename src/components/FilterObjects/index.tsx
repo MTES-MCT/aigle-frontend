@@ -3,7 +3,7 @@ import React, { useEffect, useMemo } from 'react';
 import SelectItem from '@/components/ui/SelectItem';
 import { detectionControlStatuses, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
-import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
+import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
@@ -35,7 +35,7 @@ const formatScore = (score: number) => Math.round(score * 100);
 interface ComponentProps {
     objectTypes: ObjectType[];
     objectsFilter: ObjectsFilter;
-    geoCustomZones: GeoCustomZone[];
+    mapGeoCustomZoneLayers: MapGeoCustomZoneLayer[];
     otherObjectTypesUuids: Set<string>;
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
 }
@@ -44,7 +44,7 @@ const Component: React.FC<ComponentProps> = ({
     objectTypes,
     otherObjectTypesUuids,
     objectsFilter,
-    geoCustomZones,
+    mapGeoCustomZoneLayers,
     updateObjectsFilter,
 }) => {
     const { eventEmitter } = useMap();
@@ -346,8 +346,13 @@ const Component: React.FC<ComponentProps> = ({
                             {...form.getInputProps('customZonesUuids')}
                         >
                             <Stack gap="xs" mt="sm">
-                                {geoCustomZones.map((zone) => (
-                                    <Checkbox key={zone.uuid} value={zone.uuid} label={zone.name} color={zone.color} />
+                                {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids }) => (
+                                    <Checkbox
+                                        key={customZoneUuids.join(',')}
+                                        value={customZoneUuids}
+                                        label={name}
+                                        color={color}
+                                    />
                                 ))}
                             </Stack>
                         </Checkbox.Group>
