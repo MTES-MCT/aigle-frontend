@@ -339,23 +339,33 @@ const Component: React.FC<ComponentProps> = ({
                     </div>
 
                     <div>
-                        <Checkbox.Group
-                            mt="xl"
-                            label="Zones à enjeux"
-                            key={form.key('customZonesUuids')}
-                            {...form.getInputProps('customZonesUuids')}
-                        >
-                            <Stack gap="xs" mt="sm">
-                                {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids }) => (
-                                    <Checkbox
-                                        key={customZoneUuids.join(',')}
-                                        value={customZoneUuids}
-                                        label={name}
-                                        color={color}
-                                    />
-                                ))}
-                            </Stack>
-                        </Checkbox.Group>
+                        <Text mt="xl" className="input-label">
+                            Zones à enjeux
+                        </Text>
+                        <Stack gap="xs" mt="sm">
+                            {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids: customZoneUuids_ }) => (
+                                <Checkbox
+                                    key={customZoneUuids_.join(',')}
+                                    value={customZoneUuids_}
+                                    checked={customZoneUuids_.some((uuid) => customZonesUuids.includes(uuid))}
+                                    label={name}
+                                    color={color}
+                                    onChange={(event) => {
+                                        if (event.currentTarget.checked) {
+                                            form.setFieldValue(
+                                                'customZonesUuids',
+                                                Array.from(new Set([...customZonesUuids, ...customZoneUuids_])),
+                                            );
+                                        } else {
+                                            form.setFieldValue(
+                                                'customZonesUuids',
+                                                customZonesUuids.filter((uuid) => !customZoneUuids_.includes(uuid)),
+                                            );
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </Stack>
 
                         {form.getValues().customZonesUuids.length === 0 ? (
                             <div className={classes['empty-filter-text']}>
