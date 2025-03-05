@@ -288,7 +288,9 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                         {detectionObject.geoCustomZones.length ? (
                                             <>
                                                 Zones à enjeux :&nbsp;
-                                                {detectionObject.geoCustomZones.map((zone) => zone.name).join(', ')}
+                                                {detectionObject.geoCustomZones
+                                                    .map((zone) => zone.geoCustomZoneCategory?.name || zone.name)
+                                                    .join(', ')}
                                             </>
                                         ) : (
                                             <i>Aucune zone à enjeux associée</i>
