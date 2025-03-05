@@ -46,11 +46,16 @@ interface FormValues {
 }
 
 const postForm = async (values: FormValues, uuid?: string) => {
+    const values_ = {
+        ...values,
+        color: values.color || null,
+    };
+
     if (!uuid) {
-        const response = await api.post(GEO_CUSTOM_ZONE_POST_ENDPOINT, values);
+        const response = await api.post(GEO_CUSTOM_ZONE_POST_ENDPOINT, values_);
         return response.data;
     } else {
-        const response = await api.patch(getGeoCustomZoneDetailEndpoint(uuid), values);
+        const response = await api.patch(getGeoCustomZoneDetailEndpoint(uuid), values_);
         return response.data;
     }
 };
