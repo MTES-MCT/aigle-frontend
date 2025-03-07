@@ -28,12 +28,13 @@ import {
 } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { Button, Checkbox, LoadingOverlay, Loader as MantineLoader, Select, Text } from '@mantine/core';
+import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bbox } from '@turf/turf';
 import { AxiosError } from 'axios';
 import clsx from 'clsx';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { Polygon } from 'geojson';
 import React, { useEffect, useMemo, useState } from 'react';
 import classes from './index.module.scss';
@@ -42,6 +43,11 @@ interface FormValues {
     detectionControlStatus: DetectionControlStatus;
     detectionValidationStatus: DetectionValidationStatus;
     detectionPrescriptionStatus: DetectionPrescriptionStatus | null;
+    officialReportDate: Date | null;
+}
+
+interface RequestData extends Omit<FormValues, 'officialReportDate'> {
+    officialReportDate?: string | null;
 }
 
 const postForm = async (
@@ -52,22 +58,33 @@ const postForm = async (
     uuid?: string,
 ) => {
     let resValue: DetectionData;
+    const values_: RequestData = {
+        ...values,
+        officialReportDate: values.officialReportDate ? format(values.officialReportDate, 'yyyy-MM-dd') : null,
+    };
+
+    if (values.detectionControlStatus !== 'OFFICIAL_REPORT_DRAWN_UP') {
+        delete values_.officialReportDate;
+    }
 
     if (uuid) {
-        const response = await api.patch<DetectionData>(getDetectionDataDetailEndpoint(uuid), values);
+        const response = await api.patch<DetectionData>(getDetectionDataDetailEndpoint(uuid), values_);
         resValue = response.data;
     } else {
         const body = {
             detectionObjectUuid,
             tileSetUuid,
             geometry,
-            detectionData: values,
+            detectionData: values_,
         };
         const response = await api.post<DetectionDetail>(DETECTION_POST_ENDPOINT, body);
         resValue = response.data.detectionData;
     }
 
-    return resValue;
+    return {
+        ...resValue,
+        officialReportDate: resValue.officialReportDate ? new Date(resValue.officialReportDate) : null,
+    };
 };
 
 interface FormProps {
@@ -120,7 +137,12 @@ const Form: React.FC<FormProps> = ({
 
                     prev.detections[detectionDataIndex].detectionData = {
                         ...prev.detections[detectionDataIndex].detectionData,
-                        ...values,
+                        ...{
+                            ...values,
+                            officialReportDate: values.officialReportDate
+                                ? values.officialReportDate.toISOString()
+                                : null,
+                        },
                     };
                 });
             }
@@ -136,6 +158,7 @@ const Form: React.FC<FormProps> = ({
             eventEmitter.emit('UPDATE_DETECTION_DETAIL');
         },
         onError: (error) => {
+            console.error(error);
             setError(error);
             if (error.response?.data) {
                 // @ts-expect-error types do not match
@@ -154,6 +177,7 @@ const Form: React.FC<FormProps> = ({
     form.watch('detectionControlStatus', submit);
     form.watch('detectionValidationStatus', submit);
     form.watch('detectionPrescriptionStatus', submit);
+    form.watch('officialReportDate', submit);
 
     const handleSubmit = (values: FormValues) => {
         mutation.mutate(values);
@@ -242,6 +266,20 @@ const Form: React.FC<FormProps> = ({
                 rightSection={mutation.status === 'pending' ? <MantineLoader size="xs" /> : null}
                 {...form.getInputProps('detectionControlStatus')}
             />
+
+            {form.getValues().detectionControlStatus === 'OFFICIAL_REPORT_DRAWN_UP' ? (
+                <DateInput
+                    mt="md"
+                    label="Date du PV"
+                    dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
+                    valueFormat="DD/MM/YYYY"
+                    placeholder="26/02/2023"
+                    description="Optionel"
+                    clearable
+                    key={form.key('officialReportDate')}
+                    {...form.getInputProps('officialReportDate')}
+                />
+            ) : null}
         </form>
     );
 };
@@ -250,6 +288,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     detectionControlStatus: 'NOT_CONTROLLED',
     detectionValidationStatus: 'SUSPECT',
     detectionPrescriptionStatus: null,
+    officialReportDate: null,
 };
 
 interface ComponentProps {
@@ -347,6 +386,9 @@ const Component: React.FC<ComponentProps> = ({
                                   detectionValidationStatus: detectionSelected.detectionData.detectionValidationStatus,
                                   detectionPrescriptionStatus:
                                       detectionSelected.detectionData.detectionPrescriptionStatus,
+                                  officialReportDate: detectionSelected.detectionData.officialReportDate
+                                      ? new Date(detectionSelected.detectionData.officialReportDate)
+                                      : null,
                               }
                             : EMPTY_FORM_VALUES
                     }

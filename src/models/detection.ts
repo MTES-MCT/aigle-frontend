@@ -41,6 +41,7 @@ export interface DetectionData extends Uuided, Timestamped {
     detectionControlStatus: DetectionControlStatus;
     detectionValidationStatus: DetectionValidationStatus;
     detectionPrescriptionStatus: DetectionPrescriptionStatus | null;
+    officialReportDate: string | null;
     userLastUpdateUuid: string;
 }
 
