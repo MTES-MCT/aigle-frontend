@@ -92,6 +92,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geometry, backUrl }) => {
     const [error, setError] = useState<AxiosError>();
+    const [mapPreviewShowed, setMapPreviewShowed] = useState(false);
     const navigate = useNavigate();
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -146,7 +147,13 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geom
                 {...form.getInputProps('code')}
             />
 
-            <MapPreview name={form.getValues().name} geometry={geometry} />
+            {mapPreviewShowed ? (
+                <MapPreview name={form.getValues().name} geometry={geometry} />
+            ) : (
+                <Button variant="light" fullWidth mt="md" onClick={() => setMapPreviewShowed(true)}>
+                    Voir l&apos;apperçu (carte)
+                </Button>
+            )}
 
             <div className="form-actions">
                 <Button

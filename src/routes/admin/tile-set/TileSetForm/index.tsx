@@ -152,6 +152,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         type: initialValues.tileSetType,
         monochrome: initialValues.monochrome,
     });
+    const [mapPreviewShowed, setMapPreviewShowed] = useState(false);
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
@@ -367,7 +368,13 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
             ) : null}
 
-            <MapPreview {...mapPreviewProps} geometry={geometry} key={mapPreviewProps.scheme} />
+            {mapPreviewShowed ? (
+                <MapPreview {...mapPreviewProps} geometry={geometry} key={mapPreviewProps.scheme} />
+            ) : (
+                <Button variant='light' fullWidth mt="md" onClick={() => setMapPreviewShowed(true)}>
+                    Voir l&apos;apperçu (carte)
+                </Button>
+            )}
 
             <div className="form-actions">
                 <Button
