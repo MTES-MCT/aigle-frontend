@@ -6,11 +6,12 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import { useStatistics } from '@/utils/context/statistics-context';
-import { Loader, MultiSelect } from '@mantine/core';
+import {  MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { useMemo } from 'react';
 import FilterObjects from '../FilterObjects';
 import SoloAccordion from '../admin/SoloAccordion';
+import Loader from '@/components/ui/Loader';
 
 interface FormValues {
     tileSetsUuids: string[];

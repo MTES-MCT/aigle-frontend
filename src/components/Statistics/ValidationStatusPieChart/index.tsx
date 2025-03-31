@@ -123,9 +123,8 @@ const Component: React.FC<ComponentProps> = ({
                     size={300}
                     h={300}
                     w="100%"
-                    labelsPosition="outside"
                     labelsType="value"
-                    withLabels
+                    withTooltip
                     data={statistics}
                     valueFormatter={valueFormatter}
                 />

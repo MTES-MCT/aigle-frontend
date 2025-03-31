@@ -14,7 +14,7 @@ export type GeoValues = {
 
 export const geoZoneToGeoOption = (geoZone: GeoZone): SelectOption => ({
     value: geoZone.uuid,
-    label: geoZone.name,
+    label: geoZone.code ? `${geoZone.name} (${geoZone.code})` : geoZone.name,
 });
 
 export const extendBbox = (

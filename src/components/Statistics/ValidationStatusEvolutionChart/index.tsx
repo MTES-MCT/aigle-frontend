@@ -12,13 +12,8 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import classes from './index.module.scss';
 
-const formatData = (
-    data: ValidationStatusEvolution[],
-    allTileSets: TileSet[],
-    tileSetsUuids: string[],
-    objectsFilter: ObjectsFilter,
-) => {
-    const chartData: any = allTileSets.reduce((prev, current) => {
+const formatData = (data: ValidationStatusEvolution[], tileSetsUuids: string[], objectsFilter: ObjectsFilter) => {
+    const chartData: any = data.reduce((prev, current) => {
         if (!tileSetsUuids.includes(current.uuid)) {
             return prev;
         }
@@ -56,7 +51,6 @@ const formatData = (
 const fetchData = async (
     signal: AbortSignal,
     objectsFilter: ObjectsFilter,
-    allTileSets: TileSet[],
     tileSetsUuids: string[],
     communesUuids: string[],
     departmentsUuids: string[],
@@ -82,7 +76,7 @@ const fetchData = async (
         signal,
     });
 
-    return formatData(res.data, allTileSets, tileSetsUuids, objectsFilter);
+    return formatData(res.data, tileSetsUuids, objectsFilter);
 };
 interface ComponentProps {
     allTileSets: TileSet[];
@@ -123,7 +117,6 @@ const Component: React.FC<ComponentProps> = ({
             fetchData(
                 signal,
                 objectsFilter,
-                allTileSets,
                 tileSetsUuids,
                 communesUuids,
                 departmentsUuids,
@@ -131,6 +124,8 @@ const Component: React.FC<ComponentProps> = ({
                 otherObjectTypesUuids,
             ),
     });
+
+    console.log('statistics', statistics);
 
     if (!statistics) {
         return <Loader />;
