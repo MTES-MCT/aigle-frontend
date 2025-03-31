@@ -3,12 +3,7 @@ import React, { useMemo } from 'react';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
-import {
-    CUSTOM_ZONE_NEGATIVE_COLOR,
-    OTHER_OBJECT_TYPE,
-    PARCEL_COLOR,
-    TILE_SET_TYPES_NAMES_MAP,
-} from '@/utils/constants';
+import { CUSTOM_ZONE_NEGATIVE_COLOR, OTHER_OBJECT_TYPE, PARCEL_COLOR } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -89,31 +84,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, otherObjec
                 </ul>
             </div>
             <div className={classes['legends-column']}>
-                <div>
-                    <h2>Couche de l&apos;objet</h2>
-
-                    <ul className={classes['legends']}>
-                        <li className={classes['legend-item']}>
-                            <div
-                                className={clsx(classes['legend-item-square'], classes['legend-item-bordered'])}
-                                style={{
-                                    borderColor: '#686868',
-                                }}
-                            />
-                            Associé à une couche &quot;{TILE_SET_TYPES_NAMES_MAP.BACKGROUND}&quot;
-                        </li>
-                        <li className={classes['legend-item']}>
-                            <div
-                                className={clsx(classes['legend-item-round'], classes['legend-item-bordered'])}
-                                style={{
-                                    borderColor: '#686868',
-                                }}
-                            />
-                            Associé à une couche &quot;{TILE_SET_TYPES_NAMES_MAP.PARTIAL}&quot;
-                        </li>
-                    </ul>
-                </div>
-
                 <div>
                     <h2>Zones à enjeux</h2>
 

@@ -1,3 +1,4 @@
+import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 
@@ -29,4 +30,21 @@ export const extractObjectTypesFromSettings = (settings: MapSettings): ObjectTyp
         visibleObjectTypesUuids: visibleObjectTypesUuids,
         otherObjectTypesUuids: otherObjectTypesUuids,
     };
+};
+
+export const getInitialMapGeoCustomZoneLayers = (settings: MapSettings): MapGeoCustomZoneLayer[] => {
+    return [
+        ...settings.geoCustomZonesUncategorized.map(({ name, color, uuid }) => ({
+            displayed: false,
+            name,
+            color,
+            customZoneUuids: [uuid],
+        })),
+        ...settings.geoCustomZoneCategories.map(({ geoCustomZoneCategory, geoCustomZones }) => ({
+            displayed: false,
+            name: geoCustomZoneCategory.name,
+            color: geoCustomZoneCategory.color,
+            customZoneUuids: geoCustomZones.map(({ uuid }) => uuid),
+        })),
+    ];
 };

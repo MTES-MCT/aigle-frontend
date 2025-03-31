@@ -170,7 +170,7 @@ header.fr-header {
     border-bottom: 1px solid var(--mantine-color-gray-3);
     background: #ffffff;
 
-    z-index: 150;
+    z-index: 1000;
 
     .navigation-items {
         height: 100%;
@@ -240,6 +240,7 @@ header.fr-header {
 a.mantine-Button-root {
     --hover-tint: var(--button-hover, var(--mantine-primary-color-filled-hover)) !important;
 }
+
 a.mantine-NavLink-root {
     --hover-tint: var(--mantine-color-gray-0) !important;
 }

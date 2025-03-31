@@ -3,7 +3,7 @@ import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 import { TileSet, TileSetStatus, TileSetType } from '@/models/tile-set';
-import { extractObjectTypesFromSettings } from '@/utils/context/utils';
+import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/utils/context/utils';
 import { getInitialObjectFilters, setObjectFilters } from '@/utils/objects-filter';
 import { format } from 'date-fns';
 import EventEmitter from 'eventemitter3';
@@ -46,23 +46,6 @@ const getInitialLayers = (settings: MapSettings) => {
         layers,
         backgroundLayerYears: backgroundLayerYears_,
     };
-};
-
-const getInitialMapGeoCustomZoneLayers = (settings: MapSettings): MapGeoCustomZoneLayer[] => {
-    return [
-        ...settings.geoCustomZonesUncategorized.map(({ name, color, uuid }) => ({
-            displayed: false,
-            name,
-            color,
-            customZoneUuids: [uuid],
-        })),
-        ...settings.geoCustomZoneCategories.map(({ geoCustomZoneCategory, geoCustomZones }) => ({
-            displayed: false,
-            name: geoCustomZoneCategory.name,
-            color: geoCustomZoneCategory.color,
-            customZoneUuids: geoCustomZones.map(({ uuid }) => uuid),
-        })),
-    ];
 };
 
 type MapEventType =

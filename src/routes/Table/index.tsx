@@ -7,7 +7,7 @@ import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCol
 import Loader from '@/components/ui/Loader';
 import { DetectionDetail } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
-import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
+import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
@@ -19,7 +19,6 @@ import { useStatistics } from '@/utils/context/statistics-context';
 import { Table } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import React from 'react';
-import classes from './index.module.scss';
 
 const ENDPOINT = getDetectionListEndpoint(true);
 
@@ -34,7 +33,7 @@ interface DataTableFilter extends ObjectsFilter, FormValues {}
 interface ComponentInnerProps {
     allObjectTypes: ObjectType[];
     objectsFilter: ObjectsFilter;
-    geoCustomZones: GeoCustomZone[];
+    mapGeoCustomZoneLayers: MapGeoCustomZoneLayer[];
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
     otherObjectTypesUuids: Set<string>;
 }
@@ -42,7 +41,7 @@ interface ComponentInnerProps {
 const ComponentInner: React.FC<ComponentInnerProps> = ({
     allObjectTypes,
     objectsFilter,
-    geoCustomZones,
+    mapGeoCustomZoneLayers,
     updateObjectsFilter,
     otherObjectTypesUuids,
 }: ComponentInnerProps) => {
@@ -61,12 +60,12 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 filter={{ ...objectsFilter, ...form.getValues() }}
                 SoloAccordion={
                     <SoloAccordion opened>
-                        <GeoCollectivitiesMultiSelects form={form} className={classes['geocolectivities-container']} />
+                        <GeoCollectivitiesMultiSelects form={form} />
 
                         <FilterObjects
                             objectTypes={allObjectTypes}
                             objectsFilter={objectsFilter}
-                            geoCustomZones={geoCustomZones}
+                            mapGeoCustomZoneLayers={mapGeoCustomZoneLayers}
                             updateObjectsFilter={updateObjectsFilter}
                             otherObjectTypesUuids={otherObjectTypesUuids}
                         />
@@ -108,10 +107,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 };
 
 const Component: React.FC = () => {
-    const { objectsFilter, allObjectTypes, geoCustomZones, updateObjectsFilter, otherObjectTypesUuids } =
+    const { objectsFilter, allObjectTypes, customZoneLayers, updateObjectsFilter, otherObjectTypesUuids } =
         useStatistics();
 
-    if (!objectsFilter || !allObjectTypes || !geoCustomZones || !updateObjectsFilter || !otherObjectTypesUuids) {
+    if (!objectsFilter || !allObjectTypes || !customZoneLayers || !updateObjectsFilter || !otherObjectTypesUuids) {
         return (
             <LayoutBase>
                 <Loader />
@@ -124,7 +123,7 @@ const Component: React.FC = () => {
             <ComponentInner
                 allObjectTypes={allObjectTypes}
                 objectsFilter={objectsFilter}
-                geoCustomZones={geoCustomZones}
+                mapGeoCustomZoneLayers={customZoneLayers}
                 updateObjectsFilter={updateObjectsFilter}
                 otherObjectTypesUuids={otherObjectTypesUuids}
             />
