@@ -5,7 +5,7 @@ import DataTable from '@/components/admin/DataTable';
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
 import Loader from '@/components/ui/Loader';
-import { DetectionDetail } from '@/models/detection';
+import { DetectionListItem } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
@@ -16,9 +16,11 @@ import {
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
 import { useStatistics } from '@/utils/context/statistics-context';
-import { Table } from '@mantine/core';
+import { formatParcel } from '@/utils/format';
+import { Badge, Table } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import React from 'react';
+import classes from './index.module.scss';
 
 const ENDPOINT = getDetectionListEndpoint(true);
 
@@ -55,7 +57,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 
     return (
         <>
-            <DataTable<DetectionDetail, DataTableFilter>
+            <DataTable<DetectionListItem, DataTableFilter>
                 endpoint={ENDPOINT}
                 filter={{ ...objectsFilter, ...form.getValues() }}
                 SoloAccordion={
@@ -74,6 +76,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 tableHeader={[
                     <Table.Th key="detectionObjectId">Object id</Table.Th>,
                     <Table.Th key="objectTypeName">Type</Table.Th>,
+                    <Table.Th key="parcel">Parcelle</Table.Th>,
                     <Table.Th key="score">Score</Table.Th>,
                     <Table.Th key="detectionSource">Source</Table.Th>,
                     <Table.Th key="detectionControlStatus">Statut de contrôle</Table.Th>,
@@ -81,26 +84,37 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <Table.Th key="detectionValidationStatus">Statut de validation</Table.Th>,
                 ]}
                 tableBodyRenderFns={[
-                    (item: DetectionDetail) => item.detectionObject.id,
-                    (item: DetectionDetail) => <>{item.detectionObject.objectType.name}</>,
-                    (item: DetectionDetail) => Math.round(item.score * 100),
-                    (item: DetectionDetail) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,
-                    (item: DetectionDetail) => (
-                        <>{DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionData.detectionControlStatus]}</>
+                    (item: DetectionListItem) => item.detectionObjectId,
+                    (item: DetectionListItem) => (
+                        <div className={classes['object-type-cell']}>
+                            <Badge
+                                className={classes['object-type-cell-badge']}
+                                color={item.objectType.color}
+                                radius={100}
+                            />
+                            {item.objectType.name}
+                        </div>
                     ),
-                    (item: DetectionDetail) => (
+                    (item: DetectionListItem) => (item.parcel ? formatParcel(item.parcel, false) : 'Non-spécifiée'),
+                    (item: DetectionListItem) => Math.round(item.score * 100),
+                    (item: DetectionListItem) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,
+                    (item: DetectionListItem) => (
+                        <>{DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionControlStatus]}</>
+                    ),
+                    (item: DetectionListItem) => (
                         <>
                             {
                                 DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP[
-                                    item.detectionData.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
+                                    item.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
                                 ]
                             }
                         </>
                     ),
-                    (item: DetectionDetail) => (
-                        <>{DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionData.detectionValidationStatus]}</>
+                    (item: DetectionListItem) => (
+                        <>{DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionValidationStatus]}</>
                     ),
                 ]}
+                limit={50}
             />
         </>
     );

@@ -19,6 +19,7 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
     tableHeader: ReactElement<typeof Table.Th>[];
     tableBodyRenderFns: ((item: T_DATA) => React.ReactNode)[];
     onItemClick?: (item: T_DATA) => void;
+    limit?: number;
 }
 
 const Component = <T_DATA extends Uuided, T_FILTER extends object>({
@@ -28,11 +29,18 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
     tableHeader,
     tableBodyRenderFns,
     onItemClick,
+    limit = PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit,
 }: ComponentProps<T_DATA, T_FILTER>) => {
-    const [pagination, setPagination] = useState<PaginationOffsetLimit>(PAGINATION_OFFSET_LIMIT_INITIAL_VALUE);
+    const [pagination, setPagination] = useState<PaginationOffsetLimit>({
+        ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
+        limit,
+    });
 
     useEffect(() => {
-        setPagination(PAGINATION_OFFSET_LIMIT_INITIAL_VALUE);
+        setPagination({
+            ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
+            limit,
+        });
     }, [endpoint, filter]);
 
     const fetchData = async (signal: AbortSignal, pagination: PaginationOffsetLimit) => {
@@ -65,7 +73,10 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
             {error ? <ErrorCard className={classes['error-card']}>{error.message}</ErrorCard> : null}
 
             {pagination.total != null ? (
-                <p className={classes['nbr-results']}>Nombre de résultats: {pagination.total}</p>
+                <p className={classes['table-infos']}>
+                    Nombre de résultats: {pagination.limit + pagination.offset}/{pagination.total} ({pagination.limit}{' '}
+                    par page)
+                </p>
             ) : null}
 
             <div className={classes['table-container']}>

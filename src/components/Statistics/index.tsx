@@ -2,16 +2,16 @@ import ValidationStatusEvolutionChart from '@/components/Statistics/ValidationSt
 import ValidationStatusObjectTypesLineChart from '@/components/Statistics/ValidationStatusObjectTypesLineChart';
 import ValidationStatusPieChart from '@/components/Statistics/ValidationStatusPieChart';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
+import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import { useStatistics } from '@/utils/context/statistics-context';
-import {  MultiSelect } from '@mantine/core';
+import { MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { useMemo } from 'react';
 import FilterObjects from '../FilterObjects';
 import SoloAccordion from '../admin/SoloAccordion';
-import Loader from '@/components/ui/Loader';
 
 interface FormValues {
     tileSetsUuids: string[];
@@ -35,7 +35,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     otherObjectTypesUuids,
     allObjectTypes,
     customZoneLayers,
-}) => {
+}: ComponentInnerProps) => {
     const { updateObjectsFilter } = useStatistics();
     const tileSets = useMemo(() => (layers || []).map((layer) => layer.tileSet), [layers]);
 
@@ -82,7 +82,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 
             <ValidationStatusEvolutionChart
                 objectsFilter={objectsFilter}
-                allTileSets={tileSets}
                 tileSetsUuids={form.values.tileSetsUuids}
                 communesUuids={form.values.communesUuids}
                 departmentsUuids={form.values.departmentsUuids}

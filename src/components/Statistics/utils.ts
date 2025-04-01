@@ -2,6 +2,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { OTHER_OBJECT_TYPE } from '@/utils/constants';
 import { formatBigInt } from '@/utils/format';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const valueFormatter = (value: any) => {
     if (typeof value !== 'number') {
         return value;
@@ -18,7 +19,9 @@ export const objectsFilterToApiParams = (
     regionsUuids: string[],
     otherObjectTypesUuids: Set<string>,
     separateOtherObjectTypes: boolean = false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const params: any = {
         tileSetsUuids: tileSetsUuids.join(','),
         detectionControlStatuses: objectsFilter.detectionControlStatuses.join(','),

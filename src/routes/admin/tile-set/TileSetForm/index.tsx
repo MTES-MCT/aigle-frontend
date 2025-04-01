@@ -371,7 +371,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
             {mapPreviewShowed ? (
                 <MapPreview {...mapPreviewProps} geometry={geometry} key={mapPreviewProps.scheme} />
             ) : (
-                <Button variant='light' fullWidth mt="md" onClick={() => setMapPreviewShowed(true)}>
+                <Button variant="light" fullWidth mt="md" onClick={() => setMapPreviewShowed(true)}>
                     Voir l&apos;apperçu (carte)
                 </Button>
             )}
