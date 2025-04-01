@@ -3,12 +3,16 @@ import FilterObjects from '@/components/FilterObjects';
 import LayoutBase from '@/components/LayoutBase';
 import DataTable from '@/components/admin/DataTable';
 import SoloAccordion from '@/components/admin/SoloAccordion';
+import PillsDataCell from '@/components/admin/data-cells/PillsDataCell';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
 import Loader from '@/components/ui/Loader';
+import OptionalText from '@/components/ui/OptionalText';
 import { DetectionListItem } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
+import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
+import { TileSet } from '@/models/tile-set';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP,
@@ -22,7 +26,7 @@ import { UseFormReturnType, useForm } from '@mantine/form';
 import React from 'react';
 import classes from './index.module.scss';
 
-const ENDPOINT = getDetectionListEndpoint(true);
+const ENDPOINT = getDetectionListEndpoint();
 
 interface FormValues {
     communesUuids: string[];
@@ -74,8 +78,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     </SoloAccordion>
                 }
                 tableHeader={[
-                    <Table.Th key="detectionObjectId">Object id</Table.Th>,
+                    <Table.Th key="detectionObjectId">Object n°</Table.Th>,
+                    <Table.Th key="address">Adresse</Table.Th>,
+                    <Table.Th key="geoCustomZones">Zones à enjeux</Table.Th>,
                     <Table.Th key="objectTypeName">Type</Table.Th>,
+                    <Table.Th key="tileSets">Millésime</Table.Th>,
                     <Table.Th key="parcel">Parcelle</Table.Th>,
                     <Table.Th key="score">Score</Table.Th>,
                     <Table.Th key="detectionSource">Source</Table.Th>,
@@ -85,6 +92,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 ]}
                 tableBodyRenderFns={[
                     (item: DetectionListItem) => item.detectionObjectId,
+                    (item: DetectionListItem) => <OptionalText text={item.address} />,
+                    (item: DetectionListItem) => (
+                        <PillsDataCell<GeoCustomZone>
+                            items={item.geoCustomZones}
+                            getLabel={(zone) => zone.geoCustomZoneCategory?.name || zone.name}
+                        />
+                    ),
                     (item: DetectionListItem) => (
                         <div className={classes['object-type-cell']}>
                             <Badge
@@ -95,7 +109,12 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             {item.objectType.name}
                         </div>
                     ),
-                    (item: DetectionListItem) => (item.parcel ? formatParcel(item.parcel, false) : 'Non-spécifiée'),
+                    (item: DetectionListItem) => (
+                        <PillsDataCell<TileSet> items={item.tileSets} getLabel={(tileSet) => tileSet.name} />
+                    ),
+                    (item: DetectionListItem) => (
+                        <OptionalText text={item.parcel ? formatParcel(item.parcel, false) : null} />
+                    ),
                     (item: DetectionListItem) => Math.round(item.score * 100),
                     (item: DetectionListItem) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,
                     (item: DetectionListItem) => (

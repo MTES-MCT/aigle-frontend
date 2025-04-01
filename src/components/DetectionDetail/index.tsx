@@ -32,6 +32,7 @@ import { Position } from 'geojson';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
+import OptionalText from '@/components/ui/OptionalText';
 
 const getGoogleMapLink = (point: Position) => `https://www.google.com/maps/?t=k&q=${point[1]},${point[0]}`;
 
