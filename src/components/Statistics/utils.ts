@@ -25,6 +25,7 @@ export const objectsFilterToApiParams = (
     const params: any = {
         tileSetsUuids: tileSetsUuids.join(','),
         detectionControlStatuses: objectsFilter.detectionControlStatuses.join(','),
+        detectionValidationStatuses: objectsFilter.detectionValidationStatuses.join(','),
         score: objectsFilter.score,
         customZonesUuids: objectsFilter.customZonesUuids.join(','),
         communesUuids: communesUuids.join(','),
