@@ -74,8 +74,8 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
 
             {pagination.total != null ? (
                 <p className={classes['table-infos']}>
-                    Nombre de résultats: {pagination.limit + pagination.offset}/{pagination.total} ({pagination.limit}{' '}
-                    par page)
+                    Nombre de résultats: {Math.min(pagination.limit + pagination.offset, pagination.total)}/
+                    {pagination.total} ({pagination.limit} par page)
                 </p>
             ) : null}
 
