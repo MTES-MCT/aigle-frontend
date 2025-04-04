@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, { ReactElement, ReactNode, useEffect, useState } from 'react';
 
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import ErrorCard from '@/components/ui/ErrorCard';
@@ -7,10 +7,12 @@ import { Paginated, Uuided } from '@/models/data';
 import { PAGINATION_OFFSET_LIMIT_INITIAL_VALUE, PaginationOffsetLimit } from '@/models/table';
 import api from '@/utils/api';
 import { getPaginationPage } from '@/utils/pagination';
-import { LoadingOverlay, Pagination, Table } from '@mantine/core';
+import { LoadingOverlay, Pagination, Select, Table } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import classes from './index.module.scss';
+
+const LIMITS: (typeof PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit)[] = [5, 10, 20, 50];
 
 interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
     endpoint: string;
@@ -18,8 +20,9 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
     SoloAccordion: ReactElement<typeof SoloAccordion>;
     tableHeader: ReactElement<typeof Table.Th>[];
     tableBodyRenderFns: ((item: T_DATA) => React.ReactNode)[];
+    beforeTable?: ReactNode;
     onItemClick?: (item: T_DATA) => void;
-    limit?: number;
+    initialLimit?: number;
 }
 
 const Component = <T_DATA extends Uuided, T_FILTER extends object>({
@@ -28,20 +31,22 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
     SoloAccordion,
     tableHeader,
     tableBodyRenderFns,
+    beforeTable,
     onItemClick,
-    limit = PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit,
+    initialLimit = PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit,
 }: ComponentProps<T_DATA, T_FILTER>) => {
     const [pagination, setPagination] = useState<PaginationOffsetLimit>({
         ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
-        limit,
+        limit: initialLimit,
     });
 
     useEffect(() => {
-        setPagination({
-            ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
-            limit,
-        });
-    }, [endpoint, filter]);
+        setPagination((prev) => ({
+            ...prev,
+            offset: 0,
+            total: undefined,
+        }));
+    }, [endpoint, filter, pagination.limit]);
 
     const fetchData = async (signal: AbortSignal, pagination: PaginationOffsetLimit) => {
         const res = await api.get<Paginated<T_DATA>>(endpoint, {
@@ -72,12 +77,31 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
 
             {error ? <ErrorCard className={classes['error-card']}>{error.message}</ErrorCard> : null}
 
-            {pagination.total != null ? (
-                <p className={classes['table-infos']}>
-                    Nombre de résultats: {Math.min(pagination.limit + pagination.offset, pagination.total)}/
-                    {pagination.total} ({pagination.limit} par page)
-                </p>
-            ) : null}
+            {beforeTable ? <div className={classes['before-table-container']}>{beforeTable}</div> : null}
+
+            <div className={classes['table-header']}>
+                <div>
+                    {pagination.total != null ? (
+                        <p className={classes['table-infos']}>
+                            Nombre de résultats: {Math.min(pagination.limit + pagination.offset, pagination.total)}/
+                            {pagination.total} ({pagination.limit} par page)
+                        </p>
+                    ) : null}
+                </div>
+
+                <Select
+                    label="Nombre de lignes"
+                    className={classes['select-limit']}
+                    data={LIMITS.map(String)}
+                    value={String(pagination.limit)}
+                    onChange={(limit) =>
+                        setPagination((prev) => ({
+                            ...prev,
+                            limit: Number(limit),
+                        }))
+                    }
+                />
+            </div>
 
             <div className={classes['table-container']}>
                 {isLoading ? (

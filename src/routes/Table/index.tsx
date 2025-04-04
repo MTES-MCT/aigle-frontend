@@ -13,6 +13,8 @@ import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import { TileSet } from '@/models/tile-set';
+import TableDownloadButton from '@/routes/Table/TableDownloadButton';
+import TableHeader from '@/routes/Table/TableHeader';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP,
@@ -60,7 +62,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     });
 
     return (
-        <>
+        <div>
             <DataTable<DetectionListItem, DataTableFilter>
                 endpoint={ENDPOINT}
                 filter={{ ...objectsFilter, ...form.getValues() }}
@@ -76,6 +78,12 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             otherObjectTypesUuids={otherObjectTypesUuids}
                         />
                     </SoloAccordion>
+                }
+                beforeTable={
+                    <div>
+                        <TableDownloadButton {...form.getValues()} />
+                        <TableHeader {...form.getValues()} />
+                    </div>
                 }
                 tableHeader={[
                     <Table.Th key="detectionObjectId">Object n°</Table.Th>,
@@ -133,9 +141,9 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         <>{DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionValidationStatus]}</>
                     ),
                 ]}
-                limit={50}
+                initialLimit={50}
             />
-        </>
+        </div>
     );
 };
 

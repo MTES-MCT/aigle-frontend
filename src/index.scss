@@ -24,6 +24,7 @@
     --title-spacing: 0 0 0;
     --text-spacing: 0 0 0;
     --indicator-z-index: 10;
+    --mantine-radius-default: 8px; //  $border-radius-small
 
     font-family: Marianne, arial, sans-serif;
 }
@@ -235,6 +236,10 @@ header.fr-header {
 }
 
 // mantine
+
+.mantine-Select-dropdown {
+    z-index: 500 !important;
+}
 
 a.mantine-Button-root {
     --hover-tint: var(--button-hover, var(--mantine-primary-color-filled-hover)) !important;

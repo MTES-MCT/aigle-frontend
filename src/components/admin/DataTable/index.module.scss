@@ -4,6 +4,10 @@ $space-between-elements: 16px;
     margin-bottom: $space-between-elements;
 }
 
+.before-table-container {
+    margin-bottom: $space-between-elements;
+}
+
 .error-card {
     margin-bottom: $space-between-elements;
 }
@@ -17,6 +21,14 @@ $space-between-elements: 16px;
             vertical-align: top;
         }
     }
+}
+
+.table-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: $space-between-elements;
 }
 
 .table-infos {
