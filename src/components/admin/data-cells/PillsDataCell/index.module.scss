@@ -1,6 +1,11 @@
 .pills-cell {
     padding: 4px;
     flex-wrap: nowrap;
+
+    &.column {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 .badge {

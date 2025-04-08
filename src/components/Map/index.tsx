@@ -10,7 +10,7 @@ import {
 } from '@/api-endpoints';
 import DetectionDetail from '@/components/DetectionDetail';
 import MapAddAnnotationModal from '@/components/Map/MapAddAnnotationModal';
-import MapEditMultipleDetectionsModal from '@/components/Map/MapEditMultipleDetectionsModal';
+import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import MapControlBackgroundSlider from '@/components/Map/controls/MapControlBackgroundSlider';
 import MapControlFilterDetection from '@/components/Map/controls/MapControlFilterDetection';
 import MapControlLayerDisplay from '@/components/Map/controls/MapControlLayerDisplay';
@@ -957,7 +957,7 @@ const Component: React.FC<ComponentProps> = ({
                             hide={() => setAddAnnotationPolygon(undefined)}
                             polygon={addAnnotationPolygon}
                         />
-                        <MapEditMultipleDetectionsModal
+                        <EditMultipleDetectionsModal
                             isShowed={!!multipleEditDetectionsUuids}
                             hide={() => setMultipleEditDetectionsUuids(undefined)}
                             detectionsUuids={multipleEditDetectionsUuids}

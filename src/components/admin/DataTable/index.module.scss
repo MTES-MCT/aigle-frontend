@@ -20,6 +20,10 @@ $space-between-elements: 16px;
         td {
             vertical-align: top;
         }
+
+        tr {
+            transition: background 0.25s ease-in-out;
+        }
     }
 }
 
@@ -48,4 +52,9 @@ $space-between-elements: 16px;
             cursor: pointer;
         }
     }
+}
+
+.global-select {
+    margin-left: 10px; // var(--table-vertical-spacing)
+    margin-bottom: $space-between-elements;
 }

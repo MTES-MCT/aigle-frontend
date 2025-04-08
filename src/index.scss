@@ -25,6 +25,7 @@
     --text-spacing: 0 0 0;
     --indicator-z-index: 10;
     --mantine-radius-default: 8px; //  $border-radius-small
+    --lo-z-index: 150 !important;
 
     font-family: Marianne, arial, sans-serif;
 }
@@ -170,7 +171,7 @@ header.fr-header {
     border-bottom: 1px solid var(--mantine-color-gray-3);
     background: #ffffff;
 
-    z-index: 1000;
+    z-index: 200;
 
     .navigation-items {
         height: 100%;

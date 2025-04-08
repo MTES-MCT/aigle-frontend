@@ -1,6 +1,7 @@
 import { DETECTION_MULTIPLE_POST_ENDPOINT } from '@/api-endpoints';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
+import SelectItem from '@/components/ui/SelectItem';
 import {
     DetectionControlStatus,
     DetectionValidationStatus,
@@ -18,7 +19,7 @@ import { IconSelectAll } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import clsx from 'clsx';
-import React from 'react';
+import React, { useMemo } from 'react';
 import classes from './index.module.scss';
 
 const NO_EDIT_TEXT = 'Ne pas éditer';
@@ -56,7 +57,7 @@ const postForm = async (values: FormValues, detectionsUuids: string[]) => {
 interface FormProps {
     objectTypes: ObjectType[];
     detectionsUuids: string[];
-    hide: () => void;
+    hide: (dataUpdated?: boolean) => void;
 }
 
 const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
@@ -68,6 +69,15 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
             detectionValidationStatus: null as DetectionValidationStatusNullable,
         },
     });
+    const objectTypesMap: Record<string, ObjectType> = useMemo(() => {
+        return (objectTypes || []).reduce(
+            (prev, curr) => ({
+                ...prev,
+                [curr.uuid]: curr,
+            }),
+            {},
+        );
+    }, [objectTypes]);
 
     const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, detectionsUuids),
@@ -77,7 +87,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
                 title: 'Edition multiple',
                 message: 'Les détections ont été modifiés avec succès',
             });
-            hide();
+            hide(true);
         },
         onError: (error) => {
             if (error.response?.data) {
@@ -107,6 +117,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
                     value: type.uuid,
                     label: type.name,
                 }))}
+                renderOption={(item) => <SelectItem item={item} color={objectTypesMap[item.option.value].color} />}
                 clearable
                 placeholder={NO_EDIT_TEXT}
                 key={form.key('objectTypeUuid')}
@@ -142,7 +153,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
             />
 
             <div className="form-actions">
-                <Button type="button" variant="outline" onClick={hide}>
+                <Button type="button" variant="outline" onClick={() => hide()}>
                     Annuler
                 </Button>
 
@@ -160,7 +171,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
 
 interface ComponentProps {
     isShowed: boolean;
-    hide: () => void;
+    hide: (dataUpdated?: boolean) => void;
     detectionsUuids?: string[];
 }
 const Component: React.FC<ComponentProps> = ({ isShowed, detectionsUuids, hide }) => {

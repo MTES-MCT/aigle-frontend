@@ -1,4 +1,5 @@
 import { getDetectionListEndpoint } from '@/api-endpoints';
+import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import FilterObjects from '@/components/FilterObjects';
 import LayoutBase from '@/components/LayoutBase';
 import DataTable from '@/components/admin/DataTable';
@@ -23,9 +24,11 @@ import {
 } from '@/utils/constants';
 import { useStatistics } from '@/utils/context/statistics-context';
 import { formatParcel } from '@/utils/format';
-import { Badge, Table } from '@mantine/core';
+import { Affix, Badge, Button, Switch, Table } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import React from 'react';
+import { IconEdit } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
 import classes from './index.module.scss';
 
 const ENDPOINT = getDetectionListEndpoint();
@@ -53,6 +56,9 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     updateObjectsFilter,
     otherObjectTypesUuids,
 }: ComponentInnerProps) => {
+    const [selectedUuids, setSelectedUuids] = React.useState<string[]>([]);
+    const [selectionShowed, setSelectionShowed] = React.useState(false);
+    const [editMultipleDetectionsModalShowed, setEditMultipleDetectionsModalShowed] = React.useState(false);
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             communesUuids: [] as string[],
@@ -60,12 +66,18 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
             regionsUuids: [] as string[],
         },
     });
+    const queryClient = useQueryClient();
+    const filter = useMemo(() => ({ ...objectsFilter, ...form.getValues() }), [objectsFilter, form.getValues()]);
 
     return (
         <div>
             <DataTable<DetectionListItem, DataTableFilter>
                 endpoint={ENDPOINT}
-                filter={{ ...objectsFilter, ...form.getValues() }}
+                filter={filter}
+                showSelection={selectionShowed}
+                selectedUuids={selectedUuids}
+                setSelectedUuids={setSelectedUuids}
+                layout="auto"
                 SoloAccordion={
                     <SoloAccordion opened>
                         <GeoCollectivitiesMultiSelects form={form} />
@@ -83,6 +95,17 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <div>
                         <TableDownloadButton {...form.getValues()} />
                         <TableHeader {...form.getValues()} />
+                        <Switch
+                            mt="md"
+                            label="Edition multiple"
+                            checked={selectionShowed}
+                            onChange={(event) => {
+                                setSelectionShowed(event.currentTarget.checked);
+                                if (!event.currentTarget.checked) {
+                                    setSelectedUuids([]);
+                                }
+                            }}
+                        />
                     </div>
                 }
                 tableHeader={[
@@ -103,6 +126,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     (item: DetectionListItem) => <OptionalText text={item.address} />,
                     (item: DetectionListItem) => (
                         <PillsDataCell<GeoCustomZone>
+                            direction="column"
                             items={item.geoCustomZones}
                             getLabel={(zone) => zone.geoCustomZoneCategory?.name || zone.name}
                         />
@@ -118,7 +142,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         </div>
                     ),
                     (item: DetectionListItem) => (
-                        <PillsDataCell<TileSet> items={item.tileSets} getLabel={(tileSet) => tileSet.name} />
+                        <PillsDataCell<TileSet>
+                            direction="column"
+                            items={item.tileSets}
+                            getLabel={(tileSet) => tileSet.name}
+                        />
                     ),
                     (item: DetectionListItem) => (
                         <OptionalText text={item.parcel ? formatParcel(item.parcel, false) : null} />
@@ -142,6 +170,32 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     ),
                 ]}
                 initialLimit={50}
+            />
+
+            {selectedUuids?.length ? (
+                <Affix position={{ bottom: 16, left: 16 }}>
+                    <Button
+                        leftSection={<IconEdit />}
+                        radius="xl"
+                        onClick={() => setEditMultipleDetectionsModalShowed(true)}
+                    >
+                        Editer la sélection ({selectedUuids?.length})
+                    </Button>
+                </Affix>
+            ) : null}
+
+            <EditMultipleDetectionsModal
+                isShowed={editMultipleDetectionsModalShowed}
+                hide={(dataUpdated?: boolean) => {
+                    setEditMultipleDetectionsModalShowed(false);
+                    setSelectedUuids([]);
+
+                    if (dataUpdated) {
+                        // Invalidate the query to refresh the data
+                        queryClient.invalidateQueries({ queryKey: [ENDPOINT] });
+                    }
+                }}
+                detectionsUuids={selectedUuids}
             />
         </div>
     );

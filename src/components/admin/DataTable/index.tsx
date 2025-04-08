@@ -7,7 +7,8 @@ import { Paginated, Uuided } from '@/models/data';
 import { PAGINATION_OFFSET_LIMIT_INITIAL_VALUE, PaginationOffsetLimit } from '@/models/table';
 import api from '@/utils/api';
 import { getPaginationPage } from '@/utils/pagination';
-import { LoadingOverlay, Pagination, Select, Table } from '@mantine/core';
+import { Button, Checkbox, LoadingOverlay, Pagination, Select, Table, TableProps } from '@mantine/core';
+import { IconChecks } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -23,6 +24,10 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
     beforeTable?: ReactNode;
     onItemClick?: (item: T_DATA) => void;
     initialLimit?: number;
+    layout?: TableProps['layout'];
+    showSelection?: boolean;
+    selectedUuids?: string[];
+    setSelectedUuids?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const Component = <T_DATA extends Uuided, T_FILTER extends object>({
@@ -33,7 +38,11 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
     tableBodyRenderFns,
     beforeTable,
     onItemClick,
+    selectedUuids,
+    setSelectedUuids,
+    layout = 'fixed',
     initialLimit = PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit,
+    showSelection = false,
 }: ComponentProps<T_DATA, T_FILTER>) => {
     const [pagination, setPagination] = useState<PaginationOffsetLimit>({
         ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
@@ -103,6 +112,26 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                 />
             </div>
 
+            {showSelection ? (
+                <Button
+                    onClick={() => {
+                        setSelectedUuids &&
+                            setSelectedUuids((uuids) => {
+                                if (uuids.length) {
+                                    return [];
+                                }
+
+                                return data?.map(({ uuid }) => uuid) || [];
+                            });
+                    }}
+                    variant="outline"
+                    leftSection={<IconChecks />}
+                    mb="md"
+                >
+                    {(selectedUuids || []).length ? 'Déselectionner tout' : 'Sélectionner tout'}
+                </Button>
+            ) : null}
+
             <div className={classes['table-container']}>
                 {isLoading ? (
                     <Loader />
@@ -115,10 +144,12 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                             striped
                             highlightOnHover
                             className={clsx(classes.table, { [classes['items-clickable']]: !!onItemClick })}
-                            layout="fixed"
+                            layout={layout}
                         >
                             <Table.Thead>
-                                <Table.Tr>{tableHeader}</Table.Tr>
+                                <Table.Tr>
+                                    {showSelection ? [<Table.Th key="select-row" />, ...tableHeader] : tableHeader}
+                                </Table.Tr>
                             </Table.Thead>
 
                             <Table.Tbody>
@@ -130,7 +161,30 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                                     </Table.Tr>
                                 ) : null}
                                 {data?.map((item) => (
-                                    <Table.Tr key={item.uuid}>
+                                    <Table.Tr
+                                        key={item.uuid}
+                                        bg={
+                                            (selectedUuids || []).includes(item.uuid)
+                                                ? 'var(--mantine-primary-color-light)'
+                                                : undefined
+                                        }
+                                    >
+                                        {showSelection ? (
+                                            <Table.Td>
+                                                <Checkbox
+                                                    aria-label="Select row"
+                                                    checked={(selectedUuids || []).includes(item.uuid)}
+                                                    onChange={(event) =>
+                                                        setSelectedUuids &&
+                                                        setSelectedUuids((uuids) =>
+                                                            event.currentTarget.checked
+                                                                ? [...uuids, item.uuid]
+                                                                : uuids.filter((uuid) => uuid !== item.uuid),
+                                                        )
+                                                    }
+                                                />
+                                            </Table.Td>
+                                        ) : null}
                                         {tableBodyRenderFns.map((renderFn, index) => (
                                             <Table.Td
                                                 key={index}
