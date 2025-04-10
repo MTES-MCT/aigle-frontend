@@ -13,8 +13,11 @@ $space-between-elements: 16px;
 }
 
 .table-container {
-    position: relative;
     margin-bottom: $space-between-elements;
+
+    tbody {
+        position: relative;
+    }
 
     .table {
         td {

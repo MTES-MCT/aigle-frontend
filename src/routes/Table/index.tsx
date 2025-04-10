@@ -3,6 +3,7 @@ import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModa
 import FilterObjects from '@/components/FilterObjects';
 import LayoutBase from '@/components/LayoutBase';
 import DataTable from '@/components/admin/DataTable';
+import DataTableSortableHeaderColumn, { SortOrder } from '@/components/admin/DataTable/DataTableSortableHeaderColumn';
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import PillsDataCell from '@/components/admin/data-cells/PillsDataCell';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
@@ -31,12 +32,30 @@ import { useQueryClient } from '@tanstack/react-query';
 import React, { useMemo } from 'react';
 import classes from './index.module.scss';
 
+const getOrderParams = (
+    order?: FieldOrder,
+): {
+    ordering?: string;
+} => {
+    if (!order) {
+        return {};
+    }
+    return {
+        ordering: order.sortOrder === 'asc' ? order.field : `-${order.field}`,
+    };
+};
+
 const ENDPOINT = getDetectionListEndpoint();
 
 interface FormValues {
     communesUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
+}
+
+interface FieldOrder {
+    sortOrder?: SortOrder;
+    field: string;
 }
 
 interface DataTableFilter extends ObjectsFilter, FormValues {}
@@ -57,6 +76,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     otherObjectTypesUuids,
 }: ComponentInnerProps) => {
     const [selectedUuids, setSelectedUuids] = React.useState<string[]>([]);
+    const [order, setOrder] = React.useState<FieldOrder | undefined>();
     const [selectionShowed, setSelectionShowed] = React.useState(false);
     const [editMultipleDetectionsModalShowed, setEditMultipleDetectionsModalShowed] = React.useState(false);
     const form: UseFormReturnType<FormValues> = useForm({
@@ -67,7 +87,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         },
     });
     const queryClient = useQueryClient();
-    const filter = useMemo(() => ({ ...objectsFilter, ...form.getValues() }), [objectsFilter, form.getValues()]);
+    const filter = useMemo(
+        () => ({ ...objectsFilter, ...form.getValues(), ...getOrderParams(order) }),
+        [objectsFilter, form.getValues(), order],
+    );
 
     return (
         <div>
@@ -114,10 +137,34 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <Table.Th key="geoCustomZones">Zones à enjeux</Table.Th>,
                     <Table.Th key="objectTypeName">Type</Table.Th>,
                     <Table.Th key="tileSets">Millésime</Table.Th>,
-                    <Table.Th key="parcel">Parcelle</Table.Th>,
-                    <Table.Th key="score">Score</Table.Th>,
+                    <DataTableSortableHeaderColumn
+                        key="parcel"
+                        onOrderChange={(sortOrder?: SortOrder) =>
+                            setOrder(sortOrder ? { sortOrder, field: 'parcel' } : undefined)
+                        }
+                        sortOrder={order?.field === 'parcel' ? order.sortOrder : undefined}
+                    >
+                        Parcelle
+                    </DataTableSortableHeaderColumn>,
+                    <DataTableSortableHeaderColumn
+                        key="score"
+                        onOrderChange={(sortOrder?: SortOrder) =>
+                            setOrder(sortOrder ? { sortOrder, field: 'score' } : undefined)
+                        }
+                        sortOrder={order?.field === 'score' ? order.sortOrder : undefined}
+                    >
+                        Score
+                    </DataTableSortableHeaderColumn>,
                     <Table.Th key="detectionSource">Source</Table.Th>,
-                    <Table.Th key="detectionControlStatus">Statut de contrôle</Table.Th>,
+                    <DataTableSortableHeaderColumn
+                        key="detectionControlStatus"
+                        onOrderChange={(sortOrder?: SortOrder) =>
+                            setOrder(sortOrder ? { sortOrder, field: 'detectionControlStatus' } : undefined)
+                        }
+                        sortOrder={order?.field === 'detectionControlStatus' ? order.sortOrder : undefined}
+                    >
+                        Statut de contrôle
+                    </DataTableSortableHeaderColumn>,
                     <Table.Th key="detectionPrescriptionStatus">Prescription</Table.Th>,
                     <Table.Th key="detectionValidationStatus">Statut de validation</Table.Th>,
                 ]}

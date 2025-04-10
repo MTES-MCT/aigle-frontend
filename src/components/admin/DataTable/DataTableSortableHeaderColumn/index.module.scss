@@ -1,0 +1,31 @@
+.button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: var(--mantine-font-size-sm) !important;
+
+    padding: var(--table-vertical-spacing) var(--table-horizontal-spacing, var(--mantine-spacing-xs)) !important;
+
+    .icon-container {
+        height: 24px;
+        width: 24px;
+    }
+}
+
+.th {
+    padding: 0 !important;
+}
+
+.icon {
+    transition: transform 0.15s ease-in-out;
+    margin-left: var(--mantine-spacing-xs);
+
+    &.asc {
+        transform: rotate(0);
+    }
+
+    &.desc {
+        transform: rotate(180deg);
+    }
+}

@@ -137,9 +137,6 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                     <Loader />
                 ) : (
                     <>
-                        <LoadingOverlay visible={isFetching}>
-                            <Loader />
-                        </LoadingOverlay>
                         <Table
                             striped
                             highlightOnHover
@@ -153,6 +150,9 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                             </Table.Thead>
 
                             <Table.Tbody>
+                                <LoadingOverlay visible={isFetching}>
+                                    <Loader />
+                                </LoadingOverlay>
                                 {data?.length === 0 ? (
                                     <Table.Tr>
                                         <Table.Td className="empty-results-cell" colSpan={tableHeader.length}>
