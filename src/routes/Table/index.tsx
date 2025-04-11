@@ -27,9 +27,10 @@ import { useStatistics } from '@/utils/context/statistics-context';
 import { formatParcel } from '@/utils/format';
 import { Affix, Badge, Button, Switch, Table } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import { IconEdit } from '@tabler/icons-react';
+import { IconEdit, IconExternalLink } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
 const getOrderParams = (
@@ -169,7 +170,18 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <Table.Th key="detectionValidationStatus">Statut de validation</Table.Th>,
                 ]}
                 tableBodyRenderFns={[
-                    (item: DetectionListItem) => item.detectionObjectId,
+                    (item: DetectionListItem) => (
+                        <Button
+                            component={Link}
+                            target="_blank"
+                            variant="light"
+                            size="compact-xs"
+                            leftSection={<IconExternalLink size={14} />}
+                            to={`/map?detectionObjectUuid=${item.detectionObjectUuid}`}
+                        >
+                            {item.detectionObjectId}
+                        </Button>
+                    ),
                     (item: DetectionListItem) => <OptionalText text={item.address} />,
                     (item: DetectionListItem) => (
                         <PillsDataCell<GeoCustomZone>

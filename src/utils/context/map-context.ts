@@ -67,6 +67,7 @@ interface MapState {
     annotationLayerVisible?: boolean;
     customZoneNegativeFilterVisible?: boolean;
     otherObjectTypesUuids?: Set<string>; // contains objectTypes with status OTHER_CATEGORY
+    initialDetectionObjectUuid?: string;
 
     setMapSettings: (settings: MapSettings) => void;
     resetLayers: () => void;
@@ -91,7 +92,7 @@ const useMap = create<MapState>()((set, get) => ({
 
         const { layers, backgroundLayerYears } = getInitialLayers(settings);
         const initialMapGeoCustomZoneLayers = getInitialMapGeoCustomZoneLayers(settings);
-        const objectsFilter = getInitialObjectFilters(
+        const { objectsFilter, detectionObjectUuid } = getInitialObjectFilters(
             Array.from(visibleObjectTypesUuids),
             initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
         );
@@ -105,6 +106,7 @@ const useMap = create<MapState>()((set, get) => ({
             otherObjectTypesUuids: new Set(otherObjectTypesUuids),
             customZoneLayers: initialMapGeoCustomZoneLayers,
             objectTypes: allObjectTypes,
+            initialDetectionObjectUuid: detectionObjectUuid,
             userLastPosition: settings.userLastPosition,
         }));
         get().updateObjectsFilter(objectsFilter);

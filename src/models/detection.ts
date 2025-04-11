@@ -74,6 +74,7 @@ export interface DetectionWithTile extends DetectionWithTileMinimal {
 export interface DetectionListItem extends Uuided {
     id: number;
     detectionObjectId: number;
+    detectionObjectUuid: string;
     score: number;
     address: string | null;
     parcel: ParcelMinimal | null;

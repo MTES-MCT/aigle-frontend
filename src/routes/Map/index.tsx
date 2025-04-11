@@ -8,14 +8,18 @@ import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import classes from './index.module.scss';
 
 const Component: React.FC = () => {
-    const { layers, userLastPosition } = useMap();
+    const { layers, userLastPosition, initialDetectionObjectUuid } = useMap();
 
     return (
         <>
             <Header />
             <div className={classes['map-container']}>
                 {layers ? (
-                    <MapComponent layers={layers} initialPosition={userLastPosition} />
+                    <MapComponent
+                        layers={layers}
+                        initialPosition={userLastPosition}
+                        initialDetectionObjectUuid={initialDetectionObjectUuid}
+                    />
                 ) : (
                     <Loader className={classes.loader} />
                 )}

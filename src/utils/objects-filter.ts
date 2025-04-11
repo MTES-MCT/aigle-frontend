@@ -6,13 +6,27 @@ import {
 } from '@/models/detection';
 import { InterfaceDrawnFilter, ObjectsFilter } from '@/models/detection-filter';
 import { OTHER_OBJECT_TYPE } from '@/utils/constants';
-import { stringToBoolean, stringToTypedArray } from '@/utils/string';
+import { isValidUUID, stringToBoolean, stringToTypedArray } from '@/utils/string';
 
 type QueryParams = Record<string, string>;
 
-export const getInitialObjectFilters = (objectTypesUuids: string[], customZonesUuids: string[]) => {
+export const getInitialObjectFilters = (
+    objectTypesUuids: string[],
+    customZonesUuids: string[],
+): {
+    objectsFilter: ObjectsFilter;
+    detectionObjectUuid?: string;
+} => {
     const params = Object.fromEntries(new URLSearchParams(window.location.search));
-    return paramsToObjectsFilter(params, objectTypesUuids, customZonesUuids);
+
+    let detectionObjectUuid: string | undefined = undefined;
+    if (params.detectionObjectUuid && isValidUUID(params.detectionObjectUuid)) {
+        detectionObjectUuid = params.detectionObjectUuid;
+    }
+    return {
+        objectsFilter: paramsToObjectsFilter(params, objectTypesUuids, customZonesUuids),
+        detectionObjectUuid,
+    };
 };
 
 export const setObjectFilters = (objectsFilter: ObjectsFilter) => {
