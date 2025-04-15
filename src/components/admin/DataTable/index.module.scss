@@ -4,22 +4,41 @@ $space-between-elements: 16px;
     margin-bottom: $space-between-elements;
 }
 
+.before-table-container {
+    margin-bottom: $space-between-elements;
+}
+
 .error-card {
     margin-bottom: $space-between-elements;
 }
 
 .table-container {
-    position: relative;
     margin-bottom: $space-between-elements;
+
+    tbody {
+        position: relative;
+    }
 
     .table {
         td {
             vertical-align: top;
         }
+
+        tr {
+            transition: background 0.25s ease-in-out;
+        }
     }
 }
 
-.nbr-results {
+.table-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: $space-between-elements;
+}
+
+.table-infos {
     font-style: italic;
     color: var(--mantine-color-gray-text);
 }
@@ -36,4 +55,9 @@ $space-between-elements: 16px;
             cursor: pointer;
         }
     }
+}
+
+.global-select {
+    margin-left: 10px; // var(--table-vertical-spacing)
+    margin-bottom: $space-between-elements;
 }

@@ -1,11 +1,12 @@
 import { detectionControlStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
-import { MapTileSetLayer } from '@/models/map-layer';
+import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
-import { extractObjectTypesFromSettings } from '@/utils/context/utils';
+import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/utils/context/utils';
 import { create } from 'zustand';
+import { getInitialObjectFilters } from '../objects-filter';
 
 const getInitialLayers = (settings: MapSettings) => {
     const layers: MapTileSetLayer[] = [];
@@ -42,17 +43,23 @@ interface StatisticsState {
     geoCustomZones?: GeoCustomZone[];
     zonesFilter?: ZonesFilter;
     otherObjectTypesUuids?: Set<string>;
+    customZoneLayers?: MapGeoCustomZoneLayer[];
 
     setMapSettings: (settings: MapSettings) => void;
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
     updateZonesFilter: (zonesFilter: ZonesFilter) => void;
 }
 
-const useStatistics = create<StatisticsState>()((set) => ({
+const useStatistics = create<StatisticsState>()((set, get) => ({
     setMapSettings: (settings: MapSettings) => {
         const { allObjectTypes, visibleObjectTypesUuids, otherObjectTypesUuids } =
             extractObjectTypesFromSettings(settings);
         const layers = getInitialLayers(settings);
+        const initialMapGeoCustomZoneLayers = getInitialMapGeoCustomZoneLayers(settings);
+        const objectsFilter = getInitialObjectFilters(
+            Array.from(visibleObjectTypesUuids),
+            initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
+        );
 
         set(() => ({
             layers,
@@ -75,7 +82,9 @@ const useStatistics = create<StatisticsState>()((set) => ({
             },
             userLastPosition: settings.userLastPosition,
             otherObjectTypesUuids: otherObjectTypesUuids,
+            customZoneLayers: initialMapGeoCustomZoneLayers,
         }));
+        get().updateObjectsFilter(objectsFilter);
     },
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => {
         set((state) => ({

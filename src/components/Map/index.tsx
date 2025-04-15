@@ -9,8 +9,8 @@ import {
     getDetectionListEndpoint,
 } from '@/api-endpoints';
 import DetectionDetail from '@/components/DetectionDetail';
+import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import MapAddAnnotationModal from '@/components/Map/MapAddAnnotationModal';
-import MapEditMultipleDetectionsModal from '@/components/Map/MapEditMultipleDetectionsModal';
 import MapControlBackgroundSlider from '@/components/Map/controls/MapControlBackgroundSlider';
 import MapControlFilterDetection from '@/components/Map/controls/MapControlFilterDetection';
 import MapControlLayerDisplay from '@/components/Map/controls/MapControlLayerDisplay';
@@ -196,11 +196,13 @@ interface ComponentProps {
     displayLayersSelection?: boolean;
     boundLayers?: boolean;
     initialPosition?: GeoJSON.Position | null;
+    initialDetectionObjectUuid?: string;
 }
 
 const Component: React.FC<ComponentProps> = ({
     layers,
     displayLayersGeometry,
+    initialDetectionObjectUuid,
     fitBoundsFirstLayer = false,
     displayTileSetControls = true,
     displayDetections = true,
@@ -210,7 +212,13 @@ const Component: React.FC<ComponentProps> = ({
     initialPosition,
 }) => {
     const [mapBounds, setMapBounds] = useState<MapBounds>();
-    const [detectionDetailsShowed, setDetectionDetailsShowed] = useState<DetectionDetailsShowedState | null>(null);
+    const [detectionDetailsShowed, setDetectionDetailsShowed] = useState<DetectionDetailsShowedState | null>(
+        initialDetectionObjectUuid
+            ? {
+                  detectionObjectUuid: initialDetectionObjectUuid,
+              }
+            : null,
+    );
     const [leftSectionShowed, setLeftSectionShowed] = useState<LeftSection>();
     const [drawMode, setDrawMode] = useState<DrawMode | null>(null);
 
@@ -957,7 +965,7 @@ const Component: React.FC<ComponentProps> = ({
                             hide={() => setAddAnnotationPolygon(undefined)}
                             polygon={addAnnotationPolygon}
                         />
-                        <MapEditMultipleDetectionsModal
+                        <EditMultipleDetectionsModal
                             isShowed={!!multipleEditDetectionsUuids}
                             hide={() => setMultipleEditDetectionsUuids(undefined)}
                             detectionsUuids={multipleEditDetectionsUuids}

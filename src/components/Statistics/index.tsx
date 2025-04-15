@@ -2,11 +2,16 @@ import ValidationStatusEvolutionChart from '@/components/Statistics/ValidationSt
 import ValidationStatusObjectTypesLineChart from '@/components/Statistics/ValidationStatusObjectTypesLineChart';
 import ValidationStatusPieChart from '@/components/Statistics/ValidationStatusPieChart';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
+import Loader from '@/components/ui/Loader';
+import { ObjectsFilter } from '@/models/detection-filter';
+import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
+import { ObjectType } from '@/models/object-type';
 import { useStatistics } from '@/utils/context/statistics-context';
-import { Loader, MultiSelect } from '@mantine/core';
+import { MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { useMemo } from 'react';
-import classes from './index.module.scss';
+import FilterObjects from '../FilterObjects';
+import SoloAccordion from '../admin/SoloAccordion';
 
 interface FormValues {
     tileSetsUuids: string[];
@@ -16,8 +21,22 @@ interface FormValues {
     regionsUuids: string[];
 }
 
-const Component: React.FC = () => {
-    const { layers, objectsFilter, otherObjectTypesUuids } = useStatistics();
+interface ComponentInnerProps {
+    layers: MapTileSetLayer[];
+    objectsFilter: ObjectsFilter;
+    otherObjectTypesUuids: Set<string>;
+    allObjectTypes: ObjectType[];
+    customZoneLayers: MapGeoCustomZoneLayer[];
+}
+
+const ComponentInner: React.FC<ComponentInnerProps> = ({
+    layers,
+    objectsFilter,
+    otherObjectTypesUuids,
+    allObjectTypes,
+    customZoneLayers,
+}: ComponentInnerProps) => {
+    const { updateObjectsFilter } = useStatistics();
     const tileSets = useMemo(() => (layers || []).map((layer) => layer.tileSet), [layers]);
 
     const tileSetsValues = useMemo(() => tileSets.map(({ name, uuid }) => ({ value: uuid, label: name })), [tileSets]);
@@ -31,23 +50,38 @@ const Component: React.FC = () => {
         },
     });
 
-    if (!objectsFilter || !tileSets || !tileSets.length || !otherObjectTypesUuids) {
-        return <Loader />;
+    if (
+        !objectsFilter ||
+        !tileSets ||
+        !tileSets.length ||
+        !otherObjectTypesUuids ||
+        !allObjectTypes ||
+        !customZoneLayers
+    ) {
     }
 
     return (
         <>
-            <MultiSelect
-                label="Fonds de carte"
-                data={tileSetsValues}
-                key={form.key('tileSetsUuids')}
-                {...form.getInputProps('tileSetsUuids')}
-            />
+            <SoloAccordion opened>
+                <GeoCollectivitiesMultiSelects form={form} />
+                <MultiSelect
+                    label="Fonds de carte"
+                    data={tileSetsValues}
+                    key={form.key('tileSetsUuids')}
+                    {...form.getInputProps('tileSetsUuids')}
+                />
 
-            <GeoCollectivitiesMultiSelects form={form} className={classes['geocolectivities-container']} />
+                <FilterObjects
+                    objectTypes={allObjectTypes}
+                    objectsFilter={objectsFilter}
+                    mapGeoCustomZoneLayers={customZoneLayers}
+                    updateObjectsFilter={updateObjectsFilter}
+                    otherObjectTypesUuids={otherObjectTypesUuids}
+                />
+            </SoloAccordion>
+
             <ValidationStatusEvolutionChart
                 objectsFilter={objectsFilter}
-                allTileSets={tileSets}
                 tileSetsUuids={form.values.tileSetsUuids}
                 communesUuids={form.values.communesUuids}
                 departmentsUuids={form.values.departmentsUuids}
@@ -73,6 +107,24 @@ const Component: React.FC = () => {
                 otherObjectTypesUuids={otherObjectTypesUuids}
             />
         </>
+    );
+};
+
+const Component: React.FC = () => {
+    const { layers, objectsFilter, otherObjectTypesUuids, allObjectTypes, customZoneLayers } = useStatistics();
+
+    if (!layers || !objectsFilter || !otherObjectTypesUuids || !allObjectTypes || !customZoneLayers) {
+        return <Loader />;
+    }
+
+    return (
+        <ComponentInner
+            layers={layers}
+            objectsFilter={objectsFilter}
+            otherObjectTypesUuids={otherObjectTypesUuids}
+            allObjectTypes={allObjectTypes}
+            customZoneLayers={customZoneLayers}
+        />
     );
 };
 

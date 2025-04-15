@@ -1,0 +1,46 @@
+@import '@/constants.scss';
+
+.container {
+    position: relative;
+    border-radius: $border-radius-small;
+    border: 1px solid var(--mantine-color-gray-3);
+
+    overflow: hidden;
+
+    .detection-list-overview-items-container {
+        display: flex;
+        flex-direction: row;
+    }
+    .detection-list-overview-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        flex: 1 1 0;
+        width: 0;
+        padding: 8px;
+
+        .detection-list-overview-item-count {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .detection-list-overview-item-label {
+            font-size: 1rem;
+        }
+    }
+
+    .detection-list-overview-total {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 8px;
+
+        .detection-list-overview-total-number {
+            font-weight: 700;
+            margin-right: 0.25rem;
+        }
+    }
+}

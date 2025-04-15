@@ -1,5 +1,8 @@
 import { Timestamped, Uuided } from '@/models/data';
 import { DetectionObjectDetail } from '@/models/detection-object';
+import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
+import { ObjectType } from '@/models/object-type';
+import { ParcelMinimal } from '@/models/parcel';
 import { Tile } from '@/models/tile';
 import { TileSet, TileSetType } from '@/models/tile-set';
 import { FeatureCollection, Polygon } from 'geojson';
@@ -66,4 +69,20 @@ export interface DetectionWithTileMinimal extends Uuided, Timestamped {
 
 export interface DetectionWithTile extends DetectionWithTileMinimal {
     tileSet: TileSet;
+}
+
+export interface DetectionListItem extends Uuided {
+    id: number;
+    detectionObjectId: number;
+    detectionObjectUuid: string;
+    score: number;
+    address: string | null;
+    parcel: ParcelMinimal | null;
+    geoCustomZones: GeoCustomZone[];
+    objectType: ObjectType;
+    detectionSource: DetectionSource;
+    detectionControlStatus: DetectionControlStatus;
+    detectionValidationStatus: DetectionValidationStatus;
+    detectionPrescriptionStatus: DetectionPrescriptionStatus;
+    tileSets: TileSet[];
 }

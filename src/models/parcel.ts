@@ -9,7 +9,7 @@ export interface ParcelMinimal extends Uuided, Timestamped {
     idParcellaire: string;
     prefix: string;
     section: string;
-    numParcel: string;
+    numParcel: number;
     commune: GeoCommune;
 }
 

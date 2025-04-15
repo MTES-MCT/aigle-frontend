@@ -117,6 +117,16 @@ export const MAP_SETTINGS_ENDPOINT = `${BASE_API}map-settings/`;
 const BASE_DETECTION = `${BASE_API}detection/`;
 export const DETECTION_POST_ENDPOINT = `${BASE_DETECTION}`;
 export const DETECTION_LIST_ENDPOINT = `${BASE_API}detection-list/`;
+export const DETECTION_LIST_OVERVIEW_ENDPOINT = `${DETECTION_LIST_ENDPOINT}overview/`;
+const DETECTION_LIST_DOWNLOAD_ENDPOINT = `${DETECTION_LIST_ENDPOINT}download/`;
+export type DownloadOutputFormat = 'csv' | 'xlsx';
+export const getDetectionListDownloadEndpoint = (outputFormat: DownloadOutputFormat) => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('outputFormat', outputFormat);
+
+    return `${DETECTION_LIST_DOWNLOAD_ENDPOINT}?${searchParams.toString()}`;
+};
+
 export const DETECTION_MULTIPLE_POST_ENDPOINT = `${BASE_DETECTION}multiple/`;
 export const getDetectionListEndpoint = (detail: boolean = false, geoFeature: boolean = false) => {
     const searchParams = new URLSearchParams();

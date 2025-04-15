@@ -3,7 +3,6 @@ import { objectsFilterToApiParams, valueFormatter } from '@/components/Statistic
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { ValidationStatusEvolution } from '@/models/statistics/valisation-status-evolution';
-import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { DETECTION_VALIDATION_STATUSES_COLORS_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { AreaChart } from '@mantine/charts';
@@ -12,13 +11,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import classes from './index.module.scss';
 
-const formatData = (
-    data: ValidationStatusEvolution[],
-    allTileSets: TileSet[],
-    tileSetsUuids: string[],
-    objectsFilter: ObjectsFilter,
-) => {
-    const chartData: any = allTileSets.reduce((prev, current) => {
+const formatData = (data: ValidationStatusEvolution[], tileSetsUuids: string[], objectsFilter: ObjectsFilter) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chartData: any = data.reduce((prev, current) => {
         if (!tileSetsUuids.includes(current.uuid)) {
             return prev;
         }
@@ -50,19 +45,20 @@ const formatData = (
         chartData[uuid][DETECTION_VALIDATION_STATUSES_NAMES_MAP[detectionValidationStatus]] = detectionsCount;
     });
 
-    return Object.values(chartData).sort((a, b) => a.date.getTime() - b.date.getTime());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return Object.values(chartData).sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
 };
 
 const fetchData = async (
     signal: AbortSignal,
     objectsFilter: ObjectsFilter,
-    allTileSets: TileSet[],
     tileSetsUuids: string[],
     communesUuids: string[],
     departmentsUuids: string[],
     regionsUuids: string[],
     otherObjectTypesUuids: Set<string>,
-): any => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
     const params = objectsFilterToApiParams(
         objectsFilter,
         tileSetsUuids,
@@ -82,10 +78,9 @@ const fetchData = async (
         signal,
     });
 
-    return formatData(res.data, allTileSets, tileSetsUuids, objectsFilter);
+    return formatData(res.data, tileSetsUuids, objectsFilter);
 };
 interface ComponentProps {
-    allTileSets: TileSet[];
     objectsFilter: ObjectsFilter;
     tileSetsUuids: string[];
     communesUuids: string[];
@@ -95,7 +90,6 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({
-    allTileSets,
     objectsFilter,
     tileSetsUuids,
     communesUuids,
@@ -123,7 +117,6 @@ const Component: React.FC<ComponentProps> = ({
             fetchData(
                 signal,
                 objectsFilter,
-                allTileSets,
                 tileSetsUuids,
                 communesUuids,
                 departmentsUuids,
@@ -131,6 +124,8 @@ const Component: React.FC<ComponentProps> = ({
                 otherObjectTypesUuids,
             ),
     });
+
+    console.log('statistics', statistics);
 
     if (!statistics) {
         return <Loader />;

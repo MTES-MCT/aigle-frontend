@@ -18,6 +18,7 @@ const GEO_COLLECTIVITIES_LIMIT = 10;
 const fetchGeoCollectivities = async <T extends GeoCollectivity>(
     collectivityType: CollectivityType,
     q: string,
+    signal: AbortSignal,
 ): Promise<T[]> => {
     const endpoint = getGeoListEndpoint(collectivityType);
     const res = await api.get<Paginated<T>>(endpoint, {
@@ -26,6 +27,7 @@ const fetchGeoCollectivities = async <T extends GeoCollectivity>(
             limit: GEO_COLLECTIVITIES_LIMIT,
             offset: 0,
         },
+        signal,
     });
     return res.data.results;
 };
@@ -101,17 +103,18 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     const { data: regions, isLoading: regionsIsLoading } = useQuery<GeoRegion[]>({
         queryKey: ['regions', debouncedGeoInputValues.region],
         enabled: !!debouncedGeoInputValues.region,
-        queryFn: () => fetchGeoCollectivities<GeoRegion>('region', debouncedGeoInputValues.region),
+        queryFn: ({ signal }) => fetchGeoCollectivities<GeoRegion>('region', debouncedGeoInputValues.region, signal),
     });
     const { data: departments, isLoading: departmentsIsLoading } = useQuery<GeoDepartment[]>({
         queryKey: ['departments', debouncedGeoInputValues.department],
         enabled: !!debouncedGeoInputValues.department,
-        queryFn: () => fetchGeoCollectivities<GeoDepartment>('department', debouncedGeoInputValues.department),
+        queryFn: ({ signal }) =>
+            fetchGeoCollectivities<GeoDepartment>('department', debouncedGeoInputValues.department, signal),
     });
     const { data: communes, isLoading: communesIsLoading } = useQuery<GeoCommune[]>({
         queryKey: ['communes', debouncedGeoInputValues.commune],
         enabled: !!debouncedGeoInputValues.commune,
-        queryFn: () => fetchGeoCollectivities<GeoCommune>('commune', debouncedGeoInputValues.commune),
+        queryFn: ({ signal }) => fetchGeoCollectivities<GeoCommune>('commune', debouncedGeoInputValues.commune, signal),
     });
 
     const [geoSelectedValues, setGeoSelectedValues] = useState<GeoValues>(

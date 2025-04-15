@@ -26,7 +26,7 @@ import {
     IconX,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { centroid } from '@turf/turf';
+import { centroid, getCoord } from '@turf/turf';
 import clsx from 'clsx';
 import { Position } from 'geojson';
 import React, { useEffect, useState } from 'react';
@@ -342,7 +342,13 @@ const Component: React.FC<ComponentProps> = ({
         refetch,
     } = useQuery({
         queryKey: [getDetectionObjectDetailEndpoint(String(detectionObjectUuid))],
-        queryFn: () => fetchData(),
+        queryFn: async () => {
+            const res = await fetchData();
+
+            eventEmitter.emit('JUMP_TO', getCoord(centroid(res.detections[0].geometry)));
+
+            return res;
+        },
     });
     useEffect(() => {
         eventEmitter.on('UPDATE_DETECTION_DETAIL', refetch);

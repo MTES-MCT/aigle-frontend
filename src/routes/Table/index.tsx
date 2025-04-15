@@ -1,14 +1,22 @@
 import { getDetectionListEndpoint } from '@/api-endpoints';
+import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import FilterObjects from '@/components/FilterObjects';
 import LayoutBase from '@/components/LayoutBase';
 import DataTable from '@/components/admin/DataTable';
+import DataTableSortableHeaderColumn, { SortOrder } from '@/components/admin/DataTable/DataTableSortableHeaderColumn';
 import SoloAccordion from '@/components/admin/SoloAccordion';
+import PillsDataCell from '@/components/admin/data-cells/PillsDataCell';
 import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
 import Loader from '@/components/ui/Loader';
-import { DetectionDetail } from '@/models/detection';
+import OptionalText from '@/components/ui/OptionalText';
+import { DetectionListItem } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
+import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
+import { TileSet } from '@/models/tile-set';
+import TableDownloadButton from '@/routes/Table/TableDownloadButton';
+import TableHeader from '@/routes/Table/TableHeader';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP,
@@ -16,12 +24,29 @@ import {
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
 import { useStatistics } from '@/utils/context/statistics-context';
-import { Table } from '@mantine/core';
+import { formatParcel } from '@/utils/format';
+import { Affix, Badge, Button, Switch, Table } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import React from 'react';
+import { IconEdit, IconExternalLink } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
-const ENDPOINT = getDetectionListEndpoint(true);
+const getOrderParams = (
+    order?: FieldOrder,
+): {
+    ordering?: string;
+} => {
+    if (!order) {
+        return {};
+    }
+    return {
+        ordering: order.sortOrder === 'asc' ? order.field : `-${order.field}`,
+    };
+};
+
+const ENDPOINT = getDetectionListEndpoint();
 
 interface FormValues {
     communesUuids: string[];
@@ -29,12 +54,17 @@ interface FormValues {
     regionsUuids: string[];
 }
 
+interface FieldOrder {
+    sortOrder?: SortOrder;
+    field: string;
+}
+
 interface DataTableFilter extends ObjectsFilter, FormValues {}
 
 interface ComponentInnerProps {
     allObjectTypes: ObjectType[];
     objectsFilter: ObjectsFilter;
-    geoCustomZones: GeoCustomZone[];
+    mapGeoCustomZoneLayers: MapGeoCustomZoneLayer[];
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
     otherObjectTypesUuids: Set<string>;
 }
@@ -42,10 +72,14 @@ interface ComponentInnerProps {
 const ComponentInner: React.FC<ComponentInnerProps> = ({
     allObjectTypes,
     objectsFilter,
-    geoCustomZones,
+    mapGeoCustomZoneLayers,
     updateObjectsFilter,
     otherObjectTypesUuids,
 }: ComponentInnerProps) => {
+    const [selectedUuids, setSelectedUuids] = React.useState<string[]>([]);
+    const [order, setOrder] = React.useState<FieldOrder | undefined>();
+    const [selectionShowed, setSelectionShowed] = React.useState(false);
+    const [editMultipleDetectionsModalShowed, setEditMultipleDetectionsModalShowed] = React.useState(false);
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             communesUuids: [] as string[],
@@ -53,65 +87,184 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
             regionsUuids: [] as string[],
         },
     });
+    const queryClient = useQueryClient();
+    const filter = useMemo(
+        () => ({ ...objectsFilter, ...form.getValues(), ...getOrderParams(order) }),
+        [objectsFilter, form.getValues(), order],
+    );
 
     return (
-        <>
-            <DataTable<DetectionDetail, DataTableFilter>
+        <div>
+            <DataTable<DetectionListItem, DataTableFilter>
                 endpoint={ENDPOINT}
-                filter={{ ...objectsFilter, ...form.getValues() }}
+                filter={filter}
+                showSelection={selectionShowed}
+                selectedUuids={selectedUuids}
+                setSelectedUuids={setSelectedUuids}
+                layout="auto"
                 SoloAccordion={
                     <SoloAccordion opened>
-                        <GeoCollectivitiesMultiSelects form={form} className={classes['geocolectivities-container']} />
+                        <GeoCollectivitiesMultiSelects form={form} />
 
                         <FilterObjects
                             objectTypes={allObjectTypes}
                             objectsFilter={objectsFilter}
-                            geoCustomZones={geoCustomZones}
+                            mapGeoCustomZoneLayers={mapGeoCustomZoneLayers}
                             updateObjectsFilter={updateObjectsFilter}
                             otherObjectTypesUuids={otherObjectTypesUuids}
                         />
                     </SoloAccordion>
                 }
+                beforeTable={
+                    <div>
+                        <TableDownloadButton {...form.getValues()} />
+                        <TableHeader {...form.getValues()} />
+                        <Switch
+                            mt="md"
+                            label="Edition multiple"
+                            checked={selectionShowed}
+                            onChange={(event) => {
+                                setSelectionShowed(event.currentTarget.checked);
+                                if (!event.currentTarget.checked) {
+                                    setSelectedUuids([]);
+                                }
+                            }}
+                        />
+                    </div>
+                }
                 tableHeader={[
-                    <Table.Th key="detectionObjectId">Object id</Table.Th>,
+                    <Table.Th key="detectionObjectId">Object n°</Table.Th>,
+                    <Table.Th key="address">Adresse</Table.Th>,
+                    <Table.Th key="geoCustomZones">Zones à enjeux</Table.Th>,
                     <Table.Th key="objectTypeName">Type</Table.Th>,
-                    <Table.Th key="score">Score</Table.Th>,
+                    <Table.Th key="tileSets">Millésime</Table.Th>,
+                    <DataTableSortableHeaderColumn
+                        key="parcel"
+                        onOrderChange={(sortOrder?: SortOrder) =>
+                            setOrder(sortOrder ? { sortOrder, field: 'parcel' } : undefined)
+                        }
+                        sortOrder={order?.field === 'parcel' ? order.sortOrder : undefined}
+                    >
+                        Parcelle
+                    </DataTableSortableHeaderColumn>,
+                    <DataTableSortableHeaderColumn
+                        key="score"
+                        onOrderChange={(sortOrder?: SortOrder) =>
+                            setOrder(sortOrder ? { sortOrder, field: 'score' } : undefined)
+                        }
+                        sortOrder={order?.field === 'score' ? order.sortOrder : undefined}
+                    >
+                        Score
+                    </DataTableSortableHeaderColumn>,
                     <Table.Th key="detectionSource">Source</Table.Th>,
-                    <Table.Th key="detectionControlStatus">Statut de contrôle</Table.Th>,
+                    <DataTableSortableHeaderColumn
+                        key="detectionControlStatus"
+                        onOrderChange={(sortOrder?: SortOrder) =>
+                            setOrder(sortOrder ? { sortOrder, field: 'detectionControlStatus' } : undefined)
+                        }
+                        sortOrder={order?.field === 'detectionControlStatus' ? order.sortOrder : undefined}
+                    >
+                        Statut de contrôle
+                    </DataTableSortableHeaderColumn>,
                     <Table.Th key="detectionPrescriptionStatus">Prescription</Table.Th>,
                     <Table.Th key="detectionValidationStatus">Statut de validation</Table.Th>,
                 ]}
                 tableBodyRenderFns={[
-                    (item: DetectionDetail) => item.detectionObject.id,
-                    (item: DetectionDetail) => <>{item.detectionObject.objectType.name}</>,
-                    (item: DetectionDetail) => Math.round(item.score * 100),
-                    (item: DetectionDetail) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,
-                    (item: DetectionDetail) => (
-                        <>{DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionData.detectionControlStatus]}</>
+                    (item: DetectionListItem) => (
+                        <Button
+                            component={Link}
+                            target="_blank"
+                            variant="light"
+                            size="compact-xs"
+                            leftSection={<IconExternalLink size={14} />}
+                            to={`/map?detectionObjectUuid=${item.detectionObjectUuid}`}
+                        >
+                            {item.detectionObjectId}
+                        </Button>
                     ),
-                    (item: DetectionDetail) => (
+                    (item: DetectionListItem) => <OptionalText text={item.address} />,
+                    (item: DetectionListItem) => (
+                        <PillsDataCell<GeoCustomZone>
+                            direction="column"
+                            items={item.geoCustomZones}
+                            getLabel={(zone) => zone.geoCustomZoneCategory?.name || zone.name}
+                        />
+                    ),
+                    (item: DetectionListItem) => (
+                        <div className={classes['object-type-cell']}>
+                            <Badge
+                                className={classes['object-type-cell-badge']}
+                                color={item.objectType.color}
+                                radius={100}
+                            />
+                            {item.objectType.name}
+                        </div>
+                    ),
+                    (item: DetectionListItem) => (
+                        <PillsDataCell<TileSet>
+                            direction="column"
+                            items={item.tileSets}
+                            getLabel={(tileSet) => tileSet.name}
+                        />
+                    ),
+                    (item: DetectionListItem) => (
+                        <OptionalText text={item.parcel ? formatParcel(item.parcel, false) : null} />
+                    ),
+                    (item: DetectionListItem) => Math.round(item.score * 100),
+                    (item: DetectionListItem) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,
+                    (item: DetectionListItem) => (
+                        <>{DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionControlStatus]}</>
+                    ),
+                    (item: DetectionListItem) => (
                         <>
                             {
                                 DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP[
-                                    item.detectionData.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
+                                    item.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
                                 ]
                             }
                         </>
                     ),
-                    (item: DetectionDetail) => (
-                        <>{DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionData.detectionValidationStatus]}</>
+                    (item: DetectionListItem) => (
+                        <>{DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionValidationStatus]}</>
                     ),
                 ]}
+                initialLimit={50}
             />
-        </>
+
+            {selectedUuids?.length ? (
+                <Affix position={{ bottom: 16, left: 16 }}>
+                    <Button
+                        leftSection={<IconEdit />}
+                        radius="xl"
+                        onClick={() => setEditMultipleDetectionsModalShowed(true)}
+                    >
+                        Editer la sélection ({selectedUuids?.length})
+                    </Button>
+                </Affix>
+            ) : null}
+
+            <EditMultipleDetectionsModal
+                isShowed={editMultipleDetectionsModalShowed}
+                hide={(dataUpdated?: boolean) => {
+                    setEditMultipleDetectionsModalShowed(false);
+                    setSelectedUuids([]);
+
+                    if (dataUpdated) {
+                        // Invalidate the query to refresh the data
+                        queryClient.invalidateQueries({ queryKey: [ENDPOINT] });
+                    }
+                }}
+                detectionsUuids={selectedUuids}
+            />
+        </div>
     );
 };
 
 const Component: React.FC = () => {
-    const { objectsFilter, allObjectTypes, geoCustomZones, updateObjectsFilter, otherObjectTypesUuids } =
+    const { objectsFilter, allObjectTypes, customZoneLayers, updateObjectsFilter, otherObjectTypesUuids } =
         useStatistics();
 
-    if (!objectsFilter || !allObjectTypes || !geoCustomZones || !updateObjectsFilter || !otherObjectTypesUuids) {
+    if (!objectsFilter || !allObjectTypes || !customZoneLayers || !updateObjectsFilter || !otherObjectTypesUuids) {
         return (
             <LayoutBase>
                 <Loader />
@@ -124,7 +277,7 @@ const Component: React.FC = () => {
             <ComponentInner
                 allObjectTypes={allObjectTypes}
                 objectsFilter={objectsFilter}
-                geoCustomZones={geoCustomZones}
+                mapGeoCustomZoneLayers={customZoneLayers}
                 updateObjectsFilter={updateObjectsFilter}
                 otherObjectTypesUuids={otherObjectTypesUuids}
             />

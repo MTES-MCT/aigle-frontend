@@ -3,6 +3,7 @@ import { Geometry } from 'geojson';
 
 export interface GeoZone extends Uuided, Timestamped {
     name: string;
+    code?: string;
 }
 
 export interface GeoZoneDetail extends GeoZone {

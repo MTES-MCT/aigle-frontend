@@ -1,8 +1,12 @@
 import { GeoCommune } from '@/models/geo/geo-commune';
 import { ParcelMinimal } from '@/models/parcel';
 
-export const formatParcel = (parcel: ParcelMinimal) => {
-    let res = `${parcel.commune.code} `;
+export const formatParcel = (parcel: ParcelMinimal, withCommuneCode: boolean = true) => {
+    let res = '';
+
+    if (withCommuneCode) {
+        res += `${parcel.commune.code} `;
+    }
 
     if (parseInt(parcel.prefix) !== 0) {
         res += `${parcel.prefix} `;

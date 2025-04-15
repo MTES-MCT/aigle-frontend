@@ -3,7 +3,6 @@ import { objectsFilterToApiParams, valueFormatter } from '@/components/Statistic
 import Loader from '@/components/ui/Loader';
 import { DetectionValidationStatus, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
-import { ValidationStatusGlobal } from '@/models/statistics/valisation-status-global';
 import { ValidationStatusObjectTypesGlobal } from '@/models/statistics/valisation-status-object-types-global';
 import api from '@/utils/api';
 import { DETECTION_VALIDATION_STATUSES_COLORS_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
@@ -12,6 +11,7 @@ import { LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import classes from './index.module.scss';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const formatData = (data: ValidationStatusObjectTypesGlobal[]): any[] => {
     const dataMap = data.reduce<{
         [objectTypeName: string]: {
@@ -48,6 +48,7 @@ const fetchData = async (
     departmentsUuids: string[],
     regionsUuids: string[],
     otherObjectTypesUuids: Set<string>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> => {
     const params = objectsFilterToApiParams(
         objectsFilter,
@@ -63,10 +64,13 @@ const fetchData = async (
         params.prescripted = objectsFilter.prescripted;
     }
 
-    const res = await api.get<ValidationStatusGlobal[]>(STATISTICS_VALIDATION_STATUS_OBJECT_TYPES_GLOBAL_ENDPOINT, {
-        params,
-        signal,
-    });
+    const res = await api.get<ValidationStatusObjectTypesGlobal[]>(
+        STATISTICS_VALIDATION_STATUS_OBJECT_TYPES_GLOBAL_ENDPOINT,
+        {
+            params,
+            signal,
+        },
+    );
 
     return formatData(res.data);
 };

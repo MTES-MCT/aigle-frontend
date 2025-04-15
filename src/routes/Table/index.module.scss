@@ -1,0 +1,10 @@
+.object-type-cell {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+
+    .object-type-cell-badge {
+        margin-right: var(--mantine-spacing-xs);
+    }
+}

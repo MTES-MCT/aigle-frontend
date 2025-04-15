@@ -44,18 +44,21 @@ const ItemPill = <T extends Uuided>({ item, toLink, getLabel, getLeftSection }: 
 };
 
 interface ComponentProps<T extends Uuided> {
+    direction?: 'row' | 'column';
     items: T[];
     toLink?: (item: T) => string;
     getLabel: (item: T) => string;
     getLeftSection?: (item: T) => React.ReactNode;
 }
-const Component = <T extends Uuided>({ items, toLink, getLabel, getLeftSection }: ComponentProps<T>) => {
+const Component = <T extends Uuided>({ items, toLink, getLabel, getLeftSection, direction }: ComponentProps<T>) => {
     return (
         <ScrollArea scrollbars="x" offsetScrollbars>
             <Group
                 gap="xs"
                 className={clsx(classes['pills-cell'], {
                     [classes['not-clickable']]: !toLink,
+                    [classes['row']]: direction === 'row',
+                    [classes['column']]: direction === 'column',
                 })}
             >
                 {items.map((item) => (
