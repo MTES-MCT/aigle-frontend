@@ -1,5 +1,5 @@
 import logoImg from '@/assets/logo.png';
-import prefetHeraultImg from '@/assets/signalement-pdf/prefet_herault.jpg';
+import republiqueFrancaiseImg from '@/assets/signalement-pdf/republique_francaise.png';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { ParcelDetail } from '@/models/parcel';
 import { DEFAULT_DATE_FORMAT, DETECTION_CONTROL_STATUSES_NAMES_MAP } from '@/utils/constants';
@@ -121,7 +121,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, previewImages, p
         <Page size="A4" style={styles.page}>
             <View style={styles.topSection}>
                 <View style={styles.topSectionLogoContainer}>
-                    <Image src={prefetHeraultImg} style={styles.topSectionLogo} />
+                    <Image src={republiqueFrancaiseImg} style={styles.topSectionLogo} />
                 </View>
                 <View style={styles.topSectionTextContainer}>
                     <Text>Fiche de signalement</Text>
