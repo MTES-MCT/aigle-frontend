@@ -10,6 +10,7 @@ import { useStatistics } from '@/utils/context/statistics-context';
 import { LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import classes from './index.module.scss';
+import { formatBigInt } from '@/utils/format';
 
 const populatePercentages = (
     items: DetectionListOverviewValidationStatusesItem[],
@@ -106,7 +107,7 @@ const DetectionListOverviewItem: React.FC<DetectionListOverviewItemProps> = ({
         >
             <div className={classes['detection-list-overview-item-count']}>{percentage}</div>
             <div className={classes['detection-list-overview-item-label']}>
-                {DETECTION_VALIDATION_STATUSES_NAMES_MAP[detectionValidationStatus]} ({count})
+                {DETECTION_VALIDATION_STATUSES_NAMES_MAP[detectionValidationStatus]} ({formatBigInt(count)})
             </div>
         </div>
     );
@@ -155,7 +156,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 ))}
             </div>
             <div className={classes['detection-list-overview-total']}>
-                <span className={classes['detection-list-overview-total-number']}>{data.totalCount}</span>
+                <span className={classes['detection-list-overview-total-number']}>{formatBigInt(data.totalCount)}</span>
                 {data.totalCount > 1 ? 'detection(s)' : 'detection'}
             </div>
         </div>
