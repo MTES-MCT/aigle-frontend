@@ -48,8 +48,17 @@ const App: React.FC = () => {
 
     const getUser = useCallback(async () => {
         try {
-            const res = await api.get<User>(USERS_ME_ENDPOINT);
-            setUser(res.data);
+            const { data: user } = await api.get<User>(USERS_ME_ENDPOINT);
+            setUser(user);
+
+            const matomoWindow = window as MatomoWindow;
+            const _mtm = (matomoWindow._mtm = matomoWindow._mtm || []);
+
+            _mtm.push({
+                userMail: user.email,
+                userUuid: user.uuid,
+                userRole: user.userRole,
+            });
         } catch (err) {
             console.error(err);
         }
