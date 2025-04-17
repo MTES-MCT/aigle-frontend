@@ -27,7 +27,7 @@ import ResetPasswordConfirmation from '@/routes/auth/ResetPasswordConfirmation';
 import ProtectedRoute from '@/utils/ProtectedRoute';
 import api from '@/utils/api';
 import { useAuth } from '@/utils/auth-context';
-import { DEFAULT_ROUTE } from '@/utils/constants';
+import { DEFAULT_ROUTE, ENVIRONMENT } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { useStatistics } from '@/utils/context/statistics-context';
 import { Crisp } from 'crisp-sdk-web';
@@ -93,6 +93,7 @@ const App: React.FC = () => {
         _mtm.push({
             'mtm.startTime': new Date().getTime(),
             event: 'mtm.Start',
+            environment: ENVIRONMENT,
         });
 
         const scriptElement = document.createElement('script');
