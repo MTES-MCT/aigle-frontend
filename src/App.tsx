@@ -27,13 +27,17 @@ import ResetPasswordConfirmation from '@/routes/auth/ResetPasswordConfirmation';
 import ProtectedRoute from '@/utils/ProtectedRoute';
 import api from '@/utils/api';
 import { useAuth } from '@/utils/auth-context';
-import { DEFAULT_ROUTE } from '@/utils/constants';
+import { DEFAULT_ROUTE, ENVIRONMENT } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { useStatistics } from '@/utils/context/statistics-context';
 import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Charts from './routes/Statistics/Charts';
+
+interface MatomoWindow extends Window {
+    _mtm?: Array<Record<string, unknown>>;
+}
 
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
@@ -44,8 +48,17 @@ const App: React.FC = () => {
 
     const getUser = useCallback(async () => {
         try {
-            const res = await api.get<User>(USERS_ME_ENDPOINT);
-            setUser(res.data);
+            const { data: user } = await api.get<User>(USERS_ME_ENDPOINT);
+            setUser(user);
+
+            const matomoWindow = window as MatomoWindow;
+            const _mtm = (matomoWindow._mtm = matomoWindow._mtm || []);
+
+            _mtm.push({
+                userMail: user.email,
+                userUuid: user.uuid,
+                userRole: user.userRole,
+            });
         } catch (err) {
             console.error(err);
         }
@@ -72,6 +85,26 @@ const App: React.FC = () => {
             getMapSettings();
         }
     }, [isAuthenticated_, getUser]);
+
+    useEffect(() => {
+        const matomoWindow = window as MatomoWindow;
+        const _mtm = (matomoWindow._mtm = matomoWindow._mtm || []);
+
+        _mtm.push({
+            'mtm.startTime': new Date().getTime(),
+            event: 'mtm.Start',
+            environment: ENVIRONMENT,
+        });
+
+        const scriptElement = document.createElement('script');
+        scriptElement.async = true;
+        scriptElement.src = 'https://stats.beta.gouv.fr/js/container_CCXW83NA.js';
+
+        const firstScript = document.getElementsByTagName('script')[0];
+        if (firstScript.parentNode) {
+            firstScript.parentNode.insertBefore(scriptElement, firstScript);
+        }
+    }, []);
 
     return (
         <Router>
