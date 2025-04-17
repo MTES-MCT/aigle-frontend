@@ -35,10 +35,6 @@ import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Charts from './routes/Statistics/Charts';
 
-interface MatomoWindow extends Window {
-    _mtm?: Array<Record<string, unknown>>;
-}
-
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
     const { setMapSettings } = useMap();
@@ -50,15 +46,6 @@ const App: React.FC = () => {
         try {
             const { data: user } = await api.get<User>(USERS_ME_ENDPOINT);
             setUser(user);
-
-            const matomoWindow = window as MatomoWindow;
-            const _mtm = (matomoWindow._mtm = matomoWindow._mtm || []);
-
-            _mtm.push({
-                userMail: user.email,
-                userUuid: user.uuid,
-                userRole: user.userRole,
-            });
         } catch (err) {
             console.error(err);
         }
@@ -85,25 +72,6 @@ const App: React.FC = () => {
             getMapSettings();
         }
     }, [isAuthenticated_, getUser]);
-
-    useEffect(() => {
-        const matomoWindow = window as MatomoWindow;
-        const _mtm = (matomoWindow._mtm = matomoWindow._mtm || []);
-
-        _mtm.push({
-            'mtm.startTime': new Date().getTime(),
-            event: 'mtm.Start',
-        });
-
-        const scriptElement = document.createElement('script');
-        scriptElement.async = true;
-        scriptElement.src = 'https://stats.beta.gouv.fr/js/container_CCXW83NA.js';
-
-        const firstScript = document.getElementsByTagName('script')[0];
-        if (firstScript.parentNode) {
-            firstScript.parentNode.insertBefore(scriptElement, firstScript);
-        }
-    }, []);
 
     return (
         <Router>
