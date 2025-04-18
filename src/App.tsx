@@ -1,4 +1,5 @@
 import { MAP_SETTINGS_ENDPOINT, USERS_ME_ENDPOINT } from '@/api-endpoints';
+
 import { MapSettings } from '@/models/map-settings';
 import { User } from '@/models/user';
 import About from '@/routes/About';
@@ -35,6 +36,13 @@ import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Charts from './routes/Statistics/Charts';
 
+declare global {
+    interface Window {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        _paq?: any[];
+    }
+}
+
 const App: React.FC = () => {
     const { isAuthenticated, setUser } = useAuth();
     const { setMapSettings } = useMap();
@@ -46,6 +54,13 @@ const App: React.FC = () => {
         try {
             const { data: user } = await api.get<User>(USERS_ME_ENDPOINT);
             setUser(user);
+
+            const _paq = window._paq || [];
+
+            _paq.push(['setUserId', user.email]);
+            _paq.push(['setCustomVariable', 1, 'userMail', user.email, 'visit']);
+            _paq.push(['setCustomVariable', 1, 'userUuid', user.uuid, 'visit']);
+            _paq.push(['setCustomVariable', 1, 'userRole', user.userRole, 'visit']);
         } catch (err) {
             console.error(err);
         }
