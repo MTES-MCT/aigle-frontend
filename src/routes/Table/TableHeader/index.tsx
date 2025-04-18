@@ -7,10 +7,10 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import api from '@/utils/api';
 import { DETECTION_VALIDATION_STATUSES_COLORS_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { useStatistics } from '@/utils/context/statistics-context';
+import { formatBigInt } from '@/utils/format';
 import { LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import classes from './index.module.scss';
-import { formatBigInt } from '@/utils/format';
 
 const populatePercentages = (
     items: DetectionListOverviewValidationStatusesItem[],

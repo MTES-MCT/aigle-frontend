@@ -9,7 +9,7 @@ import classes from './index.module.scss';
 
 const Component: React.FC = () => {
     return (
-        <LayoutBase>
+        <LayoutBase title="A propos">
             <div className={classes.container}>
                 <h1>Détection par IA des irrégularités d&apos;occupation du sol</h1>
 

@@ -15,7 +15,7 @@ import classes from './index.module.scss';
 
 const Success: React.FC = () => {
     return (
-        <LayoutAuth>
+        <LayoutAuth title="Mot de passe oublié - succès">
             <Alert
                 className={classes['success-card']}
                 mt="md"

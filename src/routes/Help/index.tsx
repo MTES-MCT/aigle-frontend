@@ -7,7 +7,7 @@ import classes from './index.module.scss';
 
 const Component: React.FC = () => {
     return (
-        <LayoutBase>
+        <LayoutBase title="Besoin d'aide">
             <div className={classes.container}>
                 <p>
                     Vous pouvez consulter la fiche métier AIGLE en cliquant sur le bouton ci-dessous en cas de besoin
