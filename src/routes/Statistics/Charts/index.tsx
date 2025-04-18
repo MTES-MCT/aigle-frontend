@@ -5,7 +5,7 @@ import classes from './index.module.scss';
 
 const Component: React.FC = () => {
     return (
-        <LayoutBase>
+        <LayoutBase title="Statistiques">
             <div className={classes['charts-container']}>
                 <Statistics />
             </div>

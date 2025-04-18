@@ -20,7 +20,7 @@ interface SuccessProps {
 
 const Success: React.FC<SuccessProps> = ({ email }) => {
     return (
-        <LayoutAuth>
+        <LayoutAuth title="Mot de passe oublié">
             <Alert
                 mt="md"
                 variant="light"

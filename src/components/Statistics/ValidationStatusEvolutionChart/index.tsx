@@ -125,8 +125,6 @@ const Component: React.FC<ComponentProps> = ({
             ),
     });
 
-    console.log('statistics', statistics);
-
     if (!statistics) {
         return <Loader />;
     }

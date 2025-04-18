@@ -266,14 +266,14 @@ const Component: React.FC = () => {
 
     if (!objectsFilter || !allObjectTypes || !customZoneLayers || !updateObjectsFilter || !otherObjectTypesUuids) {
         return (
-            <LayoutBase>
+            <LayoutBase title="Tableau">
                 <Loader />
             </LayoutBase>
         );
     }
 
     return (
-        <LayoutBase>
+        <LayoutBase title="Tableau">
             <ComponentInner
                 allObjectTypes={allObjectTypes}
                 objectsFilter={objectsFilter}
