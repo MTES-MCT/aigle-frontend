@@ -31,6 +31,7 @@ import { useAuth } from '@/utils/auth-context';
 import { DEFAULT_ROUTE } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { useStatistics } from '@/utils/context/statistics-context';
+import { setupMatomo } from '@/utils/matomo';
 import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
@@ -54,13 +55,7 @@ const App: React.FC = () => {
         try {
             const { data: user } = await api.get<User>(USERS_ME_ENDPOINT);
             setUser(user);
-
-            const _paq = window._paq || [];
-
-            _paq.push(['setUserId', user.email]);
-            _paq.push(['setCustomVariable', 1, 'userMail', user.email, 'visit']);
-            _paq.push(['setCustomVariable', 1, 'userUuid', user.uuid, 'visit']);
-            _paq.push(['setCustomVariable', 1, 'userRole', user.userRole, 'visit']);
+            setupMatomo(user);
         } catch (err) {
             console.error(err);
         }
