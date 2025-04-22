@@ -10,6 +10,9 @@ export interface ParcelMinimal extends Uuided, Timestamped {
     prefix: string;
     section: string;
     numParcel: number;
+}
+
+export interface ParcelWithCommuneSerializer extends ParcelMinimal {
     commune: GeoCommune;
 }
 

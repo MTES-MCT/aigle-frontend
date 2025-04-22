@@ -25,7 +25,7 @@ import {
 } from '@/utils/constants';
 import { useStatistics } from '@/utils/context/statistics-context';
 import { formatParcel } from '@/utils/format';
-import { Affix, Badge, Button, Switch, Table } from '@mantine/core';
+import { Affix, Badge, Button, Switch, Table, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconEdit, IconExternalLink } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -104,7 +104,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 layout="auto"
                 SoloAccordion={
                     <SoloAccordion opened>
-                        <GeoCollectivitiesMultiSelects form={form} />
+                        <GeoCollectivitiesMultiSelects form={form} displayedCollectivityTypes={new Set(['commune'])} />
 
                         <FilterObjects
                             objectTypes={allObjectTypes}
@@ -134,7 +134,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 }
                 tableHeader={[
                     <Table.Th key="detectionObjectId">Object n°</Table.Th>,
-                    <Table.Th key="address">Adresse</Table.Th>,
+                    <Table.Th key="commune">Commune</Table.Th>,
                     <Table.Th key="geoCustomZones">Zones à enjeux</Table.Th>,
                     <Table.Th key="objectTypeName">Type</Table.Th>,
                     <Table.Th key="tileSets">Millésime</Table.Th>,
@@ -182,7 +182,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             {item.detectionObjectId}
                         </Button>
                     ),
-                    (item: DetectionListItem) => <OptionalText text={item.address} />,
+                    (item: DetectionListItem) => <OptionalText text={`${item.communeName} (${item.communeIsoCode})`} />,
                     (item: DetectionListItem) => (
                         <PillsDataCell<GeoCustomZone>
                             direction="column"
@@ -208,7 +208,15 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         />
                     ),
                     (item: DetectionListItem) => (
-                        <OptionalText text={item.parcel ? formatParcel(item.parcel, false) : null} />
+                        <OptionalText
+                            text={
+                                item.parcel ? (
+                                    <Tooltip label={item.parcel.idParcellaire}>
+                                        <span>{formatParcel(item.parcel, false)}</span>
+                                    </Tooltip>
+                                ) : null
+                            }
+                        />
                     ),
                     (item: DetectionListItem) => Math.round(item.score * 100),
                     (item: DetectionListItem) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,

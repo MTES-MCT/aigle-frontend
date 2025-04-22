@@ -84,12 +84,15 @@ interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     form: UseFormReturnType<T>;
     initialGeoSelectedValues?: GeoValues;
     className?: string;
+
+    displayedCollectivityTypes?: Set<CollectivityType>;
 }
 
 const Component = <T extends GeoCollectivitiesFormValues>({
     form,
     initialGeoSelectedValues,
     className,
+    displayedCollectivityTypes = new Set(['region', 'department', 'commune']),
 }: ComponentProps<T>) => {
     const [geoInputValues, setGeoInputValues] = useState<{
         [key in CollectivityType]: string;
@@ -160,66 +163,72 @@ const Component = <T extends GeoCollectivitiesFormValues>({
 
     return (
         <div className={className}>
-            <MultiSelect
-                mt="md"
-                label="Regions"
-                placeholder="Rechercher une région"
-                searchable
-                data={geoMultiSelectValues.region}
-                onSearchChange={(value) => {
-                    setGeoInputValues((prev) => ({
-                        ...prev,
-                        region: value,
-                    }));
-                }}
-                rightSection={regionsIsLoading ? <MantineLoader size="xs" /> : null}
-                hidePickedOptions={true}
-                key={form.key('regionsUuids')}
-                {...form.getInputProps('regionsUuids')}
-                onOptionSubmit={(uuid) => geoOnOptionSubmit(uuid, 'region', regions)}
-                onRemove={(uuid) => geoOnRemove(uuid, 'region')}
-                filter={({ options }) => options}
-            />
-            <MultiSelect
-                mt="md"
-                label="Départements"
-                placeholder="Rechercher un département"
-                searchable
-                data={geoMultiSelectValues.department}
-                onSearchChange={(value) => {
-                    setGeoInputValues((prev) => ({
-                        ...prev,
-                        department: value,
-                    }));
-                }}
-                rightSection={departmentsIsLoading ? <MantineLoader size="xs" /> : null}
-                hidePickedOptions={true}
-                key={form.key('departmentsUuids')}
-                {...form.getInputProps('departmentsUuids')}
-                onOptionSubmit={(uuid) => geoOnOptionSubmit(uuid, 'department', departments)}
-                onRemove={(uuid) => geoOnRemove(uuid, 'department')}
-                filter={({ options }) => options}
-            />
-            <MultiSelect
-                mt="md"
-                label="Communes"
-                placeholder="Rechercher une commune"
-                searchable
-                data={geoMultiSelectValues.commune}
-                onSearchChange={(value) => {
-                    setGeoInputValues((prev) => ({
-                        ...prev,
-                        commune: value,
-                    }));
-                }}
-                rightSection={communesIsLoading ? <MantineLoader size="xs" /> : null}
-                hidePickedOptions={true}
-                key={form.key('communesUuids')}
-                {...form.getInputProps('communesUuids')}
-                onOptionSubmit={(uuid) => geoOnOptionSubmit(uuid, 'commune', communes)}
-                onRemove={(uuid) => geoOnRemove(uuid, 'commune')}
-                filter={({ options }) => options}
-            />
+            {displayedCollectivityTypes.has('region') ? (
+                <MultiSelect
+                    mt="md"
+                    label="Regions"
+                    placeholder="Rechercher une région"
+                    searchable
+                    data={geoMultiSelectValues.region}
+                    onSearchChange={(value) => {
+                        setGeoInputValues((prev) => ({
+                            ...prev,
+                            region: value,
+                        }));
+                    }}
+                    rightSection={regionsIsLoading ? <MantineLoader size="xs" /> : null}
+                    hidePickedOptions={true}
+                    key={form.key('regionsUuids')}
+                    {...form.getInputProps('regionsUuids')}
+                    onOptionSubmit={(uuid) => geoOnOptionSubmit(uuid, 'region', regions)}
+                    onRemove={(uuid) => geoOnRemove(uuid, 'region')}
+                    filter={({ options }) => options}
+                />
+            ) : null}
+            {displayedCollectivityTypes.has('department') ? (
+                <MultiSelect
+                    mt="md"
+                    label="Départements"
+                    placeholder="Rechercher un département"
+                    searchable
+                    data={geoMultiSelectValues.department}
+                    onSearchChange={(value) => {
+                        setGeoInputValues((prev) => ({
+                            ...prev,
+                            department: value,
+                        }));
+                    }}
+                    rightSection={departmentsIsLoading ? <MantineLoader size="xs" /> : null}
+                    hidePickedOptions={true}
+                    key={form.key('departmentsUuids')}
+                    {...form.getInputProps('departmentsUuids')}
+                    onOptionSubmit={(uuid) => geoOnOptionSubmit(uuid, 'department', departments)}
+                    onRemove={(uuid) => geoOnRemove(uuid, 'department')}
+                    filter={({ options }) => options}
+                />
+            ) : null}
+            {displayedCollectivityTypes.has('commune') ? (
+                <MultiSelect
+                    mt="md"
+                    label="Communes"
+                    placeholder="Rechercher une commune"
+                    searchable
+                    data={geoMultiSelectValues.commune}
+                    onSearchChange={(value) => {
+                        setGeoInputValues((prev) => ({
+                            ...prev,
+                            commune: value,
+                        }));
+                    }}
+                    rightSection={communesIsLoading ? <MantineLoader size="xs" /> : null}
+                    hidePickedOptions={true}
+                    key={form.key('communesUuids')}
+                    {...form.getInputProps('communesUuids')}
+                    onOptionSubmit={(uuid) => geoOnOptionSubmit(uuid, 'commune', communes)}
+                    onRemove={(uuid) => geoOnRemove(uuid, 'commune')}
+                    filter={({ options }) => options}
+                />
+            ) : null}
         </div>
     );
 };
