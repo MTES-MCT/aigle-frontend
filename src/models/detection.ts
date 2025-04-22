@@ -85,4 +85,6 @@ export interface DetectionListItem extends Uuided {
     detectionValidationStatus: DetectionValidationStatus;
     detectionPrescriptionStatus: DetectionPrescriptionStatus;
     tileSets: TileSet[];
+    communeIsoCode: string;
+    communeName: string;
 }

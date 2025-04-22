@@ -1,4 +1,3 @@
-import { detectionControlStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
@@ -50,13 +49,13 @@ interface StatisticsState {
     updateZonesFilter: (zonesFilter: ZonesFilter) => void;
 }
 
-const useStatistics = create<StatisticsState>()((set, get) => ({
+const useStatistics = create<StatisticsState>()((set) => ({
     setMapSettings: (settings: MapSettings) => {
         const { allObjectTypes, visibleObjectTypesUuids, otherObjectTypesUuids } =
             extractObjectTypesFromSettings(settings);
         const layers = getInitialLayers(settings);
         const initialMapGeoCustomZoneLayers = getInitialMapGeoCustomZoneLayers(settings);
-        const objectsFilter = getInitialObjectFilters(
+        const { objectsFilter } = getInitialObjectFilters(
             Array.from(visibleObjectTypesUuids),
             initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
         );
@@ -65,15 +64,7 @@ const useStatistics = create<StatisticsState>()((set, get) => ({
             layers,
             allObjectTypes,
             geoCustomZones: settings.geoCustomZonesUncategorized,
-            objectsFilter: {
-                objectTypesUuids: Array.from(visibleObjectTypesUuids),
-                detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'],
-                detectionControlStatuses: [...detectionControlStatuses],
-                score: 0.3,
-                prescripted: null,
-                interfaceDrawn: 'ALL',
-                customZonesUuids: settings.geoCustomZonesUncategorized.map(({ uuid }) => uuid),
-            },
+            objectsFilter: objectsFilter,
             zonesFilter: {
                 tileSetsUuids: [],
                 communesUuids: [],
@@ -84,7 +75,6 @@ const useStatistics = create<StatisticsState>()((set, get) => ({
             otherObjectTypesUuids: otherObjectTypesUuids,
             customZoneLayers: initialMapGeoCustomZoneLayers,
         }));
-        get().updateObjectsFilter(objectsFilter);
     },
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => {
         set((state) => ({
