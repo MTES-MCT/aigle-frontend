@@ -245,6 +245,7 @@ const Component: React.FC<ComponentProps> = ({
         annotationLayerVisible,
         customZoneNegativeFilterVisible,
         otherObjectTypesUuids,
+        isDetailFetching
     } = useMap();
 
     const [cursor, setCursor] = useState<string>();
@@ -286,7 +287,7 @@ const Component: React.FC<ComponentProps> = ({
         ],
         queryFn: ({ signal }) => fetchDetections(signal, mapBounds),
         placeholderData: keepPreviousData,
-        enabled: displayDetections && !!mapBounds,
+        enabled: displayDetections && !!mapBounds && !isDetailFetching,
     });
 
     const handleMapRef = useCallback((node?: mapboxgl.Map) => {
@@ -616,7 +617,7 @@ const Component: React.FC<ComponentProps> = ({
         ],
         queryFn: ({ signal }) => fetchAnnotationGrid(signal, mapBounds),
         placeholderData: keepPreviousData,
-        enabled: annotationLayerVisible && !!mapBounds,
+        enabled: annotationLayerVisible && !!mapBounds && !isDetailFetching,
     });
 
     // custom zones fetching
@@ -647,7 +648,7 @@ const Component: React.FC<ComponentProps> = ({
         ],
         queryFn: ({ signal }) => fetchCustomZoneGeometries(signal, mapBounds),
         placeholderData: keepPreviousData,
-        enabled: !!mapBounds,
+        enabled: !!mapBounds && !isDetailFetching,
     });
 
     // event that makes detections to be reloaded
