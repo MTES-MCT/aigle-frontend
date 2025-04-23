@@ -330,7 +330,7 @@ const Component: React.FC<ComponentProps> = ({
     setDetectionUnhidden,
     onClose,
 }: ComponentProps) => {
-    const { eventEmitter } = useMap();
+    const { eventEmitter, setIsDetailFetching } = useMap();
     const fetchData = async () => {
         const res = await api.get<DetectionObjectDetail>(getDetectionObjectDetailEndpoint(detectionObjectUuid));
 
@@ -340,6 +340,7 @@ const Component: React.FC<ComponentProps> = ({
         data: detectionObject,
         isRefetching: detectionObjectRefreshing,
         refetch,
+        isFetching: isFetchingDetectionObject,
     } = useQuery({
         queryKey: [getDetectionObjectDetailEndpoint(String(detectionObjectUuid))],
         queryFn: async () => {
@@ -350,6 +351,9 @@ const Component: React.FC<ComponentProps> = ({
             return res;
         },
     });
+    useEffect(() => {
+        setIsDetailFetching(isFetchingDetectionObject);
+    }, [isFetchingDetectionObject]);
     useEffect(() => {
         eventEmitter.on('UPDATE_DETECTION_DETAIL', refetch);
 

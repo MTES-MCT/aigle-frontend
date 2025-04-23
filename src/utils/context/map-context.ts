@@ -68,6 +68,7 @@ interface MapState {
     customZoneNegativeFilterVisible?: boolean;
     otherObjectTypesUuids?: Set<string>; // contains objectTypes with status OTHER_CATEGORY
     initialDetectionObjectUuid?: string;
+    isDetailFetching?: boolean; // we want to prioritize the detail fetching over the detections fetching
 
     setMapSettings: (settings: MapSettings) => void;
     resetLayers: () => void;
@@ -82,6 +83,7 @@ interface MapState {
     getBackgroundTileSetYearDisplayed: () => string | undefined;
     getTileSets: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => TileSet[];
     getTileSetsUuids: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => string[];
+    setIsDetailFetching: (state: boolean) => void;
     eventEmitter: EventEmitter<MapEventType>;
 }
 
@@ -294,6 +296,11 @@ const useMap = create<MapState>()((set, get) => ({
         return get()
             .getTileSets(tileSetTypes, tileSetStatuses, displayed)
             .map((tileSet) => tileSet.uuid);
+    },
+    setIsDetailFetching: (state: boolean) => {
+        set({
+            isDetailFetching: state,
+        });
     },
     eventEmitter: new EventEmitter<MapEventType>(),
 }));
