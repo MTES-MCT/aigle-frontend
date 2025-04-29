@@ -11,7 +11,7 @@ import { DetectionObjectDetail } from '@/models/detection-object';
 import { ParcelDetail } from '@/models/parcel';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
-import { DEFAULT_DATE_FORMAT, PARCEL_COLOR } from '@/utils/constants';
+import { PARCEL_COLOR } from '@/utils/constants';
 import { formatParcel } from '@/utils/format';
 import { convertBBoxToSquare, extendBbox } from '@/utils/geojson';
 import { Document, usePDF } from '@react-pdf/renderer';
@@ -88,7 +88,8 @@ const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinis
 const PLAN_URL_TILESET: TileSet = {
     date: '2024-07-08T16:00:31Z',
     name: 'Plan',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    // GEOGRAPHICAL.GRIDSYSTEMS.MAPS.SCAN25.GRAPHE-MOSAIQUAGE:graphe_scan25
+    url: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM_0_19&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
     tileSetStatus: 'VISIBLE',
     tileSetScheme: 'xyz',
     tileSetType: 'BACKGROUND',
@@ -97,7 +98,7 @@ const PLAN_URL_TILESET: TileSet = {
     uuid: 'e55bfa81-a6dd-407c-a1f1-70bc2211a11c',
     createdAt: '2024-07-08T16:00:31Z',
     updatedAt: '2024-07-08T16:00:31Z',
-    monochrome: true,
+    monochrome: false,
 };
 
 const getPreviewId = (tileSetUuid: string, detectionObjectUuid: string) =>
@@ -208,10 +209,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ detectionObject, setFinal
                         id={getPreviewId(tileSet.uuid, detectionObject.uuid)}
                         displayName={false}
                         onIdle={() => {
-                            setTimeout(
-                                () => getPreviewImage(tileSet.uuid, format(tileSet.date, DEFAULT_DATE_FORMAT), index),
-                                3000,
-                            );
+                            setTimeout(() => getPreviewImage(tileSet.uuid, format(tileSet.date, 'yyyy'), index), 3000);
                         }}
                         extendedLevel={1}
                     />

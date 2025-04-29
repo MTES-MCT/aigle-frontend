@@ -1,0 +1,50 @@
+name: Build and Deploy to Scaleway
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Create env file
+        run: |
+          touch .env
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
+          echo "VITE_MAPBOX_TOKEN=${{ secrets.VITE_MAPBOX_TOKEN }}" >> .env
+          echo "VITE_ENVIRONMENT=${{ secrets.VITE_ENVIRONMENT }}" >> .env
+
+      - name: Build
+        run: npm run build
+      
+      - name: Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+      
+      - name: Configure AWS credentials for Scaleway
+        run: |
+          aws configure set aws_access_key_id "${{ secrets.SCW_ACCESS_KEY }}"
+          aws configure set aws_secret_access_key "${{ secrets.SCW_SECRET_KEY }}"
+          aws configure set region fr-par
+            
+      - name: Deploy to Scaleway Object Storage
+        run: |
+          aws s3 sync dist/ s3://${{ secrets.SCW_BUCKET_NAME }}/ --delete --endpoint-url https://s3.fr-par.scw.cloud
+
+          

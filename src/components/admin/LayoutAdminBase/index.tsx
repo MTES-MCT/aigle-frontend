@@ -10,7 +10,7 @@ interface ComponentProps {
 
 const Component: React.FC<PropsWithChildren<ComponentProps>> = ({ title, actions, children }) => {
     return (
-        <LayoutAdmin>
+        <LayoutAdmin title={title}>
             <div className={classes['top-section']}>
                 <h1>{title}</h1>
                 {actions}

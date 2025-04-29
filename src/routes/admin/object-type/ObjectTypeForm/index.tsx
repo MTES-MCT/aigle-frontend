@@ -171,7 +171,7 @@ const ComponentInner: React.FC = () => {
 
 const Component: React.FC = () => {
     return (
-        <LayoutAdminForm backText="Liste des types d'objets" backUrl={BACK_URL}>
+        <LayoutAdminForm title="Formulaire type d'objet" backText="Liste des types d'objets" backUrl={BACK_URL}>
             <ComponentInner />
         </LayoutAdminForm>
     );
