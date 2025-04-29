@@ -1,5 +1,5 @@
 import { TileSet } from '@/models/tile-set';
-import { DEFAULT_DATE_FORMAT, MAPBOX_TOKEN } from '@/utils/constants';
+import { MAPBOX_TOKEN } from '@/utils/constants';
 import { extendBbox } from '@/utils/geojson';
 import { ActionIcon, Overlay, Tooltip } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
@@ -178,14 +178,7 @@ const Component: React.FC<ComponentProps> = ({
             </div>
 
             {displayName ? (
-                <>
-                    <p className={clsx('detection-tile-preview-title', classes['detection-tile-preview-title'])}>
-                        {tileSet.name}
-                    </p>
-                    <p className={classes['detection-tile-preview-date']}>
-                        {format(tileSet.date, DEFAULT_DATE_FORMAT)}
-                    </p>
-                </>
+                <p className={classes['detection-tile-preview-date']}>{format(tileSet.date, 'yyyy')}</p>
             ) : null}
         </div>
     );

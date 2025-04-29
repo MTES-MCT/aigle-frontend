@@ -271,7 +271,7 @@ const ComponentInner: React.FC = () => {
 
 const Component: React.FC = () => {
     return (
-        <LayoutAdminForm backText="Liste des groupes" backUrl={BACK_URL}>
+        <LayoutAdminForm title="Formulaire groupe utilisateur" backText="Liste des groupes" backUrl={BACK_URL}>
             <ComponentInner />
         </LayoutAdminForm>
     );

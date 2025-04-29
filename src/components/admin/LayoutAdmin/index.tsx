@@ -2,6 +2,7 @@ import React, { PropsWithChildren } from 'react';
 
 import Header from '@/components/Header';
 import { useAuth } from '@/utils/auth-context';
+import { getPageTitle } from '@/utils/html';
 import { AppShell, NavLink } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -17,7 +18,11 @@ import {
 import { useLocation } from 'react-router-dom';
 import classes from './index.module.scss';
 
-const Component: React.FC<PropsWithChildren> = ({ children }) => {
+interface ComponentProps extends PropsWithChildren {
+    title?: string;
+}
+
+const Component: React.FC<ComponentProps> = ({ children, title }) => {
     const [opened, { toggle }] = useDisclosure();
     const { pathname } = useLocation();
     const { userMe } = useAuth();
@@ -105,6 +110,7 @@ const Component: React.FC<PropsWithChildren> = ({ children }) => {
             </AppShell.Navbar>
 
             <AppShell.Main m="md">
+                <title>{getPageTitle(`[admin] ${title}`)}</title>
                 <div className={classes['content-container']}>
                     <div className={classes['content']}>{children}</div>
                 </div>

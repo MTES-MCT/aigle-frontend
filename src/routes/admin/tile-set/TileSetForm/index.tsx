@@ -476,7 +476,7 @@ const ComponentInner: React.FC = () => {
 
 const Component: React.FC = () => {
     return (
-        <LayoutAdminForm backText="Liste des fonds de carte" backUrl={BACK_URL}>
+        <LayoutAdminForm title="Formulaire fond de carte" backText="Liste des fonds de carte" backUrl={BACK_URL}>
             <ComponentInner />
         </LayoutAdminForm>
     );

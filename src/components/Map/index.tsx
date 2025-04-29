@@ -245,7 +245,7 @@ const Component: React.FC<ComponentProps> = ({
         annotationLayerVisible,
         customZoneNegativeFilterVisible,
         otherObjectTypesUuids,
-        isDetailFetching
+        isDetailFetching,
     } = useMap();
 
     const [cursor, setCursor] = useState<string>();

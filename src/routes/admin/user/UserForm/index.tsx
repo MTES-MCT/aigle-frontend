@@ -340,7 +340,7 @@ const ComponentInner: React.FC = () => {
 
 const Component: React.FC = () => {
     return (
-        <LayoutAdminForm backText="Liste des utilisateurs" backUrl={BACK_URL}>
+        <LayoutAdminForm title="Formulaire utilisateur" backText="Liste des utilisateurs" backUrl={BACK_URL}>
             <ComponentInner />
         </LayoutAdminForm>
     );

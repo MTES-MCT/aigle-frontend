@@ -88,7 +88,8 @@ const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinis
 const PLAN_URL_TILESET: TileSet = {
     date: '2024-07-08T16:00:31Z',
     name: 'Plan',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    // GEOGRAPHICAL.GRIDSYSTEMS.MAPS.SCAN25.GRAPHE-MOSAIQUAGE:graphe_scan25
+    url: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM_0_19&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
     tileSetStatus: 'VISIBLE',
     tileSetScheme: 'xyz',
     tileSetType: 'BACKGROUND',
@@ -97,7 +98,7 @@ const PLAN_URL_TILESET: TileSet = {
     uuid: 'e55bfa81-a6dd-407c-a1f1-70bc2211a11c',
     createdAt: '2024-07-08T16:00:31Z',
     updatedAt: '2024-07-08T16:00:31Z',
-    monochrome: true,
+    monochrome: false,
 };
 
 const getPreviewId = (tileSetUuid: string, detectionObjectUuid: string) =>

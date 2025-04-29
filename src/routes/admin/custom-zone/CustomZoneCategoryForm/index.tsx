@@ -155,7 +155,7 @@ const Component: React.FC = () => {
     const { uuid } = useParams();
 
     return (
-        <LayoutAdminForm backText="Liste des zones" backUrl={BACK_URL}>
+        <LayoutAdminForm title="Formulaire catégorie de zone" backText="Liste des zones" backUrl={BACK_URL}>
             <ComponentInner uuid={uuid} />
         </LayoutAdminForm>
     );

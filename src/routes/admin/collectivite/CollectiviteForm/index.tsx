@@ -228,7 +228,7 @@ const Component: React.FC = () => {
     const backUrl = `/admin/collectivites?collectivityType=${collectivityType}`;
 
     return (
-        <LayoutAdminForm backText="Liste des collectivités" backUrl={backUrl}>
+        <LayoutAdminForm title="Formulaire collectivité" backText="Liste des collectivités" backUrl={backUrl}>
             <ComponentInner collectivityType={collectivityType as CollectivityType} uuid={uuid} backUrl={backUrl} />
         </LayoutAdminForm>
     );
