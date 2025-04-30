@@ -1,4 +1,4 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 $content-padding: 24px;
 
@@ -7,22 +7,22 @@ $content-padding: 24px;
 }
 
 .button {
-    border-radius: $border-radius-small !important;
+    border-radius: constants.$border-radius-small !important;
 }
 
 .content {
-    box-shadow: $shadow;
+    box-shadow: constants.$shadow;
 
     position: absolute;
     z-index: 93;
 
-    border-radius: $border-radius-medium;
+    border-radius: constants.$border-radius-medium;
 
     background: #ffffff99;
 
     padding: $content-padding;
 
-    max-width: calc(100% - 2 * $margin-map-elements);
+    max-width: calc(100% - 2 * constants.$margin-map-elements);
 
     display: none;
 

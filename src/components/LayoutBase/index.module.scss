@@ -1,6 +1,6 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 .content {
-    padding: $content-padding;
-    padding-top: calc($header-height + $content-padding);
+    padding: constants.$content-padding;
+    padding-top: calc(constants.$header-height + constants.$content-padding);
 }

@@ -1,10 +1,10 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 .container {
     height: 100%;
 
     .inner {
-        padding: $detection-detail-panel-padding;
+        padding: constants.$detection-detail-panel-padding;
 
         display: flex;
         flex-direction: column;

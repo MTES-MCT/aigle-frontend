@@ -1,4 +1,4 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 $panel-position-from-borders: 10px;
 
@@ -8,15 +8,15 @@ $panel-position-from-borders: 10px;
     .map-detection-detail-panel-container {
         position: absolute;
 
-        box-shadow: $shadow;
+        box-shadow: constants.$shadow;
 
         top: $panel-position-from-borders;
         right: $panel-position-from-borders;
         bottom: $panel-position-from-borders;
 
-        width: $detection-detail-panel-width;
+        width: constants.$detection-detail-panel-width;
         max-width: calc(100% - 2 * $panel-position-from-borders);
-        border-radius: $border-radius-medium;
+        border-radius: constants.$border-radius-medium;
 
         z-index: 100;
         background: #ffffff;
@@ -32,7 +32,7 @@ $panel-position-from-borders: 10px;
     z-index: 90;
 
     top: 68px; // searchbar: 48px + margin searchbar: 10px + distance from searchbar: 10px
-    left: $margin-map-elements;
+    left: constants.$margin-map-elements;
 
     display: flex;
     flex-direction: row;
@@ -40,7 +40,7 @@ $panel-position-from-borders: 10px;
 
     @media screen and (max-width: 992px) {
         top: calc(
-            68px + 36px + $margin-map-elements
+            68px + 36px + constants.$margin-map-elements
         ); // searchbar: 48px + margin searchbar: 10px + distance from searchbar: 10px
     }
 
@@ -48,10 +48,10 @@ $panel-position-from-borders: 10px;
     .object-from-coordinates-loader-container {
         padding: 8px;
 
-        box-shadow: $shadow;
+        box-shadow: constants.$shadow;
         background-color: #ffffff;
 
-        border-radius: $border-radius-medium;
+        border-radius: constants.$border-radius-medium;
 
         height: calc(16px + 1.375rem * var(--mantine-scale)); // var(--loader-size-sm)
 

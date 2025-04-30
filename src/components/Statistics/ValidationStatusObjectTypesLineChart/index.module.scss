@@ -1,7 +1,7 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 .content {
-    padding: $content-padding;
+    padding: constants.$content-padding;
 }
 
 .title {

@@ -1,12 +1,12 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 .content {
     z-index: 100;
 
     max-height: calc(100% - 20px - 14px * 2 - 10px * 2 - 10px); // total size of search bar + margins
 
-    margin-left: $margin-map-elements;
-    margin-top: $margin-map-elements;
+    margin-left: constants.$margin-map-elements;
+    margin-top: constants.$margin-map-elements;
 
     top: 58px; // 10px margin of searchar bar + 48px total size of search bar
     overflow-y: auto;
@@ -29,9 +29,9 @@
 }
 
 .container {
-    box-shadow: $shadow;
+    box-shadow: constants.$shadow;
     background: #ffffff;
-    border-radius: $border-radius-small;
+    border-radius: constants.$border-radius-small;
 }
 
 .layers-sections-container {

@@ -1,11 +1,11 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 .content {
     bottom: 46px; // 20px (switch height) + 10px (switch margin) + 16px (switch padding)
     left: 0;
 
-    margin-left: $margin-map-elements;
-    margin-bottom: $margin-map-elements;
+    margin-left: constants.$margin-map-elements;
+    margin-bottom: constants.$margin-map-elements;
 
     max-height: calc(100% - 2 * 10px - 36px - 10px);
 
@@ -73,11 +73,11 @@
 }
 
 .container {
-    margin: 0 0 $margin-map-elements $margin-map-elements;
+    margin: 0 0 constants.$margin-map-elements constants.$margin-map-elements;
 
     padding: 8px 12px;
 
-    box-shadow: $shadow;
+    box-shadow: constants.$shadow;
     background: #ffffff;
-    border-radius: $border-radius-medium;
+    border-radius: constants.$border-radius-medium;
 }

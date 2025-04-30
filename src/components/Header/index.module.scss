@@ -1,4 +1,4 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 .container {
     top: 0;
@@ -16,8 +16,8 @@
         align-items: center;
         height: 100%;
 
-        padding-left: $content-padding;
-        padding-right: $content-padding;
+        padding-left: constants.$content-padding;
+        padding-right: constants.$content-padding;
 
         &:hover {
             background-color: var(--mantine-color-gray-0);
@@ -55,8 +55,8 @@
     display: flex;
     height: 100%;
     align-items: center;
-    padding-right: $content-padding;
-    padding-left: $content-padding;
+    padding-right: constants.$content-padding;
+    padding-left: constants.$content-padding;
 
     cursor: pointer;
 
@@ -105,7 +105,7 @@
     padding-top: 0.5em;
 
     position: fixed;
-    top: $header-height;
+    top: constants.$header-height;
     right: 0;
     left: 0;
 

@@ -81,11 +81,12 @@
         "postcss-simple-vars": "^7.0.1",
         "prettier": "3.2.5",
         "prettier-plugin-organize-imports": "^3.2.4",
-        "sass": "^1.77.2",
+        "sass": "^1.87.0",
+        "sass-loader": "^16.0.5",
         "stylelint": "^16.6.1",
         "stylelint-config-recommended": "^14.0.0",
         "stylelint-scss": "^6.3.1",
         "typescript": "^5.2.2",
-        "vite": "^5.2.0"
+        "vite": "^6.3.4"
     }
 }
