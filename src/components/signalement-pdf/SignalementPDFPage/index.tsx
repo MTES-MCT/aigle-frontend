@@ -157,7 +157,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObjects, previewImages, 
                 <Text>Date de la dernière modification : {format(parcel.updatedAt, DEFAULT_DATE_FORMAT)}</Text>
                 {suspectObjectsCount ? (
                     <Text>
-                        Autre objets suspects sur la parcelle :{' '}
+                        Objets suspects sur la parcelle :{' '}
                         {Object.keys(suspectObjectsCount)
                             .map((key) => `${key} : ${suspectObjectsCount[key]}`)
                             .join(', ')}
