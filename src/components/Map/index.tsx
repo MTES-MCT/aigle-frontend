@@ -47,7 +47,7 @@ import {
     point,
 } from '@turf/turf';
 import { format } from 'date-fns';
-import { FeatureCollection, Geometry, Polygon } from 'geojson';
+import { FeatureCollection, Polygon } from 'geojson';
 import mapboxgl from 'mapbox-gl';
 import DrawRectangle, { DrawStyles } from 'mapbox-gl-draw-rectangle-restrict-area';
 import classes from './index.module.scss';
@@ -310,10 +310,10 @@ const Component: React.FC<ComponentProps> = ({
         // fit bounds
 
         if (fitBoundsFirstLayer) {
-            const layer = layersDisplayed.find((layer) => layer.tileSet.geometry);
+            const layer = layersDisplayed.find((layer) => layer.tileSet.geometryBbox);
 
             if (layer) {
-                node.fitBounds(bbox(layer.tileSet.geometry), { padding: 20, animate: false });
+                node.fitBounds(bbox(layer.tileSet.geometryBbox), { padding: 20, animate: false });
             }
         }
 
@@ -770,15 +770,6 @@ const Component: React.FC<ComponentProps> = ({
             // else use clicked when no section was open => we look for a detection
 
             const { lng, lat } = lngLat;
-            // get the first displayed layer that contains the annotation
-            const point_ = point([lng, lat]);
-            const layer = layers
-                .filter((layer) => ['BACKGROUND', 'PARTIAL'].includes(layer.tileSet.tileSetType))
-                .find((layer) => !layer.tileSet.geometry || booleanWithin(point_, layer.tileSet.geometry));
-
-            if (!layer) {
-                return;
-            }
 
             setObjectFromCoordinates(() => ({
                 fetchStatus: 'LOADING',
@@ -789,7 +780,6 @@ const Component: React.FC<ComponentProps> = ({
                 params: {
                     lat,
                     lng,
-                    tileSetUuid: layer.tileSet.uuid,
                 },
             });
             const objectFromCoordinates = res.data;
@@ -918,7 +908,7 @@ const Component: React.FC<ComponentProps> = ({
                 onMouseLeave={onPolygonMouseLeave}
                 cursor={cursor}
                 mapStyle="mapbox://styles/mapbox/streets-v12"
-                {...(settings?.globalGeometry ? { maxBounds: bbox(settings.globalGeometry) } : {})}
+                {...(settings?.globalGeometryBbox ? { maxBounds: bbox(settings.globalGeometryBbox) } : {})}
             >
                 <GeolocateControl
                     position="top-left"
@@ -991,62 +981,32 @@ const Component: React.FC<ComponentProps> = ({
                     </>
                 ) : null}
                 {displayLayersGeometry ? (
-                    <>
-                        <Source
-                            type="geojson"
-                            id="geojson-data-extra-boundings"
-                            data={{
-                                type: 'FeatureCollection',
-                                features: layers
-                                    .filter((layer) => layer.tileSet.geometry)
-                                    .map((layer) =>
-                                        bboxPolygon(bbox(feature(layer.tileSet.geometry as Geometry)), {
-                                            properties: {
-                                                uuid: layer.tileSet.uuid,
-                                                color: GEOJSON_LAYER_EXTRA_COLOR,
-                                            },
-                                        }),
-                                    ),
-                            }}
-                        >
-                            <Layer
-                                id={GEOJSON_LAYER_EXTRA_BOUNDINGS_ID}
-                                type="line"
-                                paint={{
-                                    'line-color': ['get', 'color'],
-                                    'line-width': 2,
-                                }}
-                            />
-                        </Source>
-                        <Source
-                            type="geojson"
-                            id="geojson-data-extra"
-                            data={{
-                                type: 'FeatureCollection',
-                                features: layers
-                                    .filter((layer) => layer.tileSet.geometry)
-                                    .map((layer) => ({
-                                        type: 'Feature',
+                    <Source
+                        type="geojson"
+                        id="geojson-data-extra-boundings"
+                        data={{
+                            type: 'FeatureCollection',
+                            features: layers
+                                .filter((layer) => layer.tileSet.geometryBbox)
+                                .map((layer) =>
+                                    bboxPolygon(bbox(layer.tileSet.geometryBbox), {
                                         properties: {
                                             uuid: layer.tileSet.uuid,
                                             color: GEOJSON_LAYER_EXTRA_COLOR,
                                         },
-                                        geometry: layer.tileSet.geometry as Geometry,
-                                    })),
+                                    }),
+                                ),
+                        }}
+                    >
+                        <Layer
+                            id={GEOJSON_LAYER_EXTRA_BOUNDINGS_ID}
+                            type="line"
+                            paint={{
+                                'line-color': ['get', 'color'],
+                                'line-width': 2,
                             }}
-                        >
-                            <Layer
-                                id={GEOJSON_LAYER_EXTRA_ID}
-                                beforeId={GEOJSON_LAYER_EXTRA_BOUNDINGS_ID}
-                                type="fill"
-                                paint={{
-                                    'fill-color': ['get', 'color'],
-                                    'fill-opacity': 0.25,
-                                    'fill-outline-color': ['get', 'color'],
-                                }}
-                            />
-                        </Source>
-                    </>
+                        />
+                    </Source>
                 ) : null}
 
                 <Source
@@ -1056,7 +1016,7 @@ const Component: React.FC<ComponentProps> = ({
                 >
                     <Layer
                         id={GEOJSON_ANNOTATION_GRID_LAYER_ID}
-                        beforeId={displayLayersGeometry ? GEOJSON_LAYER_EXTRA_ID : undefined}
+                        beforeId={displayLayersGeometry ? GEOJSON_LAYER_EXTRA_BOUNDINGS_ID : undefined}
                         type="line"
                         paint={{
                             'line-color': '#ff0000',
@@ -1230,9 +1190,9 @@ const Component: React.FC<ComponentProps> = ({
                                   minzoom: layer.tileSet.minZoom,
                               }
                             : {})}
-                        {...(boundLayers && (layer.tileSet.geometry || settings?.globalGeometry)
+                        {...(boundLayers && settings && (layer.tileSet.geometryBbox || settings.globalGeometryBbox)
                             ? {
-                                  bounds: bbox(layer.tileSet.geometry || settings.globalGeometry),
+                                  bounds: bbox(layer.tileSet.geometryBbox || settings.globalGeometryBbox),
                               }
                             : {})}
                     >

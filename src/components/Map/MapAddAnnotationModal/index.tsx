@@ -1,23 +1,23 @@
-import { DETECTION_POST_ENDPOINT } from '@/api-endpoints';
+import { DETECTION_POST_ENDPOINT, TILE_SET_LAST_FROM_COORDINATES_ENDPOINT } from '@/api-endpoints';
+import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
-import { MapTileSetLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
+import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
-import { DEFAULT_DATE_FORMAT } from '@/utils/constants';
 import { useMap } from '@/utils/context/map-context';
 import { getAddressFromPolygon } from '@/utils/geojson';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconShape } from '@tabler/icons-react';
-import { UseMutationResult, useMutation } from '@tanstack/react-query';
-import { area, booleanWithin, centroid } from '@turf/turf';
+import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
+import { area, centroid } from '@turf/turf';
 import { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { format } from 'date-fns';
-import { Polygon } from 'geojson';
+import { Feature, Point, Polygon } from 'geojson';
 import React, { useEffect, useMemo, useState } from 'react';
 import classes from './index.module.scss';
 
@@ -25,6 +25,15 @@ interface FormValues {
     objectTypeUuid: string;
 }
 
+const fetchTileSet = async (centroid: Feature<Point>) => {
+    const res = await api.get<TileSet>(TILE_SET_LAST_FROM_COORDINATES_ENDPOINT, {
+        params: {
+            lat: centroid.geometry.coordinates[1],
+            lng: centroid.geometry.coordinates[0],
+        },
+    });
+    return res.data;
+};
 const postForm = async (values: FormValues, tileSetUuid: string, polygon: Polygon, address: string | null) => {
     await api.post(`${DETECTION_POST_ENDPOINT}`, {
         detectionObject: {
@@ -38,13 +47,13 @@ const postForm = async (values: FormValues, tileSetUuid: string, polygon: Polygo
 
 interface FormProps {
     objectTypes: ObjectType[];
-    layers: MapTileSetLayer[];
     polygon: Polygon;
     hide: () => void;
 }
 
-const Form: React.FC<FormProps> = ({ objectTypes, layers, polygon, hide }) => {
+const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide }) => {
     const { eventEmitter } = useMap();
+    const polygonCentroid = useMemo(() => centroid(polygon), [polygon]);
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             objectTypeUuid: objectTypes[0].uuid,
@@ -60,25 +69,11 @@ const Form: React.FC<FormProps> = ({ objectTypes, layers, polygon, hide }) => {
         getAddress();
     }, [polygon]);
 
-    const tileSet = useMemo(() => {
-        const polygonCenter = centroid(polygon);
-        // get the first displayed layer that contains the annotation
-        const layer = layers
-            .filter((layer) => ['BACKGROUND', 'PARTIAL'].includes(layer.tileSet.tileSetType) && layer.displayed)
-            .find((layer) => !layer.tileSet.geometry || booleanWithin(polygonCenter, layer.tileSet.geometry));
-
-        if (!layer) {
-            notifications.show({
-                color: 'red',
-                title: "Erreur lors de l'ajout de l'objet",
-                message: "Assurez-vous de dessiner l'objet sur une couche visible",
-            });
-            hide();
-            return null;
-        }
-
-        return layer.tileSet;
-    }, [layers, polygon]);
+    const { isLoading: tileSetIsLoading, data: tileSet } = useQuery({
+        queryKey: [TILE_SET_LAST_FROM_COORDINATES_ENDPOINT, polygonCentroid],
+        queryFn: () => fetchTileSet(polygonCentroid),
+        enabled: !!polygonCentroid,
+    });
 
     const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, tileSet?.uuid || '', polygon, address || null),
@@ -117,13 +112,25 @@ const Form: React.FC<FormProps> = ({ objectTypes, layers, polygon, hide }) => {
         );
     }, [objectTypes]);
 
+    if (!tileSet && !tileSetIsLoading) {
+        return (
+            <ErrorCard title="Erreur lors de l'ajout de la détection">
+                <p>Auncun fond de carte associé à la géométrie dessiné n&apos;a été trouvé</p>
+                <p>Vos droits sont insuffisants pour ajouter une détection dans cette zone ?</p>
+                <p>Si le problème persiste, contactez les administrateurs</p>
+            </ErrorCard>
+        );
+    }
+
     return (
         <form onSubmit={form.onSubmit(handleSubmit)} className={clsx('compact', classes.form)}>
             <InfoCard title="Informations sur l'objet" withCloseButton={false}>
                 <p>
                     Fond de carte associé :{' '}
                     <b>
-                        {tileSet ? `${tileSet.name} - ${format(tileSet.date, DEFAULT_DATE_FORMAT)}` : 'Chargement...'}
+                        {!tileSetIsLoading && tileSet
+                            ? `${tileSet.name} (${format(tileSet.date, 'yyyy')})`
+                            : 'Chargement...'}
                     </b>
                 </p>
                 <p>
@@ -164,23 +171,15 @@ interface ComponentProps {
     polygon?: Polygon;
 }
 const Component: React.FC<ComponentProps> = ({ isShowed, polygon, hide }) => {
-    const { objectTypes, layers } = useMap();
+    const { objectTypes } = useMap();
 
     if (!isShowed || !polygon) {
         return null;
     }
 
-    if (!layers) {
-        return <Loader />;
-    }
-
     return (
         <Modal opened={isShowed} onClose={hide} title="Ajouter un objet">
-            {objectTypes ? (
-                <Form objectTypes={objectTypes} layers={layers} polygon={polygon} hide={hide} />
-            ) : (
-                <Loader />
-            )}
+            {objectTypes ? <Form objectTypes={objectTypes} polygon={polygon} hide={hide} /> : <Loader />}
         </Modal>
     );
 };

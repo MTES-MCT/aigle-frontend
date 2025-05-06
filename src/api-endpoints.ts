@@ -110,6 +110,7 @@ export const getObjectTypeCategoryDetailEndpoint = (uuid: string) => `${OBJECT_T
 const BASE_TILE_SET = `${BASE_API}tile-set/`;
 export const TILE_SET_LIST_ENDPOINT = `${BASE_TILE_SET}`;
 export const TILE_SET_POST_ENDPOINT = `${BASE_TILE_SET}`;
+export const TILE_SET_LAST_FROM_COORDINATES_ENDPOINT = `${BASE_TILE_SET}last-from-coordinates/`;
 export const getTileSetDetailEndpoint = (uuid: string) => `${BASE_TILE_SET}${uuid}/`;
 
 export const MAP_SETTINGS_ENDPOINT = `${BASE_API}map-settings/`;
