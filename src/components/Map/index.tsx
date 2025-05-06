@@ -1278,7 +1278,12 @@ const Component: React.FC<ComponentProps> = ({
             {detectionObjectsToDownload ? (
                 <>
                     <SignalementPDFData
-                        detectionObjects={detectionObjectsToDownload}
+                        previewParams={detectionObjectsToDownload
+                            .filter((detectionObject) => detectionObject.parcel)
+                            .map((detectionObject) => ({
+                                detectionObjectUuid: detectionObject.uuid,
+                                parcelUuid: String(detectionObject.parcel?.uuid),
+                            }))}
                         onGenerationFinished={(error?: string) => {
                             if (error) {
                                 notifications.show({

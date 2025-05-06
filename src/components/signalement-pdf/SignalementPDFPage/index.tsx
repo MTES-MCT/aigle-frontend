@@ -1,23 +1,17 @@
 import logoImg from '@/assets/logo.png';
 import republiqueFrancaiseImg from '@/assets/signalement-pdf/republique_francaise.png';
-import { DetectionObjectDetail } from '@/models/detection-object';
-import { ParcelDetail } from '@/models/parcel';
-import { DEFAULT_DATE_FORMAT, DETECTION_CONTROL_STATUSES_NAMES_MAP } from '@/utils/constants';
+import { ParcelDetail, ParcelDetectionObject } from '@/models/parcel';
+import { DEFAULT_DATE_FORMAT } from '@/utils/constants';
 import { formatCommune, formatParcel } from '@/utils/format';
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
-import { centroid } from '@turf/turf';
 import { format } from 'date-fns';
 import React from 'react';
 
-const countSuspectObjectsParcel = (parcel: ParcelDetail, excludeObjectUuid: string): Record<string, number> | null => {
+const countSuspectObjectsParcel = (parcel: ParcelDetail, excludeObjectUuid?: string): Record<string, number> | null => {
     const suspectObjectsMap: Record<string, number> = {};
 
     parcel.detectionObjects.forEach((detectionObject) => {
-        if (
-            detectionObject.uuid === excludeObjectUuid ||
-            !detectionObject.detection ||
-            detectionObject.detection.detectionData.detectionValidationStatus !== 'SUSPECT'
-        ) {
+        if (excludeObjectUuid && detectionObject.uuid === excludeObjectUuid) {
             return;
         }
 
@@ -103,19 +97,18 @@ export interface PreviewImage {
 }
 
 export interface ComponentProps {
-    detectionObject: DetectionObjectDetail;
+    detectionObjects: ParcelDetectionObject[];
     previewImages: PreviewImage[];
-    parcel?: ParcelDetail | null;
+    latLong: string;
+    parcel: ParcelDetail;
 }
 
 // Create Document Component
-const Component: React.FC<ComponentProps> = ({ detectionObject, previewImages, parcel }) => {
-    const {
-        geometry: { coordinates: centerPoint },
-    } = centroid(detectionObject.detections[0].geometry);
-    const latLong = `${centerPoint[1].toFixed(5)}, ${centerPoint[0].toFixed(5)}`;
+const Component: React.FC<ComponentProps> = ({ detectionObjects, previewImages, parcel, latLong }) => {
+    if (detectionObjects.length === 1) {
+    }
 
-    const suspectObjectsCount = parcel ? countSuspectObjectsParcel(parcel, detectionObject.uuid) : null;
+    const suspectObjectsCount = parcel ? countSuspectObjectsParcel(parcel) : null;
 
     return (
         <Page size="A4" style={styles.page}>
@@ -125,7 +118,11 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, previewImages, p
                 </View>
                 <View style={styles.topSectionTextContainer}>
                     <Text>Fiche de signalement</Text>
-                    <Text>Objet détecté #{detectionObject.id}</Text>
+                    <Text>
+                        {detectionObjects.length === 1
+                            ? `Objet détecté ${detectionObjects[0].id}`
+                            : `Parcelle ${formatParcel(parcel)}`}
+                    </Text>
                 </View>
                 <View style={styles.topSectionLogoContainer}>
                     <Image src={logoImg} style={styles.topSectionLogo} />
@@ -141,29 +138,23 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, previewImages, p
             <View style={styles.mainSection}>
                 <Text>
                     Commune de{' '}
-                    {detectionObject.parcel?.commune
-                        ? formatCommune(detectionObject.parcel.commune, 'CODE_AFTER_NAME')
-                        : 'Commune non-spécifiée'}
+                    {parcel?.commune ? formatCommune(parcel.commune, 'CODE_AFTER_NAME') : 'Commune non-spécifiée'}
                 </Text>
-                <Text>
-                    Parcelle :{' '}
-                    {detectionObject.parcel ? formatParcel(detectionObject.parcel) : 'Parcelle non-spécifiée'}
-                </Text>
+                <Text>Parcelle : {formatParcel(parcel)}</Text>
                 <Text>Coordonnées GPS : {latLong}</Text>
-                <Text>Objet signalé : {detectionObject.objectType.name}</Text>
+                {detectionObjects.length === 1 ? (
+                    <Text>Objet signalé : {detectionObjects[0].objectType.name}</Text>
+                ) : (
+                    <Text>
+                        Objets signalés :{' '}
+                        {detectionObjects.map((detecObject) => detecObject.objectType.name).join(', ')}
+                    </Text>
+                )}
                 <Text>
                     Zones à enjeux :{' '}
                     {parcel?.customGeoZones.map((zone) => zone.geoCustomZoneCategory?.name || zone.name).join(', ')}
                 </Text>
-                <Text>
-                    Statut:{' '}
-                    {
-                        DETECTION_CONTROL_STATUSES_NAMES_MAP[
-                            detectionObject.detections[0].detectionData.detectionControlStatus
-                        ]
-                    }
-                </Text>
-                <Text>Date de la dernière modification : {format(detectionObject.updatedAt, DEFAULT_DATE_FORMAT)}</Text>
+                <Text>Date de la dernière modification : {format(parcel.updatedAt, DEFAULT_DATE_FORMAT)}</Text>
                 {suspectObjectsCount ? (
                     <Text>
                         Autre objets suspects sur la parcelle :{' '}

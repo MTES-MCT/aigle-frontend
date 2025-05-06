@@ -20,6 +20,7 @@ import {
     IconDownload,
     IconHexagon,
     IconMap,
+    IconMapDown,
     IconMapPin,
     IconMapPinFilled,
     IconRoute,
@@ -32,6 +33,8 @@ import { Position } from 'geojson';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
+
+type SignalementPDFType = 'detectionObject' | 'parcel';
 
 const getGoogleMapLink = (point: Position) => `https://www.google.com/maps/?t=k&q=${point[1]},${point[0]}`;
 
@@ -59,7 +62,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     onClose,
 }) => {
     const { eventEmitter, objectsFilter, updateObjectsFilter } = useMap();
-    const [signalementPdfLoading, setSignalementPdfLoading] = useState(false);
+    const [signalementPdfGenerating, setSignalementPdfGenerating] = useState<SignalementPDFType | undefined>();
     const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
     const initialDetection =
@@ -109,20 +112,47 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         <Tooltip label="Télécharger la fiche de signalement" position="bottom-start">
                             <Button
                                 variant="transparent"
-                                disabled={signalementPdfLoading}
+                                disabled={!detectionObject.parcel?.uuid || !!signalementPdfGenerating}
                                 size="xs"
                                 onClick={() => {
                                     notifications.show({
-                                        title: 'Génération de la fiche de signalement en cours',
+                                        title: "Génération de la fiche de signalement à l'objet en cours",
                                         message: 'Le téléchargement se lancera dans quelques instants',
                                     });
-                                    setSignalementPdfLoading(true);
+                                    setSignalementPdfGenerating('detectionObject');
                                 }}
                                 leftSection={
-                                    signalementPdfLoading ? <MantineLoader size="xs" /> : <IconDownload size={24} />
+                                    signalementPdfGenerating === 'detectionObject' ? (
+                                        <MantineLoader size="xs" />
+                                    ) : (
+                                        <IconDownload size={20} />
+                                    )
                                 }
                             >
                                 Fiche de signalement
+                            </Button>
+                        </Tooltip>
+                        <Tooltip label="Télécharger la fiche de signalement à la parcelle" position="bottom-start">
+                            <Button
+                                variant="transparent"
+                                disabled={!detectionObject.parcel?.uuid || !!signalementPdfGenerating}
+                                size="xs"
+                                onClick={() => {
+                                    notifications.show({
+                                        title: 'Génération de la fiche de signalement à la parcelle en cours',
+                                        message: 'Le téléchargement se lancera dans quelques instants',
+                                    });
+                                    setSignalementPdfGenerating('parcel');
+                                }}
+                                leftSection={
+                                    signalementPdfGenerating === 'parcel' ? (
+                                        <MantineLoader size="xs" />
+                                    ) : (
+                                        <IconMapDown size={20} />
+                                    )
+                                }
+                            >
+                                Fiche de signalement (parcelle)
                             </Button>
                         </Tooltip>
 
@@ -131,7 +161,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 variant="transparent"
                                 component={Link}
                                 size="xs"
-                                leftSection={<IconMapPinFilled size={24} />}
+                                leftSection={<IconMapPinFilled size={20} />}
                                 to={getGoogleMapLink(centerPoint)}
                                 target="_blank"
                             >
@@ -139,9 +169,17 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             </Button>
                         </Tooltip>
                     </Group>
-                    {signalementPdfLoading ? (
+                    {!!signalementPdfGenerating ? (
                         <SignalementPDFData
-                            detectionObjects={[detectionObject]}
+                            previewParams={[
+                                {
+                                    parcelUuid: String(detectionObject.parcel?.uuid),
+                                    detectionObjectUuid:
+                                        signalementPdfGenerating === 'detectionObject'
+                                            ? String(detectionObject.uuid)
+                                            : undefined,
+                                },
+                            ]}
                             onGenerationFinished={(error?: string) => {
                                 if (error) {
                                     notifications.show({
@@ -151,7 +189,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     });
                                 }
 
-                                setSignalementPdfLoading(false);
+                                setSignalementPdfGenerating(undefined);
                             }}
                         />
                     ) : null}

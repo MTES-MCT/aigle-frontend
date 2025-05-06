@@ -1,6 +1,6 @@
 import { Timestamped, Uuided } from '@/models/data';
 import { DetectionWithTile } from '@/models/detection';
-import { DetectionObjectMinimal } from '@/models/detection-object';
+import { DetectionObjectDetailTilesetPreview, DetectionObjectMinimal } from '@/models/detection-object';
 import { GeoCommune } from '@/models/geo/geo-commune';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { Polygon } from 'geojson';
@@ -21,10 +21,12 @@ export interface Parcel extends ParcelMinimal {
 }
 
 export interface ParcelDetectionObject extends DetectionObjectMinimal {
-    detection: DetectionWithTile | null;
+    detections: DetectionWithTile[];
 }
 
-export interface ParcelDetail extends Parcel {
+export interface ParcelDetail extends Parcel, ParcelWithCommuneSerializer {
+    detectionsUpdatedAt: string;
+    tileSetPreviews: DetectionObjectDetailTilesetPreview[];
     detectionObjects: ParcelDetectionObject[];
     customGeoZones: GeoCustomZone[];
     communeEnvelope: Polygon;

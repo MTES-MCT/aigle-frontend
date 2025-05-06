@@ -7,6 +7,7 @@ import {
     getGeoListEndpoint,
 } from '@/api-endpoints';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
+import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
 import { Paginated } from '@/models/data';
 import { GeoCommune } from '@/models/geo/geo-commune';
 import { Parcel } from '@/models/parcel';
@@ -18,15 +19,16 @@ import { Autocomplete, Button, Loader as MantineLoader } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconMapSearch, IconSearch } from '@tabler/icons-react';
+import { IconDownload, IconMapSearch, IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { centroid, getCoord } from '@turf/turf';
 import classes from './index.module.scss';
 
 const SEARCH_LIMIT = 10;
 
-const searchCommune = async (q: string): Promise<SelectOption[]> => {
+const searchCommune = async (q: string, signal: AbortSignal): Promise<SelectOption[]> => {
     const res = await api.get<Paginated<GeoCommune>>(getGeoListEndpoint('commune'), {
+        signal,
         params: {
             q,
             limit: SEARCH_LIMIT,
@@ -37,7 +39,12 @@ const searchCommune = async (q: string): Promise<SelectOption[]> => {
     return res.data.results.map((com) => geoZoneToGeoOption(com));
 };
 
-const searchParcel = async (q: string, searchType: 'SECTION' | 'NUM_PARCEL', values: FormValues): Promise<string[]> => {
+const searchParcel = async (
+    q: string,
+    searchType: 'SECTION' | 'NUM_PARCEL',
+    values: FormValues,
+    signal: AbortSignal,
+): Promise<string[]> => {
     let url: string;
 
     const params: Record<string, string | string[]> = {
@@ -62,6 +69,7 @@ const searchParcel = async (q: string, searchType: 'SECTION' | 'NUM_PARCEL', val
     }
 
     const res = await api.get<string[]>(url, {
+        signal,
         params,
     });
 
@@ -122,22 +130,26 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
     const [searchParcelNumParcelValue, setSearchParcelNumParcelValue] = useState('');
     const [debouncedSearchParcelNumParcelValue] = useDebouncedValue(searchParcelNumParcelValue, 250);
 
+    const [parcelUuid, setParcelUuid] = useState<string | null>(null);
+    const [signalementPdfLoading, setSignalementPdfLoading] = useState(false);
+
     const { data: communesOptions, isLoading: communesLoading } = useQuery<SelectOption[]>({
         queryKey: ['communes', debouncedSearchCommuneValue],
-        enabled: !!debouncedSearchCommuneValue,
-        queryFn: () => searchCommune(debouncedSearchCommuneValue),
+        enabled: !!searchCommuneValue && !!debouncedSearchCommuneValue,
+        queryFn: ({ signal }) => searchCommune(debouncedSearchCommuneValue, signal),
     });
 
     const { data: sections, isLoading: sectionsLoading } = useQuery<string[]>({
         queryKey: ['parcelSections', debouncedSearchParcelSectionValue],
-        enabled: !!debouncedSearchParcelSectionValue,
-        queryFn: () => searchParcel(debouncedSearchParcelSectionValue, 'SECTION', form.getValues()),
+        enabled: !!searchCommuneValue && !!debouncedSearchParcelSectionValue,
+        queryFn: ({ signal }) => searchParcel(debouncedSearchParcelSectionValue, 'SECTION', form.getValues(), signal),
     });
 
     const { data: parcelles, isLoading: parcellesLoading } = useQuery<string[]>({
         queryKey: ['parcelNumParcels', debouncedSearchParcelNumParcelValue],
-        enabled: !!debouncedSearchParcelNumParcelValue,
-        queryFn: () => searchParcel(debouncedSearchParcelNumParcelValue, 'NUM_PARCEL', form.getValues()),
+        enabled: !!searchParcelNumParcelValue && !!debouncedSearchParcelNumParcelValue,
+        queryFn: ({ signal }) =>
+            searchParcel(debouncedSearchParcelNumParcelValue, 'NUM_PARCEL', form.getValues(), signal),
     });
 
     const { isLoading: searchLoading, refetch: search } = useQuery<Parcel | null>({
@@ -146,7 +158,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
         queryFn: () => fetchParcel(form.getValues()),
     });
 
-    const handleSubmit = async () => {
+    const loadParcel = async () => {
         const { data: parcel } = await search();
 
         if (!parcel) {
@@ -155,6 +167,17 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
                 title: 'Parcelle introuvable',
                 message: 'Les critères de recherche ne correspondent pas à une parcelle',
             });
+            return;
+        }
+
+        setParcelUuid(parcel.uuid);
+        return parcel;
+    };
+
+    const handleSubmit = async () => {
+        const parcel = await loadParcel();
+
+        if (!parcel) {
             return;
         }
 
@@ -241,10 +264,57 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
                     Annuler
                 </Button>
 
-                <Button type="submit" leftSection={<IconSearch />} disabled={searchLoading}>
+                <Button
+                    type="submit"
+                    leftSection={searchLoading ? <MantineLoader size="xs" /> : <IconSearch />}
+                    disabled={searchLoading || !form.isValid()}
+                >
                     {CONTROL_LABEL}
                 </Button>
             </div>
+
+            <Button
+                mt="md"
+                variant="transparent"
+                disabled={signalementPdfLoading || !form.isValid()}
+                fullWidth
+                onClick={async () => {
+                    const parcel = await loadParcel();
+
+                    if (!parcel) {
+                        return;
+                    }
+
+                    notifications.show({
+                        title: 'Génération de la fiche de signalement en cours',
+                        message: 'Le téléchargement se lancera dans quelques instants',
+                    });
+                    setSignalementPdfLoading(true);
+                }}
+                leftSection={signalementPdfLoading ? <MantineLoader size="xs" /> : <IconDownload size={24} />}
+            >
+                Fiche de signalement
+            </Button>
+            {signalementPdfLoading ? (
+                <SignalementPDFData
+                    previewParams={[
+                        {
+                            parcelUuid: String(parcelUuid),
+                        },
+                    ]}
+                    onGenerationFinished={(error?: string) => {
+                        if (error) {
+                            notifications.show({
+                                title: 'Erreur lors de la génération de la fiche de signalement',
+                                message: error,
+                                color: 'red',
+                            });
+                        }
+
+                        setSignalementPdfLoading(false);
+                    }}
+                />
+            ) : null}
         </form>
     );
 };
