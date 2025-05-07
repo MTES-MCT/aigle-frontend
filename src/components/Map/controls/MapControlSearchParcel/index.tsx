@@ -276,7 +276,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
             <Button
                 mt="md"
                 variant="transparent"
-                disabled={signalementPdfLoading || !form.isValid()}
+                disabled={signalementPdfLoading || searchLoading || !form.isValid()}
                 fullWidth
                 onClick={async () => {
                     const parcel = await loadParcel();

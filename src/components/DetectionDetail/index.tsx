@@ -129,7 +129,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     )
                                 }
                             >
-                                Fiche de signalement
+                                Fiche de signalement (objet)
                             </Button>
                         </Tooltip>
                         <Tooltip label="Télécharger la fiche de signalement à la parcelle" position="bottom-start">

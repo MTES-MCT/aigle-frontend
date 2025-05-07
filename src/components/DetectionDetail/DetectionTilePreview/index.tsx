@@ -74,7 +74,11 @@ const Component: React.FC<ComponentProps> = ({
     const { hovered: previewHovered, ref: previewRef } = useHover();
 
     return (
-        <div className={clsx(classes['detection-tile-preview-wrapper'], classNames?.wrapper)}>
+        <div
+            className={clsx(classes['detection-tile-preview-wrapper'], classNames?.wrapper, {
+                [classes['no-controls']]: !controlsDisplayed?.length,
+            })}
+        >
             <div className={clsx(classes['detection-tile-preview-container'], classNames?.main)} ref={previewRef}>
                 {controlsDisplayed?.length && previewHovered ? (
                     <Overlay blur={4} backgroundOpacity={0} className={classes['detection-tile-preview-controls']}>
