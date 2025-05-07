@@ -35,17 +35,7 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import {
-    bbox,
-    bboxPolygon,
-    booleanIntersects,
-    booleanWithin,
-    centroid,
-    feature,
-    featureCollection,
-    getCoord,
-    point,
-} from '@turf/turf';
+import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
 import { format } from 'date-fns';
 import { FeatureCollection, Polygon } from 'geojson';
 import mapboxgl from 'mapbox-gl';
@@ -1202,7 +1192,14 @@ const Component: React.FC<ComponentProps> = ({
                             id={getLayerId(layer)}
                             type="raster"
                             source={getSourceId(layer)}
-                            paint={layer.tileSet.monochrome ? { 'raster-saturation': -1 } : {}}
+                            paint={{
+                                'raster-saturation': layer.tileSet.monochrome ? -1 : 0,
+                                'raster-opacity-transition': {
+                                    duration: 0,
+                                    delay: 0,
+                                },
+                                'raster-fade-duration': 0,
+                            }}
                             {...(layer.tileSet.maxZoom
                                 ? {
                                       maxzoom: layer.tileSet.maxZoom,

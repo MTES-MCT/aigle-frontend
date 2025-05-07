@@ -68,7 +68,9 @@ const Component: React.FC<ComponentProps> = ({
             return;
         }
 
-        mapRef.current.fitBounds(bounds_);
+        mapRef.current.fitBounds(bounds_, {
+            animate: false,
+        });
     }, [bounds_]);
 
     const { hovered: previewHovered, ref: previewRef } = useHover();
@@ -178,7 +180,14 @@ const Component: React.FC<ComponentProps> = ({
                                 id="raster-layer"
                                 type="raster"
                                 source="raster-source"
-                                paint={tileSet.monochrome ? { 'raster-saturation': -1 } : {}}
+                                paint={{
+                                    'raster-saturation': tileSet.monochrome ? -1 : 0,
+                                    'raster-opacity-transition': {
+                                        duration: 0,
+                                        delay: 0,
+                                    },
+                                    'raster-fade-duration': 0,
+                                }}
                             />
                         </Source>
                     </Map>

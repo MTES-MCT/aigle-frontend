@@ -215,6 +215,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                             main: classes['detection-tile-preview-detail'],
                             inner: classes['detection-tile-preview-inner'],
                         }}
+                        reuseMaps={false}
                         id={previewId}
                         displayName={false}
                         onIdle={() => {
@@ -242,6 +243,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                     key={planPreviewId}
                     id={planPreviewId}
                     displayName={false}
+                    reuseMaps={false}
                     onIdle={() =>
                         setTimeout(
                             () =>
