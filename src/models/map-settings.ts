@@ -3,7 +3,7 @@ import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 import { ObjectType } from '@/models/object-type';
 import { ObjectTypeCategoryObjectTypeStatus } from '@/models/object-type-category';
 import { TileSet } from '@/models/tile-set';
-import { Geometry } from 'geojson';
+import { Geometry, Polygon } from 'geojson';
 
 export interface TileSetSetting {
     tileSet: TileSet;
@@ -23,7 +23,7 @@ export interface GeoCustomZoneCategorySetting {
 export interface MapSettings {
     objectTypeSettings: ObjectTypeSetting[];
     tileSetSettings: TileSetSetting[];
-    globalGeometry: Geometry | null;
+    globalGeometryBbox: Polygon;
     geoCustomZonesUncategorized: GeoCustomZone[];
     geoCustomZoneCategories: GeoCustomZoneCategorySetting[];
     userLastPosition: GeoJSON.Position | null;

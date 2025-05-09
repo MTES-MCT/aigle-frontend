@@ -19,7 +19,7 @@ export interface TileSet extends Uuided, Timestamped {
     tileSetType: TileSetType;
     minZoom: number | null;
     maxZoom: number | null;
-    geometry?: Geometry;
+    geometryBbox?: Geometry;
     monochrome: boolean;
 }
 

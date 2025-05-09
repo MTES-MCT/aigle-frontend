@@ -27,7 +27,8 @@
         "@mapbox/mapbox-gl-draw": "^1.4.3",
         "@mapbox/mapbox-gl-geocoder": "^5.0.2",
         "@mapbox/search-js-react": "^1.0.0-beta.21",
-        "@react-pdf/renderer": "^3.4.4",
+        "@react-pdf/layout": "3.12.1",
+        "@react-pdf/renderer": "3.4.4",
         "@tabler/icons-react": "^3.5.0",
         "@tanstack/react-query": "^5.37.1",
         "@turf/turf": "^7.0.0",
@@ -81,11 +82,12 @@
         "postcss-simple-vars": "^7.0.1",
         "prettier": "3.2.5",
         "prettier-plugin-organize-imports": "^3.2.4",
-        "sass": "^1.77.2",
+        "sass": "^1.87.0",
+        "sass-loader": "^16.0.5",
         "stylelint": "^16.6.1",
         "stylelint-config-recommended": "^14.0.0",
         "stylelint-scss": "^6.3.1",
         "typescript": "^5.2.2",
-        "vite": "^5.2.0"
+        "vite": "^6.3.4"
     }
 }

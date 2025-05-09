@@ -1,7 +1,7 @@
-@import '@/constants.scss';
+@use '@/constants.scss' as constants;
 
 .map-container {
-    padding-top: $header-height;
+    padding-top: constants.$header-height;
     height: 100dvh;
 }
 

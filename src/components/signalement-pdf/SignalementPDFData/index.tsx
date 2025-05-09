@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getParcelDownloadInfosEndpoint } from '@/api-endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
@@ -6,25 +6,22 @@ import SignalementPDFPage, {
     PreviewImage,
     ComponentProps as SignalementPDFPageProps,
 } from '@/components/signalement-pdf/SignalementPDFPage';
-import { DetectionWithTile } from '@/models/detection';
-import { DetectionObjectDetail } from '@/models/detection-object';
 import { ParcelDetail } from '@/models/parcel';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { PARCEL_COLOR } from '@/utils/constants';
 import { formatParcel } from '@/utils/format';
-import { convertBBoxToSquare, extendBbox } from '@/utils/geojson';
+import { extendBbox } from '@/utils/geojson';
 import { Document, usePDF } from '@react-pdf/renderer';
 import { useQuery } from '@tanstack/react-query';
-import { bbox, bboxPolygon } from '@turf/turf';
+import { bbox, centroid } from '@turf/turf';
 import { format } from 'date-fns';
 import { Polygon } from 'geojson';
 import classes from './index.module.scss';
 
-const fetchParcelDetail = async (uuid: string, tileSetUuid: string, detectionObjectUuid: string) => {
+const fetchParcelDetail = async (uuid: string, detectionObjectUuid?: string) => {
     const res = await api.get<ParcelDetail>(getParcelDownloadInfosEndpoint(uuid), {
         params: {
-            tileSetUuid,
             detectionObjectUuid,
         },
     });
@@ -32,11 +29,11 @@ const fetchParcelDetail = async (uuid: string, tileSetUuid: string, detectionObj
     return res.data;
 };
 
-const getSignalementPDFDocumentName = (detectionObject?: DetectionObjectDetail) => {
+const getSignalementPDFDocumentName = (parcel?: ParcelDetail) => {
     let name = 'signalement ';
 
-    if (detectionObject?.parcel) {
-        name += `${formatParcel(detectionObject.parcel)} `;
+    if (parcel) {
+        name += `${formatParcel(parcel)} `;
     }
 
     name += `- ${format(new Date(), 'dd-MM-yyyy-HH-mm-ss')}`;
@@ -68,7 +65,7 @@ const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinis
             a.href = url;
 
             if (pdfProps.length === 1) {
-                a.download = getSignalementPDFDocumentName(pdfProps[0].detectionObject);
+                a.download = getSignalementPDFDocumentName(pdfProps[0].parcel);
             } else {
                 a.download = getSignalementPDFDocumentName();
             }
@@ -101,70 +98,83 @@ const PLAN_URL_TILESET: TileSet = {
     monochrome: false,
 };
 
-const getPreviewId = (tileSetUuid: string, detectionObjectUuid: string) =>
-    `preview-${detectionObjectUuid}-${tileSetUuid}`;
-
-const getParcelCrossCoordinates = (parcelGeometry: Polygon) => {
-    const parcelBbox = convertBBoxToSquare(bbox(parcelGeometry) as [number, number, number, number]);
-
-    const parcelBboxExtended = extendBbox(parcelBbox as [number, number, number, number], 10);
-
-    const parcelPolygonExtended = bboxPolygon(parcelBboxExtended);
-
-    return [
-        parcelPolygonExtended.geometry.coordinates[0][0],
-        parcelPolygonExtended.geometry.coordinates[0][1],
-        parcelPolygonExtended.geometry.coordinates[0][2],
-        parcelPolygonExtended.geometry.coordinates[0][3],
-    ];
-};
+const getPreviewId = (tileSetUuid: string, parcelUuid: string) => `preview-${parcelUuid}-${tileSetUuid}`;
 
 interface PreviewImagesProps {
-    detectionObject: DetectionObjectDetail;
-    setFinalData: (previewImages: PreviewImage[], parcel: ParcelDetail | null) => void;
+    setFinalData: (previewImages: PreviewImage[], parcel: ParcelDetail) => void;
+    parcelUuid: string;
+    detectionObjectUuid?: string;
 }
 
-const PreviewImages: React.FC<PreviewImagesProps> = ({ detectionObject, setFinalData }) => {
-    const tileSetsToRender = detectionObject.tileSets.filter(({ preview }) => preview).reverse();
-
+const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObjectUuid, setFinalData }) => {
     const [previewImages, setPreviewImages] = useState<Record<string, PreviewImage>>({});
-    const previewBounds = bbox(detectionObject.detections[0].tile.geometry) as [number, number, number, number];
-    const tileSetUuidsDetectionsMap = detectionObject.detections.reduce<Record<string, DetectionWithTile>>(
-        (prev, curr) => {
-            prev[curr.tileSet.uuid] = curr;
-            return prev;
-        },
-        {},
-    );
-    const lastTileSetUuid = tileSetsToRender[0].tileSet.uuid;
 
     const { data: parcel, isLoading: parcelIsLoading } = useQuery({
-        queryKey: [getParcelDownloadInfosEndpoint(String(detectionObject.parcel?.uuid))],
-        enabled: !!detectionObject.parcel?.uuid,
-        queryFn: () => fetchParcelDetail(String(detectionObject.parcel?.uuid), lastTileSetUuid, detectionObject.uuid),
+        queryKey: [getParcelDownloadInfosEndpoint(String(parcelUuid))],
+        queryFn: () => fetchParcelDetail(parcelUuid, detectionObjectUuid),
     });
 
+    const tileSetsToRender = parcel?.tileSetPreviews.filter(({ preview }) => preview) || [];
+
     useEffect(() => {
-        if (Object.keys(previewImages).length !== tileSetsToRender.length + 1) {
+        if (!parcel || Object.keys(previewImages).length !== tileSetsToRender.length + 1) {
             return;
         }
 
-        setFinalData(Object.values(previewImages), parcel || null);
-    }, [previewImages]);
+        setFinalData(Object.values(previewImages), parcel);
+    }, [previewImages, parcel]);
+    const tileSetUuidsGeometryMap = useMemo(() => {
+        const res: Record<
+            string,
+            {
+                geometry: Polygon;
+                color: string;
+            }[]
+        > = {};
 
-    const getPreviewImage = useCallback((uuid: string, title: string, index: number) => {
+        if (!parcel) {
+            return res;
+        }
+
+        parcel.detectionObjects.forEach((detectionObject) => {
+            detectionObject.detections.forEach((detection) => {
+                // we only want to display the detection of the current detection object if specified
+                if (detectionObjectUuid && detectionObjectUuid !== detectionObject.uuid) {
+                    return;
+                }
+
+                if (!res[detection.tileSet.uuid]) {
+                    res[detection.tileSet.uuid] = [];
+                }
+                res[detection.tileSet.uuid].push({
+                    geometry: detection.geometry,
+                    color: detectionObject.objectType.color,
+                });
+            });
+        });
+
+        return res;
+    }, [parcel]);
+
+    const previewBounds = useMemo(() => {
+        if (!parcel) {
+            return undefined;
+        }
+
+        return bbox(parcel.geometry) as [number, number, number, number];
+    }, [parcel]);
+
+    const getPreviewImage = useCallback((uuid: string, previewId: string, title: string, index: number) => {
         if (previewImages[uuid]) {
             return;
         }
 
-        const id = getPreviewId(uuid, detectionObject.uuid);
-        const canvas = document.querySelector(`#${id} canvas`);
+        const canvas = document.querySelector(`#${previewId} canvas`);
 
         let src;
-
         try {
             src = (canvas as HTMLCanvasElement).toDataURL('image/png');
-        } catch {
+        } catch (e) {
             return;
         }
 
@@ -178,43 +188,46 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ detectionObject, setFinal
         }));
     }, []);
 
-    if (parcelIsLoading) {
+    if (parcelIsLoading || !parcel || !previewBounds || !tileSetUuidsGeometryMap || !tileSetsToRender) {
         return null;
     }
+    const planPreviewId = getPreviewId(PLAN_URL_TILESET.uuid, parcel.uuid);
 
     return (
         <div className={classes.container}>
-            SignalementPDFdata {detectionObject.id}
-            {tileSetsToRender.map(({ tileSet }, index) =>
-                !previewImages[tileSet.uuid] ? (
+            {tileSetsToRender.map(({ tileSet }, index) => {
+                if (previewImages[tileSet.uuid]) {
+                    return null;
+                }
+
+                const previewId = getPreviewId(tileSet.uuid, parcel.uuid);
+
+                return (
                     <DetectionTilePreview
                         geometries={[
-                            ...(tileSetUuidsDetectionsMap[tileSet.uuid]?.geometry
-                                ? [
-                                      {
-                                          geometry: tileSetUuidsDetectionsMap[tileSet.uuid].geometry,
-                                          color: detectionObject.objectType.color,
-                                      },
-                                  ]
-                                : []),
+                            ...(tileSetUuidsGeometryMap[tileSet.uuid] || []),
                             ...(parcel?.geometry ? [{ geometry: parcel.geometry, color: PARCEL_COLOR }] : []),
                         ]}
                         tileSet={tileSet}
-                        key={getPreviewId(tileSet.uuid, detectionObject.uuid)}
+                        key={previewId}
                         bounds={previewBounds}
                         classNames={{
                             main: classes['detection-tile-preview-detail'],
                             inner: classes['detection-tile-preview-inner'],
                         }}
-                        id={getPreviewId(tileSet.uuid, detectionObject.uuid)}
+                        reuseMaps={false}
+                        id={previewId}
                         displayName={false}
                         onIdle={() => {
-                            setTimeout(() => getPreviewImage(tileSet.uuid, format(tileSet.date, 'yyyy'), index), 3000);
+                            setTimeout(
+                                () => getPreviewImage(tileSet.uuid, previewId, format(tileSet.date, 'yyyy'), index),
+                                3000,
+                            );
                         }}
                         extendedLevel={1}
                     />
-                ) : null,
-            )}
+                );
+            })}
             {!previewImages[PLAN_URL_TILESET.uuid] ? (
                 <DetectionTilePreview
                     tileSet={PLAN_URL_TILESET}
@@ -227,91 +240,107 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ detectionObject, setFinal
                         main: classes['detection-tile-preview-detail'],
                         inner: classes['detection-tile-preview-inner'],
                     }}
-                    key={getPreviewId(PLAN_URL_TILESET.uuid, detectionObject.uuid)}
-                    id={getPreviewId(PLAN_URL_TILESET.uuid, detectionObject.uuid)}
+                    key={planPreviewId}
+                    id={planPreviewId}
                     displayName={false}
+                    reuseMaps={false}
                     onIdle={() =>
-                        setTimeout(() => getPreviewImage(PLAN_URL_TILESET.uuid, 'Plan', tileSetsToRender.length), 3000)
+                        setTimeout(
+                            () =>
+                                getPreviewImage(PLAN_URL_TILESET.uuid, planPreviewId, 'Plan', tileSetsToRender.length),
+                            3000,
+                        )
                     }
                     reuseMaps={false}
-                    imageLayer={
-                        parcel
-                            ? {
-                                  coordinates: getParcelCrossCoordinates(parcel?.geometry),
-                                  url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAtAAAALQAQMAAACDmdXfAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFAAAA/wAAG/+NIgAAAAJ0Uk5TAP9bkSK1AAABE0lEQVR4nO3asQkAIAwEQIOLubp7CdpaBivF+y7wuQk+Sip1bEdvqZ9Ao9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPR6M/pmbMPgkaj0Wg0Go1Go9FoNBqNRqPRaDQajUaj0Wg0Go1G/0XnarctiNBoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDQajUaj0Wg0Go1Go9FoNBqNRqPRaDT6AXoBFUc+uG9VIhoAAAAASUVORK5CYII=',
-                              }
-                            : undefined
-                    }
+                    pinPosition={parcel?.geometry ? centroid(parcel?.geometry).geometry.coordinates : undefined}
                 />
             ) : null}
         </div>
     );
 };
 
-const NBR_ELEMENTS_TO_DISPLAY = 2;
+const NBR_PAGES_TO_RENDER_AT_ONCE = 2;
+interface PagePreviewParams {
+    detectionObjectUuid?: string;
+    parcelUuid: string;
+}
 
 interface ComponentProps {
-    detectionObjects: DetectionObjectDetail[];
+    previewParams: PagePreviewParams[];
     setNbrDetectionObjectsProcessed?: (nbr: number) => void;
     onGenerationFinished: (error?: string) => void;
 }
 const Component: React.FC<ComponentProps> = ({
-    detectionObjects,
+    previewParams,
     setNbrDetectionObjectsProcessed,
     onGenerationFinished,
 }: ComponentProps) => {
     const [pdfProps, setPdfProps] = useState<SignalementPDFPageProps[]>([]);
-    const [detectionObjectsDisplayed, setDetectionObjectsDisplayed] = useState<DetectionObjectDetail[]>(
-        detectionObjects.slice(0, NBR_ELEMENTS_TO_DISPLAY),
+
+    const [pagesDisplayed, setPagesDisplayed] = useState<PagePreviewParams[]>(
+        previewParams.slice(0, NBR_PAGES_TO_RENDER_AT_ONCE),
     );
-    const [detectionObjectUuidsDone, setDetectionObjectUuidsDone] = useState<string[]>([]);
+    const [pagePreviewsDone, setPagePreviewsDone] = useState<PagePreviewParams[]>([]);
 
     useEffect(() => {
-        if (detectionObjectUuidsDone.length === detectionObjects.length) {
+        if (!pagePreviewsDone.length || pagePreviewsDone.length === previewParams.length) {
             return;
         }
 
-        const oldDetectionsToDisplay = detectionObjectsDisplayed.filter(
-            ({ uuid }) => !detectionObjectUuidsDone.includes(uuid),
+        const pagePreviewsToDisplay = previewParams.filter(
+            (param) =>
+                !pagePreviewsDone.some(
+                    (donePp) =>
+                        donePp.parcelUuid === param.parcelUuid &&
+                        donePp.detectionObjectUuid === param.detectionObjectUuid,
+                ),
         );
 
-        const nbrElementsToDisplay = NBR_ELEMENTS_TO_DISPLAY - oldDetectionsToDisplay.length;
-
-        if (nbrElementsToDisplay === 0) {
+        if (pagePreviewsToDisplay.length === 0) {
             return;
         }
 
-        const uuidsAlreadyDisplayed = [...oldDetectionsToDisplay.map(({ uuid }) => uuid), ...detectionObjectUuidsDone];
-        const detectionObjectsToDisplay = detectionObjects.filter(({ uuid }) => !uuidsAlreadyDisplayed.includes(uuid));
+        const nbrElementsToDisplay = Math.min(
+            NBR_PAGES_TO_RENDER_AT_ONCE,
+            previewParams.length - pagePreviewsDone.length,
+        );
 
-        setDetectionObjectsDisplayed([
-            ...oldDetectionsToDisplay,
-            ...detectionObjectsToDisplay.slice(0, nbrElementsToDisplay),
+        setPagesDisplayed((pagesDisplayed) => [
+            ...pagesDisplayed,
+            ...pagePreviewsToDisplay.slice(0, nbrElementsToDisplay),
         ]);
-        setNbrDetectionObjectsProcessed && setNbrDetectionObjectsProcessed(detectionObjectUuidsDone.length);
-    }, [detectionObjectUuidsDone]);
+        setNbrDetectionObjectsProcessed && setNbrDetectionObjectsProcessed(pagePreviewsDone.length);
+    }, [pagePreviewsDone]);
 
     return (
         <div className={classes.container}>
-            {detectionObjectsDisplayed.map((detectionObject) => (
+            {pagesDisplayed.map((pagePreviewProps) => (
                 <PreviewImages
-                    detectionObject={detectionObject}
-                    key={`download-${detectionObject.uuid}`}
-                    setFinalData={(previewImages: PreviewImage[], parcel: ParcelDetail | null) => {
-                        setPdfProps((prev) => [
-                            ...prev,
-                            {
-                                detectionObject,
-                                previewImages: previewImages.sort((a, b) => a.index - b.index),
-                                parcel,
-                            },
-                        ]);
-                        setDetectionObjectUuidsDone((prev) => [...prev, detectionObject.uuid]);
+                    {...pagePreviewProps}
+                    key={`download-${pagePreviewProps.detectionObjectUuid || pagePreviewProps.parcelUuid}`}
+                    setFinalData={(previewImages: PreviewImage[], parcel: ParcelDetail) => {
+                        setPdfProps((prev) => {
+                            const centerPoint = parcel.geometry
+                                ? centroid(parcel.geometry).geometry.coordinates
+                                : undefined;
+                            return [
+                                ...prev,
+                                {
+                                    detectionObjects: parcel?.detectionObjects || [],
+                                    latLong: centerPoint
+                                        ? `${centerPoint[1].toFixed(5)}, ${centerPoint[0].toFixed(5)}`
+                                        : 'inconnu',
+                                    previewImages: previewImages.sort((a, b) => a.index - b.index),
+                                    parcel,
+                                },
+                            ];
+                        });
+                        setPagePreviewsDone((prev) => [...prev, pagePreviewProps]);
                     }}
                 />
             ))}
 
-            {pdfProps.length === detectionObjects.length ? (
+            {pagePreviewsDone.length === previewParams.length ? (
                 <DocumentContainer pdfProps={pdfProps} onGenerationFinished={onGenerationFinished} />
             ) : null}
         </div>

@@ -6,7 +6,7 @@ import { useHover } from '@mantine/hooks';
 import { IconPencil, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
-import { Polygon } from 'geojson';
+import { Polygon, Position } from 'geojson';
 import React, { useEffect, useRef, useState } from 'react';
 import Map, { Layer, MapRef, Source } from 'react-map-gl';
 import classes from './index.module.scss';
@@ -23,14 +23,9 @@ interface ClassNames {
 }
 
 const GEOJSON_LAYER_ID = 'geojson-layer';
-const IMAGE_LAYER_ID = 'image-layer';
+const PIN_LAYER_ID = 'pin-layer';
 
 type PreviewControl = 'ZOOM' | 'EDIT';
-
-interface ImageLayer {
-    coordinates: [[number, number], [number, number], [number, number], [number, number]];
-    url: string;
-}
 
 interface ComponentProps {
     geometries?: PreviewGeometry[];
@@ -43,10 +38,10 @@ interface ComponentProps {
     editDetection?: () => void;
     extendedLevel?: number;
     id?: string;
-    imageLayer?: ImageLayer;
     onIdle?: () => void;
     marker?: React.ReactNode;
     reuseMaps?: boolean;
+    pinPosition?: Position;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -60,9 +55,9 @@ const Component: React.FC<ComponentProps> = ({
     editDetection,
     extendedLevel = 0,
     id,
-    imageLayer,
     onIdle,
     reuseMaps = true,
+    pinPosition,
 }) => {
     const mapRef = useRef<MapRef>();
     const [currentExtendedLevel, setCurrentExtendedLevel] = useState(extendedLevel);
@@ -73,13 +68,19 @@ const Component: React.FC<ComponentProps> = ({
             return;
         }
 
-        mapRef.current.fitBounds(bounds_);
+        mapRef.current.fitBounds(bounds_, {
+            animate: false,
+        });
     }, [bounds_]);
 
     const { hovered: previewHovered, ref: previewRef } = useHover();
 
     return (
-        <div className={clsx(classes['detection-tile-preview-wrapper'], classNames?.wrapper)}>
+        <div
+            className={clsx(classes['detection-tile-preview-wrapper'], classNames?.wrapper, {
+                [classes['no-controls']]: !controlsDisplayed?.length,
+            })}
+        >
             <div className={clsx(classes['detection-tile-preview-container'], classNames?.main)} ref={previewRef}>
                 {controlsDisplayed?.length && previewHovered ? (
                     <Overlay blur={4} backgroundOpacity={0} className={classes['detection-tile-preview-controls']}>
@@ -115,6 +116,7 @@ const Component: React.FC<ComponentProps> = ({
                 ) : null}
                 <div className={clsx(classes['detection-tile-preview'], classNames?.inner)}>
                     <Map
+                        preserveDrawingBuffer
                         ref={mapRef}
                         mapboxAccessToken={MAPBOX_TOKEN}
                         style={{ width: '100%', height: '100%' }}
@@ -125,38 +127,46 @@ const Component: React.FC<ComponentProps> = ({
                         {...(id ? { id } : {})}
                         {...(onIdle ? { onIdle } : {})}
                     >
-                        {imageLayer ? (
-                            <Source type="image" coordinates={imageLayer.coordinates} url={imageLayer.url}>
-                                <Layer id={IMAGE_LAYER_ID} type="raster" />
-                            </Source>
-                        ) : null}
-                        {geometries ? (
-                            <Source
-                                type="geojson"
-                                id="geojson-data"
-                                data={{
-                                    type: 'FeatureCollection',
-                                    features: geometries.map(({ geometry, color }) => ({
-                                        type: 'Feature',
-                                        properties: {
-                                            color: color,
-                                        },
-                                        geometry: geometry,
-                                    })),
+                        <Source type="geojson" data={{ type: 'Point', coordinates: pinPosition }}>
+                            <Layer
+                                id={PIN_LAYER_ID}
+                                type="symbol"
+                                layout={{
+                                    'text-field': '+',
+                                    'text-size': 96,
+                                    'text-allow-overlap': true,
+                                    'text-ignore-placement': true,
                                 }}
-                            >
-                                <Layer
-                                    id={GEOJSON_LAYER_ID}
-                                    beforeId={imageLayer ? IMAGE_LAYER_ID : undefined}
-                                    type="line"
-                                    paint={{
-                                        'line-color': ['get', 'color'],
-                                        'line-width': 3,
-                                        'line-dasharray': strokedLine ? [2, 2] : [],
-                                    }}
-                                />
-                            </Source>
-                        ) : null}
+                                paint={{
+                                    'text-color': '#FF0000',
+                                }}
+                            />
+                        </Source>
+                        <Source
+                            type="geojson"
+                            id="geojson-data"
+                            data={{
+                                type: 'FeatureCollection',
+                                features: (geometries || []).map(({ geometry, color }) => ({
+                                    type: 'Feature',
+                                    properties: {
+                                        color: color,
+                                    },
+                                    geometry: geometry,
+                                })),
+                            }}
+                        >
+                            <Layer
+                                id={GEOJSON_LAYER_ID}
+                                beforeId={PIN_LAYER_ID}
+                                type="line"
+                                paint={{
+                                    'line-color': ['get', 'color'],
+                                    'line-width': 3,
+                                    'line-dasharray': strokedLine ? [2, 2] : [],
+                                }}
+                            />
+                        </Source>
 
                         <Source
                             id="raster-source"
@@ -166,11 +176,18 @@ const Component: React.FC<ComponentProps> = ({
                             tileSize={256}
                         >
                             <Layer
-                                beforeId={geometries ? GEOJSON_LAYER_ID : imageLayer ? IMAGE_LAYER_ID : undefined}
+                                beforeId={GEOJSON_LAYER_ID}
                                 id="raster-layer"
                                 type="raster"
                                 source="raster-source"
-                                paint={tileSet.monochrome ? { 'raster-saturation': -1 } : {}}
+                                paint={{
+                                    'raster-saturation': tileSet.monochrome ? -1 : 0,
+                                    'raster-opacity-transition': {
+                                        duration: 0,
+                                        delay: 0,
+                                    },
+                                    'raster-fade-duration': 0,
+                                }}
                             />
                         </Source>
                     </Map>

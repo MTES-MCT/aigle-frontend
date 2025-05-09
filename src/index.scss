@@ -1,3 +1,4 @@
+@use '@/constants.scss' as constants;
 @import url('@gouvfr/dsfr/dist/dsfr.min.css');
 @import url('@gouvfr/dsfr/dist/utility/utility.min.css');
 
@@ -7,7 +8,6 @@
 @import url('@mantine/charts/styles.css');
 
 @import url('mapbox-gl/dist/mapbox-gl.css');
-@import '@/constants.scss';
 
 // css reset
 
@@ -24,7 +24,7 @@
     --title-spacing: 0 0 0;
     --text-spacing: 0 0 0;
     --indicator-z-index: 10;
-    --mantine-radius-default: 8px; //  $border-radius-small
+    --mantine-radius-default: 8px; //  constants.$border-radius-small
     --lo-z-index: 150 !important;
 
     font-family: Marianne, arial, sans-serif;
@@ -156,7 +156,7 @@ a:focus {
 }
 
 header.fr-header {
-    height: $header-height;
+    height: constants.$header-height;
 
     position: fixed !important;
 
@@ -183,8 +183,8 @@ header.fr-header {
         justify-content: start;
 
         .navigation-items-divider {
-            margin-left: $content-padding;
-            margin-right: $content-padding;
+            margin-left: constants.$content-padding;
+            margin-right: constants.$content-padding;
         }
     }
 
@@ -265,8 +265,8 @@ a.mantine-NavLink-root {
 }
 
 .mantine-Notifications-notification {
-    box-shadow: $shadow;
-    border-radius: $border-radius-small;
+    box-shadow: constants.$shadow;
+    border-radius: constants.$border-radius-small;
 }
 
 .mantine-ScrollArea-viewport {
@@ -288,7 +288,7 @@ a.mantine-NavLink-root {
 }
 
 .mapboxgl-ctrl-geocoder {
-    border-radius: $border-radius-medium;
+    border-radius: constants.$border-radius-medium;
     min-width: 300px !important;
     max-width: 100%;
 
@@ -297,11 +297,11 @@ a.mantine-NavLink-root {
     }
 
     .suggestions {
-        border-radius: $border-radius-medium;
+        border-radius: constants.$border-radius-medium;
     }
 
     .mapboxgl-ctrl-geocoder--input {
-        border-radius: $border-radius-medium;
+        border-radius: constants.$border-radius-medium;
         height: 48px;
         padding: 14px 42px;
     }
@@ -333,7 +333,7 @@ a.mantine-NavLink-root {
     .mapboxgl-ctrl-group {
         display: flex;
         flex-direction: column;
-        gap: $margin-map-elements;
+        gap: constants.$margin-map-elements;
         background: none;
         box-shadow: none !important;
 
@@ -343,7 +343,7 @@ a.mantine-NavLink-root {
         .mapbox-gl-draw_ctrl-draw-btn {
             background-color: var(--mantine-color-white);
             border-radius: 8px;
-            box-shadow: $shadow;
+            box-shadow: constants.$shadow;
 
             &:hover {
                 background-color: #f4f4f4;
@@ -353,7 +353,7 @@ a.mantine-NavLink-root {
 }
 
 .mapboxgl-ctrl:not(.mapboxgl-ctrl-geocoder):not(.mapboxgl-ctrl-scale) {
-    border-radius: $border-radius-small;
+    border-radius: constants.$border-radius-small;
 
     .mapboxgl-ctrl-icon {
         opacity: 0.7;
@@ -370,7 +370,7 @@ a.mantine-NavLink-root {
     flex-direction: row;
     align-items: center;
 
-    max-width: calc(100vw - 20px - 36px - $margin-map-elements);
+    max-width: calc(100vw - 20px - 36px - constants.$margin-map-elements);
 
     z-index: 95;
 
@@ -384,7 +384,7 @@ a.mantine-NavLink-root {
 }
 
 .mapboxgl-ctrl-group {
-    box-shadow: $shadow !important;
+    box-shadow: constants.$shadow !important;
 }
 
 .mapbox-gl-draw_ctrl-draw-btn {
@@ -416,7 +416,7 @@ a.mantine-NavLink-root {
 // custom
 
 $tile-size: 256px;
-$tile-scale: calc($tile-preview-detail-size / $tile-size);
+$tile-scale: calc(constants.$tile-preview-detail-size / $tile-size);
 $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
 
 // we do all this because we want to display previews with 256px width to get the right tiles
@@ -432,16 +432,16 @@ $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
 }
 
 .detection-tile-preview-detail {
-    width: $tile-preview-detail-size;
-    height: $tile-preview-detail-size;
+    width: constants.$tile-preview-detail-size;
+    height: constants.$tile-preview-detail-size;
 
-    border-radius: $border-radius-medium;
+    border-radius: constants.$border-radius-medium;
 
     overflow: hidden;
 }
 
 .detection-tile-preview-title {
-    width: $tile-preview-detail-size;
+    width: constants.$tile-preview-detail-size;
 }
 
 .admin-tabs {
