@@ -1,11 +1,11 @@
 import { Timestamped, Uuided } from '@/models/data';
 import { DetectionWithTile, DetectionWithTileMinimal } from '@/models/detection';
+import { GeoCustomZoneWithSubZones } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ParcelWithCommuneSerializer } from '@/models/parcel';
 import { TileSet } from '@/models/tile-set';
 import { UserGroupRight } from '@/models/user';
 import { UserGroup } from '@/models/user-group';
-import { GeoCustomZone } from './geo/geo-custom-zone';
 
 export interface DetectionObjectDetailTilesetPreview {
     preview: boolean;
@@ -24,7 +24,7 @@ export interface DetectionObjectDetail extends DetectionObjectMinimal {
     tileSets: DetectionObjectDetailTilesetPreview[];
     parcel: ParcelWithCommuneSerializer | null;
     userGroupRights: UserGroupRight[];
-    geoCustomZones: GeoCustomZone[];
+    geoCustomZones: GeoCustomZoneWithSubZones[];
     userGroupLastUpdate: UserGroup | null;
 }
 
