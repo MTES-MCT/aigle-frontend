@@ -1,4 +1,5 @@
 import { GeoCommune } from '@/models/geo/geo-commune';
+import { GeoCustomZoneWithSubZones } from '@/models/geo/geo-custom-zone';
 import { ParcelMinimal } from '@/models/parcel';
 
 export const formatParcel = (parcel: ParcelMinimal, withCommuneCode: boolean = true) => {
@@ -31,4 +32,18 @@ const INT_FORMATTER = new Intl.NumberFormat('fr-FR');
 
 export const formatBigInt = (bigInt: number) => {
     return INT_FORMATTER.format(bigInt);
+};
+
+export const formatGeoCustomZonesWithSubZones = (geoCustomZones: GeoCustomZoneWithSubZones[]) => {
+    return geoCustomZones
+        .map((geoCustomZone) => {
+            let res = `${geoCustomZone.geoCustomZoneCategory ? geoCustomZone.geoCustomZoneCategory.name : geoCustomZone.name}`;
+
+            if (geoCustomZone.subCustomZones && geoCustomZone.subCustomZones.length) {
+                res += ` (${geoCustomZone.subCustomZones.map((subZone) => subZone.name).join(', ')})`;
+            }
+
+            return res;
+        })
+        .join(', ');
 };

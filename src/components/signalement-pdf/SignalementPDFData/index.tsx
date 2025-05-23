@@ -251,7 +251,6 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                             3000,
                         )
                     }
-                    reuseMaps={false}
                     pinPosition={parcel?.geometry ? centroid(parcel?.geometry).geometry.coordinates : undefined}
                 />
             ) : null}

@@ -1,5 +1,6 @@
 import { WithCollectivities } from '@/models/data';
 import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
+import { GeoSubCustomZoneMinimal } from '@/models/geo/geo-sub-custom-zone';
 import { GeoZone, GeoZoneDetail } from '@/models/geo/geo-zone';
 import { Feature, MultiPolygon, Polygon } from 'geojson';
 
@@ -14,6 +15,9 @@ export interface GeoCustomZone extends GeoZone {
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
     geoCustomZoneCategory: GeoCustomZoneCategory | null;
+}
+export interface GeoCustomZoneWithSubZones extends GeoCustomZone {
+    subCustomZones: GeoSubCustomZoneMinimal[];
 }
 export interface GeoCustomZoneWithCollectivities extends GeoCustomZone, WithCollectivities {}
 

@@ -1,4 +1,4 @@
-import React, { ReactElement, ReactNode, useEffect, useState } from 'react';
+import React, { ReactElement, ReactNode, useEffect, useRef, useState } from 'react';
 
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import ErrorCard from '@/components/ui/ErrorCard';
@@ -12,6 +12,18 @@ import { IconChecks } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import classes from './index.module.scss';
+
+const scrollToTable = (tableRef: React.RefObject<HTMLTableElement>) => {
+    if (tableRef.current) {
+        const yOffset = -116.5; // $header-height
+        const y = tableRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+        window.scrollTo({
+            top: y,
+            behavior: 'smooth',
+        });
+    }
+};
 
 const LIMITS: (typeof PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit)[] = [5, 10, 20, 50];
 
@@ -48,6 +60,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
         ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
         limit: initialLimit,
     });
+    const tableRef = useRef<HTMLTableElement>(null);
 
     useEffect(() => {
         setPagination((prev) => ({
@@ -142,6 +155,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                             highlightOnHover
                             className={clsx(classes.table, { [classes['items-clickable']]: !!onItemClick })}
                             layout={layout}
+                            ref={tableRef}
                         >
                             <Table.Thead>
                                 <Table.Tr>
@@ -205,12 +219,13 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                 <Pagination
                     className={classes.pagination}
                     value={paginationPage.currentPage}
-                    onChange={(page: number) =>
+                    onChange={(page: number) => {
                         setPagination((prev) => ({
                             ...prev,
                             offset: (page - 1) * prev.limit,
-                        }))
-                    }
+                        }));
+                        scrollToTable(tableRef);
+                    }}
                     total={paginationPage.totalPages}
                 />
             ) : null}

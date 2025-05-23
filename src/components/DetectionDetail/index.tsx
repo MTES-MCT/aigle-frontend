@@ -6,12 +6,13 @@ import { getFiltersToMakeVisible } from '@/components/DetectionDetail/utils/forc
 import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
 import DateInfo from '@/components/ui/DateInfo';
 import Loader from '@/components/ui/Loader';
+import OptionalText from '@/components/ui/OptionalText';
 import WarningCard from '@/components/ui/WarningCard';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { useMap } from '@/utils/context/map-context';
-import { formatCommune, formatParcel } from '@/utils/format';
+import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
 import { getAddressFromPolygon } from '@/utils/geojson';
 import { Accordion, ActionIcon, Button, Group, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -273,13 +274,19 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 <span className={classes['general-informations-content-item-text']}>
                                     Dernière mise à jour :&nbsp;
                                     <div>
-                                        {detectionObject.userGroupLastUpdate ? (
-                                            <div>
-                                                <b>{detectionObject.userGroupLastUpdate.name}</b>
-                                            </div>
-                                        ) : (
-                                            <div>Aucun groupe</div>
-                                        )}
+                                        <div>
+                                            <OptionalText
+                                                text={
+                                                    detectionObject.userGroupLastUpdate ? (
+                                                        <div className={classes['user-group-last-update']}>
+                                                            {detectionObject.userGroupLastUpdate.name}
+                                                        </div>
+                                                    ) : undefined
+                                                }
+                                                emptyText="Aucun groupe"
+                                            />
+                                        </div>
+
                                         <DateInfo date={detectionObject.updatedAt} />
                                     </div>
                                 </span>
@@ -326,9 +333,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                         {detectionObject.geoCustomZones.length ? (
                                             <>
                                                 Zones à enjeux :&nbsp;
-                                                {detectionObject.geoCustomZones
-                                                    .map((zone) => zone.geoCustomZoneCategory?.name || zone.name)
-                                                    .join(', ')}
+                                                {formatGeoCustomZonesWithSubZones(detectionObject.geoCustomZones)}
                                             </>
                                         ) : (
                                             <i>Aucune zone à enjeux associée</i>

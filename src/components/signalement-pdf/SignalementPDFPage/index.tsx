@@ -2,7 +2,7 @@ import logoImg from '@/assets/logo.png';
 import republiqueFrancaiseImg from '@/assets/signalement-pdf/republique_francaise.png';
 import { ParcelDetail, ParcelDetectionObject } from '@/models/parcel';
 import { DEFAULT_DATE_FORMAT } from '@/utils/constants';
-import { formatCommune, formatParcel } from '@/utils/format';
+import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
 import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import React from 'react';
@@ -142,10 +142,9 @@ const Component: React.FC<ComponentProps> = ({ detectionObjects, previewImages, 
                 </Text>
                 <Text>Parcelle : {formatParcel(parcel)}</Text>
                 <Text>Coordonnées GPS : {latLong}</Text>
-                <Text>
-                    Zones à enjeux :{' '}
-                    {parcel?.customGeoZones.map((zone) => zone.geoCustomZoneCategory?.name || zone.name).join(', ')}
-                </Text>
+                {parcel.customGeoZones?.length ? (
+                    <Text>Zones à enjeux : {formatGeoCustomZonesWithSubZones(parcel.customGeoZones)}</Text>
+                ) : null}
                 <Text>Date de la dernière modification : {format(parcel.updatedAt, DEFAULT_DATE_FORMAT)}</Text>
                 {suspectObjectsCount ? (
                     <Text>
