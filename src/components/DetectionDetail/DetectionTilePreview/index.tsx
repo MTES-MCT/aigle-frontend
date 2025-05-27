@@ -42,6 +42,8 @@ interface ComponentProps {
     marker?: React.ReactNode;
     reuseMaps?: boolean;
     pinPosition?: Position;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fitBoundsOptions?: any;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -58,6 +60,7 @@ const Component: React.FC<ComponentProps> = ({
     onIdle,
     reuseMaps = true,
     pinPosition,
+    fitBoundsOptions,
 }) => {
     const mapRef = useRef<MapRef>();
     const [currentExtendedLevel, setCurrentExtendedLevel] = useState(extendedLevel);
@@ -123,7 +126,8 @@ const Component: React.FC<ComponentProps> = ({
                         mapStyle="mapbox://styles/mapbox/streets-v11"
                         interactive={false}
                         reuseMaps={reuseMaps}
-                        maxBounds={bounds_}
+                        bounds={bounds_}
+                        fitBoundsOptions={fitBoundsOptions}
                         {...(id ? { id } : {})}
                         {...(onIdle ? { onIdle } : {})}
                     >

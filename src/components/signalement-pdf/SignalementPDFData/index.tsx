@@ -224,7 +224,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                                 3000,
                             );
                         }}
-                        extendedLevel={1}
+                        fitBoundsOptions={{ padding: 10 }}
                     />
                 );
             })}
