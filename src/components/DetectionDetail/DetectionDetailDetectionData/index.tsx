@@ -99,10 +99,25 @@ const downloadPriorLetter = async (detectionObjectUuid: string) => {
         type: response.headers['content-type'],
     });
 
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = 'Courrier préalable.odt'; // fallback filename
+
+    if (contentDisposition) {
+        // Parse Content-Disposition header to extract filename
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        console.log({
+            contentDisposition,
+            filenameMatch,
+        });
+        if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, ''); // remove quotes
+        }
+    }
+
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'document.odt');
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
 
