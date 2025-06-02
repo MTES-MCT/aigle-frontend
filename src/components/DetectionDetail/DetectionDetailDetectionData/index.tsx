@@ -278,7 +278,8 @@ const Form: React.FC<FormProps> = ({
                 {...form.getInputProps('detectionControlStatus')}
             />
 
-            {form.getValues().detectionControlStatus === DETECTION_CONTROL_STATUS_SHOW_DOWNLOAD_PRIOR_LETTER ? (
+            {form.getValues().detectionControlStatus === DETECTION_CONTROL_STATUS_SHOW_DOWNLOAD_PRIOR_LETTER &&
+            false ? (
                 <Button
                     fullWidth
                     variant="outline"
