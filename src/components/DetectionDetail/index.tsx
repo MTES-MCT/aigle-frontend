@@ -14,7 +14,7 @@ import api from '@/utils/api';
 import { useMap } from '@/utils/context/map-context';
 import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
 import { getAddressFromPolygon } from '@/utils/geojson';
-import { Accordion, ActionIcon, Button, Group, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
+import { Accordion, ActionIcon, Button, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconCalendarClock,
@@ -109,10 +109,12 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 </div>
 
                 <div>
-                    <Group>
-                        <Tooltip label="Télécharger la fiche de signalement" position="bottom-start">
+                    <p className="input-label">Fiches de signalement</p>
+                    <Button.Group>
+                        <Tooltip label="Télécharger la fiche de signalement à l'objet" position="bottom-start">
                             <Button
-                                variant="transparent"
+                                fullWidth
+                                variant="outline"
                                 disabled={!detectionObject.parcel?.uuid || !!signalementPdfGenerating}
                                 size="xs"
                                 onClick={() => {
@@ -130,12 +132,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     )
                                 }
                             >
-                                Fiche de signalement (objet)
+                                A l&apos;objet
                             </Button>
                         </Tooltip>
                         <Tooltip label="Télécharger la fiche de signalement à la parcelle" position="bottom-start">
                             <Button
-                                variant="transparent"
+                                fullWidth
+                                variant="outline"
                                 disabled={!detectionObject.parcel?.uuid || !!signalementPdfGenerating}
                                 size="xs"
                                 onClick={() => {
@@ -153,23 +156,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     )
                                 }
                             >
-                                Fiche de signalement (parcelle)
+                                A la parcelle
                             </Button>
                         </Tooltip>
-
-                        <Tooltip label="Ouvrir dans Google Maps" position="bottom-start">
-                            <Button
-                                variant="transparent"
-                                component={Link}
-                                size="xs"
-                                leftSection={<IconMapPinFilled size={20} />}
-                                to={getGoogleMapLink(centerPoint)}
-                                target="_blank"
-                            >
-                                GMaps
-                            </Button>
-                        </Tooltip>
-                    </Group>
+                    </Button.Group>
                     {!!signalementPdfGenerating ? (
                         <SignalementPDFData
                             previewParams={[
@@ -195,6 +185,19 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         />
                     ) : null}
                 </div>
+
+                <Tooltip label="Ouvrir dans Google Maps" position="bottom-start">
+                    <Button
+                        variant="light"
+                        component={Link}
+                        size="xs"
+                        leftSection={<IconMapPinFilled size={20} />}
+                        to={getGoogleMapLink(centerPoint)}
+                        target="_blank"
+                    >
+                        GMaps
+                    </Button>
+                </Tooltip>
 
                 {detectionHidden ? (
                     <WarningCard title="Détection cachée">

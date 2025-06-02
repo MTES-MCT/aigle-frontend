@@ -44,11 +44,13 @@ const Component: React.FC = () => {
             tableHeader={[
                 <Table.Th key="createdAt">Date création</Table.Th>,
                 <Table.Th key="name">Nom</Table.Th>,
+                <Table.Th key="nameShort">Nom court</Table.Th>,
                 <Table.Th key="color">Couleur</Table.Th>,
             ]}
             tableBodyRenderFns={[
                 (item: GeoCustomZoneCategory) => <DateInfo date={item.createdAt} />,
                 (item: GeoCustomZoneCategory) => item.name,
+                (item: GeoCustomZoneCategory) => item.nameShort,
                 (item: GeoCustomZoneCategory) => (
                     <div className="color-cell">
                         <ColorSwatch color={item.color} size={24} /> {item.color}

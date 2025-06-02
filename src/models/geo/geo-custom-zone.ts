@@ -12,6 +12,7 @@ export type GeoCustomZoneType = (typeof geoCustomZoneTypes)[number];
 
 export interface GeoCustomZone extends GeoZone {
     color: string;
+    nameShort: string;
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
     geoCustomZoneCategory: GeoCustomZoneCategory | null;

@@ -22,6 +22,7 @@ const BACK_URL = '/admin/custom-zones';
 
 interface FormValues {
     name: string;
+    nameShort: string;
     color: string;
 }
 
@@ -82,6 +83,13 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
                 key={form.key('name')}
                 {...form.getInputProps('name')}
             />
+            <TextInput
+                mt="md"
+                label="Nom court de la catégorie"
+                placeholder="Cat"
+                key={form.key('nameShort')}
+                {...form.getInputProps('nameShort')}
+            />
             <ColorInput
                 mt="md"
                 withAsterisk
@@ -113,6 +121,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
 const EMPTY_FORM_VALUES: FormValues = {
     color: '',
     name: '',
+    nameShort: '',
 };
 
 interface ComponentInnerProps {
@@ -128,6 +137,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
         const res = await api.get<GeoCustomZoneCategory>(getGeoCustomZoneCategoryDetailEndpoint(uuid));
         const initialValues: FormValues = {
             name: res.data.name,
+            nameShort: res.data.nameShort,
             color: res.data.color,
         };
 

@@ -36,6 +36,7 @@ const BACK_URL = '/admin/custom-zones';
 
 interface FormValues {
     name: string;
+    nameShort: string;
     color: string;
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
@@ -144,6 +145,14 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 key={form.key('name')}
                 {...form.getInputProps('name')}
             />
+            <TextInput
+                mt="md"
+                label="Nom court de la zone"
+                disabled={cannotEdit}
+                placeholder="Zone"
+                key={form.key('nameShort')}
+                {...form.getInputProps('nameShort')}
+            />
             {!form.getValues().geoCustomZoneCategoryUuid ? (
                 <ColorInput
                     mt="md"
@@ -220,6 +229,7 @@ const fetchGeoCustomZoneCategories = async () => {
 const getEmptyFormValues = (userRole: UserRole): FormValues => {
     const emptyFormValues: FormValues = {
         name: '',
+        nameShort: '',
         color: '',
         geoCustomZoneStatus: 'ACTIVE',
         geoCustomZoneType: 'COLLECTIVITY_MANAGED',
@@ -255,6 +265,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
         });
         const initialValues: FormValues = {
             name: res.data.name,
+            nameShort: res.data.nameShort,
             color: res.data.color || '',
             geoCustomZoneStatus: res.data.geoCustomZoneStatus,
             geoCustomZoneType: res.data.geoCustomZoneType,

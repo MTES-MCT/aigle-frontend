@@ -2,6 +2,7 @@ import { GEO_CUSTOM_ZONE_LIST_ENDPOINT } from '@/api-endpoints';
 import DataTable from '@/components/admin/DataTable';
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
+import OptionalText from '@/components/ui/OptionalText';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { useAuth } from '@/utils/auth-context';
 import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP } from '@/utils/constants';
@@ -10,7 +11,6 @@ import { IconSearch } from '@tabler/icons-react';
 import { isEqual } from 'lodash';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import classes from './index.module.scss';
 
 interface DataFilter {
     q: string;
@@ -48,6 +48,7 @@ const Component: React.FC = () => {
             tableHeader={[
                 <Table.Th key="createdAt">Date création</Table.Th>,
                 <Table.Th key="name">Nom</Table.Th>,
+                <Table.Th key="nameShort">Nom court</Table.Th>,
                 <Table.Th key="geoCustomZoneCategoryName">Catégorie</Table.Th>,
                 <Table.Th key="color">Couleur</Table.Th>,
                 ...(userMe?.userRole === 'SUPER_ADMIN' ? [<Table.Th key="status">Statut</Table.Th>] : []),
@@ -55,12 +56,9 @@ const Component: React.FC = () => {
             tableBodyRenderFns={[
                 (item: GeoCustomZone) => <DateInfo date={item.createdAt} />,
                 (item: GeoCustomZone) => item.name,
+                (item: GeoCustomZone) => <OptionalText text={item.nameShort} />,
                 (item: GeoCustomZone) => (
-                    <>
-                        {item.geoCustomZoneCategory?.name || (
-                            <div className={classes['negative-text']}>Aucune catégorie</div>
-                        )}
-                    </>
+                    <OptionalText text={item.geoCustomZoneCategory?.name} emptyText="aucune catégorie" />
                 ),
                 (item: GeoCustomZone) => (
                     <div className="color-cell">

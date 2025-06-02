@@ -173,6 +173,8 @@ const BASE_UTILS = `${BASE_API}utils/`;
 export const IMPORTS_INFOS_ENDPOINT = `${BASE_UTILS}imports-infos/`;
 export const GET_CUSTOM_GEOMETRY_ENDPOINT = `${BASE_UTILS}get-custom-geometry/`;
 export const GET_ANNOTATION_GRID_ENDPOINT = `${BASE_UTILS}get-annotation-grid/`;
+export const getGeneratePriorLetterEndpoint = (detectionObjectUuid: string) =>
+    `${BASE_UTILS}generate-prior-letter/${detectionObjectUuid}/`;
 
 const BASE_STATISTICS = `${BASE_API}statistics/`;
 export const STATISTICS_VALIDATION_STATUS_EVOLUTION_ENDPOINT = `${BASE_STATISTICS}validation-status-evolution/`;
