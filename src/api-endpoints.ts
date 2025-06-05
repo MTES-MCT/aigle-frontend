@@ -20,6 +20,9 @@ export const USER_GROUP_LIST_ENDPOINT = `${BASE_USER_GROUP}`;
 export const USER_GROUP_POST_ENDPOINT = `${BASE_USER_GROUP}`;
 export const getUserGroupDetailEndpoint = (uuid: string) => `${USER_GROUP_LIST_ENDPOINT}${uuid}/`;
 
+const BASE_RUN_COMMAND = `${BASE_API}run-command/`;
+export const RUN_COMMAND_LIST_ENDPOINT = `${BASE_RUN_COMMAND}`;
+
 // geo
 
 const BASE_GEO = `${BASE_API}geo/`;

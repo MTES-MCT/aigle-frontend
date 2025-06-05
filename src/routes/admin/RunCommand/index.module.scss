@@ -1,0 +1,11 @@
+.container {
+    padding-bottom: var(--mantine-spacing-md);
+}
+
+.command-parameters {
+    width: 100%;
+
+    th {
+        text-align: left;
+    }
+}

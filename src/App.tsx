@@ -16,6 +16,7 @@ import ObjectTypeCategoryForm from '@/routes/admin/object-type-category/ObjectTy
 import ObjectTypeCategoryList from '@/routes/admin/object-type-category/ObjectTypeCategoryList';
 import ObjectTypeForm from '@/routes/admin/object-type/ObjectTypeForm';
 import ObjectTypeList from '@/routes/admin/object-type/ObjectTypeList';
+import RunCommand from '@/routes/admin/RunCommand';
 import TileSetForm from '@/routes/admin/tile-set/TileSetForm';
 import TileSetList from '@/routes/admin/tile-set/TileSetList';
 import UserGroupForm from '@/routes/admin/user-group/UserGroupForm';
@@ -170,7 +171,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/user-groups"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <UserGroupList />
                         </ProtectedRoute>
                     }
@@ -178,7 +179,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/user-groups/form"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <UserGroupForm />
                         </ProtectedRoute>
                     }
@@ -186,7 +187,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/user-groups/form/:uuid"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <UserGroupForm />
                         </ProtectedRoute>
                     }
@@ -237,7 +238,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/collectivites"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <CollectiviteList />
                         </ProtectedRoute>
                     }
@@ -245,7 +246,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/collectivites/:collectivityType/form/:uuid"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <CollectiviteForm />
                         </ProtectedRoute>
                     }
@@ -254,7 +255,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/object-types"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <ObjectTypeList />
                         </ProtectedRoute>
                     }
@@ -262,7 +263,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/object-types/form"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <ObjectTypeForm />
                         </ProtectedRoute>
                     }
@@ -270,7 +271,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/object-types/form/:uuid"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <ObjectTypeForm />
                         </ProtectedRoute>
                     }
@@ -279,7 +280,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/object-type-categories"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <ObjectTypeCategoryList />
                         </ProtectedRoute>
                     }
@@ -287,7 +288,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/object-type-categories/form"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <ObjectTypeCategoryForm />
                         </ProtectedRoute>
                     }
@@ -295,7 +296,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/object-type-categories/form/:uuid"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <ObjectTypeCategoryForm />
                         </ProtectedRoute>
                     }
@@ -304,7 +305,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/tile-sets"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <TileSetList />
                         </ProtectedRoute>
                     }
@@ -312,7 +313,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/tile-sets/form"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <TileSetForm />
                         </ProtectedRoute>
                     }
@@ -320,7 +321,7 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/tile-sets/form/:uuid"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <TileSetForm />
                         </ProtectedRoute>
                     }
@@ -329,8 +330,17 @@ const App: React.FC = () => {
                 <Route
                     path="/admin/imports"
                     element={
-                        <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <ImportsPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/run-command"
+                    element={
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
+                            <RunCommand />
                         </ProtectedRoute>
                     }
                 />
