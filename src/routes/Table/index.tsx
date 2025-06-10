@@ -25,6 +25,7 @@ import {
 } from '@/utils/constants';
 import { useStatistics } from '@/utils/context/statistics-context';
 import { formatParcel } from '@/utils/format';
+import { getDetectionObjectLink } from '@/utils/link';
 import { Affix, Badge, Button, Switch, Table, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconEdit, IconExternalLink } from '@tabler/icons-react';
@@ -177,7 +178,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             variant="light"
                             size="compact-xs"
                             leftSection={<IconExternalLink size={14} />}
-                            to={`/map?detectionObjectUuid=${item.detectionObjectUuid}`}
+                            to={getDetectionObjectLink(item.detectionObjectUuid)}
                         >
                             {item.detectionObjectId}
                         </Button>

@@ -14,7 +14,8 @@ import api from '@/utils/api';
 import { useMap } from '@/utils/context/map-context';
 import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
 import { getAddressFromPolygon } from '@/utils/geojson';
-import { Accordion, ActionIcon, Button, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
+import { getDetectionObjectLink } from '@/utils/link';
+import { Accordion, ActionIcon, Anchor, Button, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconCalendarClock,
@@ -25,6 +26,7 @@ import {
     IconMapPin,
     IconMapPinFilled,
     IconRoute,
+    IconShare2,
     IconX,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
@@ -99,7 +101,23 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         <ScrollArea scrollbars="y" offsetScrollbars={true} classNames={{ root: classes.container }}>
             <div className={classes.inner}>
                 <div className={classes['top-section']}>
-                    <h1>Objet détecté #{detectionObject.id}</h1>
+                    <h1>
+                        Objet détecté{' '}
+                        <Anchor
+                            onClick={() => {
+                                navigator.clipboard.writeText(getDetectionObjectLink(detectionObject.uuid, true));
+                                notifications.show({
+                                    title: 'Lien copié dans le presse-papier',
+                                    message: "Le lien vers l'objet détecté a été copié dans le presse-papier",
+                                });
+                            }}
+                            component="button"
+                        >
+                            <h1>
+                                #{detectionObject.id} <IconShare2 />
+                            </h1>
+                        </Anchor>
+                    </h1>
 
                     {onClose ? (
                         <ActionIcon variant="transparent" onClick={onClose} aria-label="Fermer le détail de détection">
