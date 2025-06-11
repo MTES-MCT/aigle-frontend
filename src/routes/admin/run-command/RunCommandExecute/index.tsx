@@ -1,5 +1,4 @@
 import { RUN_COMMAND_LIST_ENDPOINT } from '@/api-endpoints';
-import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
 import { CommandWithParameters } from '@/models/command';
@@ -87,7 +86,7 @@ const Component: React.FC = () => {
     });
 
     return (
-        <LayoutAdminBase title="Executer une commande">
+        <>
             {isLoading || !commands ? (
                 <Loader />
             ) : (
@@ -109,7 +108,7 @@ const Component: React.FC = () => {
                 hide={() => setCommandModalShowed(undefined)}
                 command={commandModalShowed}
             />
-        </LayoutAdminBase>
+        </>
     );
 };
 

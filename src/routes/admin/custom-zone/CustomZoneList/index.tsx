@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
 
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
+import { Section } from '@/models/ui/section';
 import CustomZoneCategoryDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneCategoryDataTable';
 import CustomZoneDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneDataTable';
 import { Button } from '@mantine/core';
 import { IconHexagonPlus2, IconHexagonalPrismPlus } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
-
-interface Section {
-    title: string;
-    titleCompact: string;
-    id: 'CUSTOM_ZONES' | 'CUSTOM_ZONE_CATEGORIES';
-}
 
 const SECTIONS_DISPLAYED: Section[] = [
     {

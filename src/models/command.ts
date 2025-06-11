@@ -13,3 +13,13 @@ export interface CommandWithParameters {
     help?: string;
     parameters: CommandParameter[];
 }
+
+export interface CommandTask {
+    taskId: string;
+    name: string;
+    args: string;
+    kwargs: Record<string, string | number | boolean>;
+    worker: string;
+    status: string;
+    eta: string;
+}

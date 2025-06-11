@@ -16,7 +16,7 @@ import ObjectTypeCategoryForm from '@/routes/admin/object-type-category/ObjectTy
 import ObjectTypeCategoryList from '@/routes/admin/object-type-category/ObjectTypeCategoryList';
 import ObjectTypeForm from '@/routes/admin/object-type/ObjectTypeForm';
 import ObjectTypeList from '@/routes/admin/object-type/ObjectTypeList';
-import RunCommand from '@/routes/admin/RunCommand';
+import RunCommand from '@/routes/admin/run-command';
 import TileSetForm from '@/routes/admin/tile-set/TileSetForm';
 import TileSetList from '@/routes/admin/tile-set/TileSetList';
 import UserGroupForm from '@/routes/admin/user-group/UserGroupForm';

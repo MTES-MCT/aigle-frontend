@@ -23,6 +23,7 @@ export const getUserGroupDetailEndpoint = (uuid: string) => `${USER_GROUP_LIST_E
 const BASE_RUN_COMMAND = `${BASE_API}run-command/`;
 export const RUN_COMMAND_LIST_ENDPOINT = `${BASE_RUN_COMMAND}`;
 export const RUN_COMMAND_RUN_ENDPOINT = `${BASE_RUN_COMMAND}run/`;
+export const RUN_COMMAND_TASKS_ENDPOINT = `${BASE_RUN_COMMAND}tasks/`;
 
 // geo
 
