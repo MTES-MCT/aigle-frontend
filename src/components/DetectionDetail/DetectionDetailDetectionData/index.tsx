@@ -90,40 +90,6 @@ const postForm = async (
     };
 };
 
-const downloadPriorLetter = async (detectionObjectUuid: string) => {
-    const response = await api.get<Blob>(getGeneratePriorLetterEndpoint(detectionObjectUuid), {
-        responseType: 'blob',
-    });
-
-    const blob = new Blob([response.data], {
-        type: response.headers['content-type'],
-    });
-
-    const contentDisposition = response.headers['content-disposition'];
-    let filename = 'Courrier préalable.odt'; // fallback filename
-
-    if (contentDisposition) {
-        // Parse Content-Disposition header to extract filename
-        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        console.log({
-            contentDisposition,
-            filenameMatch,
-        });
-        if (filenameMatch && filenameMatch[1]) {
-            filename = filenameMatch[1].replace(/['"]/g, ''); // remove quotes
-        }
-    }
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-
-    link.remove();
-    window.URL.revokeObjectURL(url);
-};
 
 interface FormProps {
     detectionObjectUuid: string;
@@ -168,12 +134,6 @@ const Form: React.FC<FormProps> = ({
                 // @ts-expect-error types do not match
                 form.setErrors(error.response?.data);
             }
-        },
-    });
-    const downloadPriorLetterMutation = useMutation({
-        mutationFn: () => downloadPriorLetter(detectionObjectUuid),
-        onError: (error) => {
-            console.error('Error downloading prior letter:', error);
         },
     });
 
@@ -277,20 +237,6 @@ const Form: React.FC<FormProps> = ({
                 rightSection={mutation.status === 'pending' ? <MantineLoader size="xs" /> : null}
                 {...form.getInputProps('detectionControlStatus')}
             />
-
-            {form.getValues().detectionControlStatus === DETECTION_CONTROL_STATUS_SHOW_DOWNLOAD_PRIOR_LETTER ? (
-                <Button
-                    fullWidth
-                    variant="outline"
-                    onClick={() => downloadPriorLetterMutation.mutate()}
-                    disabled={downloadPriorLetterMutation.isPending}
-                    leftSection={downloadPriorLetterMutation.isPending ? <MantineLoader size="xs" /> : <IconMailDown />}
-                    mt="md"
-                >
-                    Télécharger le courrier préalable
-                </Button>
-            ) : null}
-
             {form.getValues().detectionControlStatus === 'OFFICIAL_REPORT_DRAWN_UP' ? (
                 <DateInput
                     mt="md"

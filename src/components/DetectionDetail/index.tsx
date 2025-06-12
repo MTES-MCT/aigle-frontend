@@ -1,4 +1,8 @@
-import { getDetectionForceVisibleEndpoint, getDetectionObjectDetailEndpoint } from '@/api-endpoints';
+import {
+    getDetectionForceVisibleEndpoint,
+    getDetectionObjectDetailEndpoint,
+    getGeneratePriorLetterEndpoint,
+} from '@/api-endpoints';
 import DetectionDetailDetectionData from '@/components/DetectionDetail/DetectionDetailDetectionData';
 import DetectionDetailDetectionObject from '@/components/DetectionDetail/DetectionDetailDetectionObject';
 import DetectionTileHistory from '@/components/DetectionDetail/DetectionTileHistory';
@@ -21,6 +25,7 @@ import {
     IconCalendarClock,
     IconDownload,
     IconHexagon,
+    IconMailDown,
     IconMap,
     IconMapDown,
     IconMapPin,
@@ -29,7 +34,7 @@ import {
     IconShare2,
     IconX,
 } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { centroid, getCoord } from '@turf/turf';
 import clsx from 'clsx';
 import { Position } from 'geojson';
@@ -45,6 +50,40 @@ const updateAdress = (objectTypeUuid: string, address: string) => {
     return api.patch(getDetectionObjectDetailEndpoint(objectTypeUuid), {
         address,
     });
+};
+const downloadPriorLetter = async (detectionObjectUuid: string) => {
+    const response = await api.get<Blob>(getGeneratePriorLetterEndpoint(detectionObjectUuid), {
+        responseType: 'blob',
+    });
+
+    const blob = new Blob([response.data], {
+        type: response.headers['content-type'],
+    });
+
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = 'Courrier préalable.odt'; // fallback filename
+
+    if (contentDisposition) {
+        // Parse Content-Disposition header to extract filename
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        console.log({
+            contentDisposition,
+            filenameMatch,
+        });
+        if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, ''); // remove quotes
+        }
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(url);
 };
 
 interface ComponentInnerProps {
@@ -79,6 +118,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 
     const latLong = `${centerPoint[1].toFixed(5)}, ${centerPoint[0].toFixed(5)}`;
     const [address, setAddress] = useState<string | null | undefined>(detectionObject.address || undefined);
+
+    const downloadPriorLetterMutation = useMutation({
+        mutationFn: () => downloadPriorLetter(detectionObject.uuid),
+        onError: (error) => {
+            console.error('Error downloading prior letter:', error);
+        },
+    });
 
     useEffect(() => {
         if (detectionObject.address) {
@@ -203,6 +249,24 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         />
                     ) : null}
                 </div>
+                <Tooltip label="Télécharger le courrier préalable à la parcelle" position="bottom-start">
+                    <Button
+                        fullWidth
+                        variant="outline"
+                        disabled={downloadPriorLetterMutation.isPending}
+                        size="xs"
+                        onClick={() => downloadPriorLetterMutation.mutate()}
+                        leftSection={
+                            downloadPriorLetterMutation.isPending ? (
+                                <MantineLoader size="xs" />
+                            ) : (
+                                <IconMailDown size={20} />
+                            )
+                        }
+                    >
+                        Courrier préalable à la parcelle
+                    </Button>
+                </Tooltip>
 
                 <Tooltip label="Ouvrir dans Google Maps" position="bottom-start">
                     <Button
