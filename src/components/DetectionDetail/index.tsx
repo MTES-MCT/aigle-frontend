@@ -1,8 +1,4 @@
-import {
-    getDetectionForceVisibleEndpoint,
-    getDetectionObjectDetailEndpoint,
-    getGeneratePriorLetterEndpoint,
-} from '@/api-endpoints';
+import { getDetectionForceVisibleEndpoint } from '@/api-endpoints';
 import DetectionDetailDetectionData from '@/components/DetectionDetail/DetectionDetailDetectionData';
 import DetectionDetailDetectionObject from '@/components/DetectionDetail/DetectionDetailDetectionObject';
 import DetectionTileHistory from '@/components/DetectionDetail/DetectionTileHistory';
@@ -12,12 +8,12 @@ import DateInfo from '@/components/ui/DateInfo';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
 import WarningCard from '@/components/ui/WarningCard';
+import { useDetectionAddress, useDetectionObjectDetail, usePriorLetterDownload } from '@/hooks';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { useMap } from '@/utils/context/map-context';
 import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
-import { getAddressFromPolygon } from '@/utils/geojson';
 import { getDetectionObjectLink } from '@/utils/link';
 import { Accordion, ActionIcon, Anchor, Button, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -34,57 +30,16 @@ import {
     IconShare2,
     IconX,
 } from '@tabler/icons-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { centroid, getCoord } from '@turf/turf';
+import { centroid } from '@turf/turf';
 import clsx from 'clsx';
 import { Position } from 'geojson';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
 type SignalementPDFType = 'detectionObject' | 'parcel';
 
 const getGoogleMapLink = (point: Position) => `https://www.google.com/maps/?t=k&q=${point[1]},${point[0]}`;
-
-const updateAdress = (objectTypeUuid: string, address: string) => {
-    return api.patch(getDetectionObjectDetailEndpoint(objectTypeUuid), {
-        address,
-    });
-};
-const downloadPriorLetter = async (detectionObjectUuid: string) => {
-    const response = await api.get<Blob>(getGeneratePriorLetterEndpoint(detectionObjectUuid), {
-        responseType: 'blob',
-    });
-
-    const blob = new Blob([response.data], {
-        type: response.headers['content-type'],
-    });
-
-    const contentDisposition = response.headers['content-disposition'];
-    let filename = 'Courrier préalable.odt'; // fallback filename
-
-    if (contentDisposition) {
-        // Parse Content-Disposition header to extract filename
-        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        console.log({
-            contentDisposition,
-            filenameMatch,
-        });
-        if (filenameMatch && filenameMatch[1]) {
-            filename = filenameMatch[1].replace(/['"]/g, ''); // remove quotes
-        }
-    }
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-
-    link.remove();
-    window.URL.revokeObjectURL(url);
-};
 
 interface ComponentInnerProps {
     detectionObject: DetectionObjectDetail;
@@ -107,6 +62,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     const [signalementPdfGenerating, setSignalementPdfGenerating] = useState<SignalementPDFType | undefined>();
     const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
+    // Use custom hooks for business logic
+    const { address, isLoading: isAddressLoading } = useDetectionAddress(detectionObject);
+    const { downloadPriorLetter, isDownloading } = usePriorLetterDownload();
+
     const initialDetection =
         detectionObject.detections.find((detection) => detection.uuid === detectionUuid) ||
         detectionObject.detections[0];
@@ -117,31 +76,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     } = centroid(initialDetection.geometry);
 
     const latLong = `${centerPoint[1].toFixed(5)}, ${centerPoint[0].toFixed(5)}`;
-    const [address, setAddress] = useState<string | null | undefined>(detectionObject.address || undefined);
-
-    const downloadPriorLetterMutation = useMutation({
-        mutationFn: () => downloadPriorLetter(detectionObject.uuid),
-        onError: (error) => {
-            console.error('Error downloading prior letter:', error);
-        },
-    });
-
-    useEffect(() => {
-        if (detectionObject.address) {
-            return;
-        }
-
-        const getAddress = async () => {
-            const address = await getAddressFromPolygon(detectionObject.detections[0].geometry);
-            setAddress(address);
-
-            if (address) {
-                await updateAdress(detectionObject.uuid, address);
-            }
-        };
-
-        getAddress();
-    }, []);
 
     return (
         <ScrollArea scrollbars="y" offsetScrollbars={true} classNames={{ root: classes.container }}>
@@ -253,16 +187,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <Button
                         fullWidth
                         variant="outline"
-                        disabled={downloadPriorLetterMutation.isPending}
+                        disabled={isDownloading}
                         size="xs"
-                        onClick={() => downloadPriorLetterMutation.mutate()}
-                        leftSection={
-                            downloadPriorLetterMutation.isPending ? (
-                                <MantineLoader size="xs" />
-                            ) : (
-                                <IconMailDown size={20} />
-                            )
-                        }
+                        onClick={() => downloadPriorLetter(detectionObject.uuid)}
+                        leftSection={isDownloading ? <MantineLoader size="xs" /> : <IconMailDown size={20} />}
                     >
                         Courrier préalable à la parcelle
                     </Button>
@@ -331,7 +259,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                             address
                                         ) : (
                                             <>
-                                                {address === undefined ? (
+                                                {isAddressLoading || address === undefined ? (
                                                     <>
                                                         <i>Chargement de l&apos;adresse...</i>
                                                         <MantineLoader ml="xs" size="xs" />
@@ -458,39 +386,14 @@ const Component: React.FC<ComponentProps> = ({
     setDetectionUnhidden,
     onClose,
 }: ComponentProps) => {
-    const { eventEmitter, setIsDetailFetching } = useMap();
-    const fetchData = async () => {
-        const res = await api.get<DetectionObjectDetail>(getDetectionObjectDetailEndpoint(detectionObjectUuid));
-
-        return res.data;
-    };
+    // Use custom hook for detection object fetching
     const {
-        data: detectionObject,
+        detectionObject,
         isRefetching: detectionObjectRefreshing,
-        refetch,
-        isFetching: isFetchingDetectionObject,
-    } = useQuery({
-        queryKey: [getDetectionObjectDetailEndpoint(String(detectionObjectUuid))],
-        queryFn: async () => {
-            const res = await fetchData();
+        isLoading,
+    } = useDetectionObjectDetail(detectionObjectUuid);
 
-            eventEmitter.emit('JUMP_TO', getCoord(centroid(res.detections[0].geometry)));
-
-            return res;
-        },
-    });
-    useEffect(() => {
-        setIsDetailFetching(isFetchingDetectionObject);
-    }, [isFetchingDetectionObject]);
-    useEffect(() => {
-        eventEmitter.on('UPDATE_DETECTION_DETAIL', refetch);
-
-        return () => {
-            eventEmitter.off('UPDATE_DETECTION_DETAIL', refetch);
-        };
-    }, []);
-
-    if (!detectionObject) {
+    if (isLoading || !detectionObject) {
         return <Loader className={classes.loader} />;
     }
 

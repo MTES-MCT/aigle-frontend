@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
 import { USER_GROUP_LIST_ENDPOINT } from '@/api-endpoints';
+import PillsDataCell from '@/components/admin/DataCells/PillsDataCell';
 import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import SoloAccordion from '@/components/admin/SoloAccordion';
-import PillsDataCell from '@/components/admin/data-cells/PillsDataCell';
 import DateInfo from '@/components/ui/DateInfo';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { GeoZone } from '@/models/geo/geo-zone';

@@ -7,8 +7,8 @@ import {
     getUserDetailEndpoint,
     getUserGroupDetailEndpoint,
 } from '@/api-endpoints';
+import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
-import GeoCollectivitiesMultiSelects from '@/components/admin/form-fields/GeoCollectivitiesMultiSelects';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
@@ -79,8 +79,10 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         onError: (error) => {
             setError(error);
             if (error.response?.data) {
-                // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                // Fixed TypeScript error
+                if (error.response?.data && typeof error.response.data === 'object') {
+                    form.setErrors(error.response.data as Record<string, string>);
+                }
             }
         },
     });

@@ -1,8 +1,4 @@
-import {
-    DETECTION_POST_ENDPOINT,
-    getDetectionDataDetailEndpoint,
-    getGeneratePriorLetterEndpoint,
-} from '@/api-endpoints';
+import { DETECTION_POST_ENDPOINT, getDetectionDataDetailEndpoint } from '@/api-endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoBubble from '@/components/ui/InfoBubble';
@@ -30,7 +26,6 @@ import { useMap } from '@/utils/context/map-context';
 import { Button, Checkbox, LoadingOverlay, Loader as MantineLoader, Select, Text } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import { IconMailDown } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
 import { bbox } from '@turf/turf';
 import { AxiosError } from 'axios';
@@ -39,8 +34,6 @@ import { format, parse } from 'date-fns';
 import { Polygon } from 'geojson';
 import React, { useEffect, useMemo, useState } from 'react';
 import classes from './index.module.scss';
-
-const DETECTION_CONTROL_STATUS_SHOW_DOWNLOAD_PRIOR_LETTER = 'PRIOR_LETTER_SENT';
 
 interface FormValues {
     detectionControlStatus: DetectionControlStatus;
@@ -89,7 +82,6 @@ const postForm = async (
         officialReportDate: resValue.officialReportDate ? new Date(resValue.officialReportDate) : null,
     };
 };
-
 
 interface FormProps {
     detectionObjectUuid: string;
