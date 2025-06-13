@@ -42,7 +42,7 @@ export const usePriorLetterDownload = () => {
     });
 
     return {
-        downloadPriorLetter: mutation.mutate,
+        downloadPriorLetter: mutation.mutateAsync,
         isDownloading: mutation.isPending,
         error: mutation.error,
     };

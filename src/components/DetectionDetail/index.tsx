@@ -189,7 +189,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         variant="outline"
                         disabled={isDownloading}
                         size="xs"
-                        onClick={() => downloadPriorLetter(detectionObject.uuid)}
+                        onClick={async () => {
+                            setSignalementPdfGenerating('parcel');
+                            await downloadPriorLetter(detectionObject.uuid);
+                            eventEmitter.emit('UPDATE_DETECTION_DETAIL');
+                        }}
                         leftSection={isDownloading ? <MantineLoader size="xs" /> : <IconMailDown size={20} />}
                     >
                         Courrier préalable à la parcelle
