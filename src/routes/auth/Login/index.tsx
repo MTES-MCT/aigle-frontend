@@ -52,9 +52,8 @@ const Component: React.FC = () => {
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
-                // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+            if (error.response?.data && typeof error.response.data === 'object') {
+                form.setErrors(error.response.data as Record<string, string>);
             }
         },
     });

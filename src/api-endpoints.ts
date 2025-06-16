@@ -1,182 +1,132 @@
-import { CollectivityType } from '@/models/geo/_common';
+// DEPRECATED: This file is maintained for backward compatibility.
+// Use the new API structure in @/api/endpoints/ instead.
 
-const BASE_AUTH = '/auth/';
-export const AUTH_REGISTER_ENDPOINT = `${BASE_AUTH}users/`;
-export const AUTH_LOGIN_ENDPOINT = `${BASE_AUTH}jwt/create/`;
-export const AUTH_REFRESH_TOKEN_ENDPOINT = `${BASE_AUTH}jwt/refresh/`;
-export const AUTH_RESET_PASSWORD_ENDPOINT = `${BASE_AUTH}users/reset_password/`;
-export const AUTH_RESET_PASSWORD_CONFIRM_ENDPOINT = `${BASE_AUTH}users/reset_password_confirm/`;
+import {
+    authEndpoints,
+    customZoneEndpoints,
+    detectionDataEndpoints,
+    detectionEndpoints,
+    detectionObjectEndpoints,
+    geoEndpoints,
+    getGeoCreateEndpoint,
+    getGeoDetailEndpoint,
+    getGeoListEndpoint,
+    mapEndpoints,
+    objectTypeCategoryEndpoints,
+    objectTypeEndpoints,
+    parcelEndpoints,
+    runCommandEndpoints,
+    statisticsEndpoints,
+    tileSetEndpoints,
+    userGroupEndpoints,
+    usersEndpoints,
+    utilsEndpoints,
+    type DownloadOutputFormat,
+} from '@/api/endpoints';
 
-const BASE_API = '/api/';
+// Auth endpoints
+export const AUTH_REGISTER_ENDPOINT = authEndpoints.register;
+export const AUTH_LOGIN_ENDPOINT = authEndpoints.login;
+export const AUTH_REFRESH_TOKEN_ENDPOINT = authEndpoints.refreshToken;
+export const AUTH_RESET_PASSWORD_ENDPOINT = authEndpoints.resetPassword;
+export const AUTH_RESET_PASSWORD_CONFIRM_ENDPOINT = authEndpoints.resetPasswordConfirm;
 
-const BASE_USERS = `${BASE_API}users/`;
-export const USERS_LIST_ENDPOINT = `${BASE_USERS}`;
-export const USERS_POST_ENDPOINT = `${BASE_USERS}`;
-export const USERS_ME_ENDPOINT = `${BASE_USERS}me/`;
-export const getUserDetailEndpoint = (uuid: string) => `${USERS_POST_ENDPOINT}${uuid}/`;
+// User endpoints
+export const USERS_LIST_ENDPOINT = usersEndpoints.list;
+export const USERS_POST_ENDPOINT = usersEndpoints.create;
+export const USERS_ME_ENDPOINT = usersEndpoints.me;
+export const getUserDetailEndpoint = usersEndpoints.detail;
 
-const BASE_USER_GROUP = `${BASE_API}user-group/`;
-export const USER_GROUP_LIST_ENDPOINT = `${BASE_USER_GROUP}`;
-export const USER_GROUP_POST_ENDPOINT = `${BASE_USER_GROUP}`;
-export const getUserGroupDetailEndpoint = (uuid: string) => `${USER_GROUP_LIST_ENDPOINT}${uuid}/`;
+// User group endpoints
+export const USER_GROUP_LIST_ENDPOINT = userGroupEndpoints.list;
+export const USER_GROUP_POST_ENDPOINT = userGroupEndpoints.create;
+export const getUserGroupDetailEndpoint = userGroupEndpoints.detail;
 
-// geo
+// Run command endpoints
+export const RUN_COMMAND_LIST_ENDPOINT = runCommandEndpoints.list;
+export const RUN_COMMAND_RUN_ENDPOINT = runCommandEndpoints.run;
+export const RUN_COMMAND_TASKS_ENDPOINT = runCommandEndpoints.tasks;
 
-const BASE_GEO = `${BASE_API}geo/`;
+// Geo endpoints
+export const GEO_REGION_LIST_ENDPOINT = geoEndpoints.region.list;
+export const GEO_REGION_POST_ENDPOINT = geoEndpoints.region.create;
+export const getGeoRegionDetailEndpoint = geoEndpoints.region.detail;
 
-const BASE_GEO_REGION = `${BASE_GEO}region/`;
-export const GEO_REGION_LIST_ENDPOINT = `${BASE_GEO_REGION}`;
-export const GEO_REGION_POST_ENDPOINT = `${BASE_GEO_REGION}`;
-export const getGeoRegionDetailEndpoint = (uuid: string) => `${GEO_REGION_POST_ENDPOINT}${uuid}/`;
+export const GEO_DEPARTMENT_LIST_ENDPOINT = geoEndpoints.department.list;
+export const GEO_DEPARTMENT_POST_ENDPOINT = geoEndpoints.department.create;
+export const getGeoDepartmentDetailEndpoint = geoEndpoints.department.detail;
 
-const BASE_GEO_DEPARTMENT = `${BASE_GEO}department/`;
-export const GEO_DEPARTMENT_LIST_ENDPOINT = `${BASE_GEO_DEPARTMENT}`;
-export const GEO_DEPARTMENT_POST_ENDPOINT = `${BASE_GEO_DEPARTMENT}`;
-export const getGeoDepartmentDetailEndpoint = (uuid: string) => `${GEO_DEPARTMENT_POST_ENDPOINT}${uuid}/`;
+export const GEO_COMMUNE_LIST_ENDPOINT = geoEndpoints.commune.list;
+export const GEO_COMMUNE_POST_ENDPOINT = geoEndpoints.commune.create;
+export const getGeoCommuneDetailEndpoint = geoEndpoints.commune.detail;
 
-const BASE_GEO_COMMUNE = `${BASE_GEO}commune/`;
-export const GEO_COMMUNE_LIST_ENDPOINT = `${BASE_GEO_COMMUNE}`;
-export const GEO_COMMUNE_POST_ENDPOINT = `${BASE_GEO_COMMUNE}`;
-export const getGeoCommuneDetailEndpoint = (uuid: string) => `${GEO_COMMUNE_POST_ENDPOINT}${uuid}/`;
+// Custom zone endpoints
+export const GEO_CUSTOM_ZONE_LIST_ENDPOINT = customZoneEndpoints.list;
+export const GEO_CUSTOM_ZONE_POST_ENDPOINT = customZoneEndpoints.create;
+export const getGeoCustomZoneDetailEndpoint = customZoneEndpoints.detail;
 
-export const getGeoListEndpoint = (collectivityType: CollectivityType) => {
-    if (collectivityType === 'region') {
-        return GEO_REGION_LIST_ENDPOINT;
-    }
+export const GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT = customZoneEndpoints.category.list;
+export const GEO_CUSTOM_ZONE_CATEGORY_POST_ENDPOINT = customZoneEndpoints.category.create;
+export const getGeoCustomZoneCategoryDetailEndpoint = customZoneEndpoints.category.detail;
 
-    if (collectivityType === 'department') {
-        return GEO_DEPARTMENT_LIST_ENDPOINT;
-    }
+// Object type endpoints
+export const OBJECT_TYPE_LIST_ENDPOINT = objectTypeEndpoints.list;
+export const OBJECT_TYPE_POST_ENDPOINT = objectTypeEndpoints.create;
+export const getObjectTypeDetailEndpoint = objectTypeEndpoints.detail;
 
-    if (collectivityType === 'commune') {
-        return GEO_COMMUNE_LIST_ENDPOINT;
-    }
+export const OBJECT_TYPE_CATEGORY_LIST_ENDPOINT = objectTypeCategoryEndpoints.list;
+export const OBJECT_TYPE_CATEGORY_POST_ENDPOINT = objectTypeCategoryEndpoints.create;
+export const getObjectTypeCategoryDetailEndpoint = objectTypeCategoryEndpoints.detail;
 
-    throw new Error(`Unknown collectivity type ${collectivityType}`);
-};
+// Tile set endpoints
+export const TILE_SET_LIST_ENDPOINT = tileSetEndpoints.list;
+export const TILE_SET_POST_ENDPOINT = tileSetEndpoints.create;
+export const TILE_SET_LAST_FROM_COORDINATES_ENDPOINT = tileSetEndpoints.lastFromCoordinates;
+export const getTileSetDetailEndpoint = tileSetEndpoints.detail;
 
-const BASE_GEO_CUSTOM_ZONE = `${BASE_GEO}custom-zone/`;
-export const GEO_CUSTOM_ZONE_LIST_ENDPOINT = `${BASE_GEO_CUSTOM_ZONE}`;
-export const GEO_CUSTOM_ZONE_POST_ENDPOINT = `${BASE_GEO_CUSTOM_ZONE}`;
-export const getGeoCustomZoneDetailEndpoint = (uuid: string) => `${GEO_CUSTOM_ZONE_LIST_ENDPOINT}${uuid}/`;
+// Map endpoints
+export const MAP_SETTINGS_ENDPOINT = mapEndpoints.settings;
 
-const BASE_GEO_CUSTOM_ZONE_CATEGORY = `${BASE_GEO}custom-zone-category/`;
-export const GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT = `${BASE_GEO_CUSTOM_ZONE_CATEGORY}`;
-export const GEO_CUSTOM_ZONE_CATEGORY_POST_ENDPOINT = `${BASE_GEO_CUSTOM_ZONE_CATEGORY}`;
-export const getGeoCustomZoneCategoryDetailEndpoint = (uuid: string) => `${BASE_GEO_CUSTOM_ZONE_CATEGORY}${uuid}/`;
+// Detection endpoints
+export const DETECTION_POST_ENDPOINT = detectionEndpoints.create;
+export const DETECTION_LIST_ENDPOINT = detectionEndpoints.list;
+export const DETECTION_LIST_OVERVIEW_ENDPOINT = detectionEndpoints.listOverview;
+export const DETECTION_MULTIPLE_POST_ENDPOINT = detectionEndpoints.multiple;
+export const getDetectionDetailEndpoint = detectionEndpoints.detail;
+export const getDetectionForceVisibleEndpoint = detectionEndpoints.forceVisible;
+export const getDetectionListDownloadEndpoint = detectionEndpoints.download;
+export const getDetectionListEndpoint = detectionEndpoints.getList;
 
-export const getGeoPostEndpoint = (collectivityType: CollectivityType) => {
-    if (collectivityType === 'region') {
-        return GEO_REGION_POST_ENDPOINT;
-    }
+// Detection object endpoints
+export const DETECTION_OBJECT_LIST_ENDPOINT = detectionObjectEndpoints.list;
+export const DETECTION_OBJECT_POST_ENDPOINT = detectionObjectEndpoints.create;
+export const getDetectionObjectDetailEndpoint = detectionObjectEndpoints.detail;
+export const getDetectionObjectHistoryEndpoint = detectionObjectEndpoints.history;
+export const DETECTION_OBJECT_FROM_COORDINATES_ENDPOINT = detectionObjectEndpoints.fromCoordinates;
 
-    if (collectivityType === 'department') {
-        return GEO_DEPARTMENT_POST_ENDPOINT;
-    }
+// Detection data endpoints
+export const DETECTION_DATA_POST_ENDPOINT = detectionDataEndpoints.create;
+export const getDetectionDataDetailEndpoint = detectionDataEndpoints.detail;
 
-    if (collectivityType === 'commune') {
-        return GEO_COMMUNE_POST_ENDPOINT;
-    }
+// Parcel endpoints
+export const PARCEL_LIST_ENDPOINT = parcelEndpoints.list;
+export const getDetectionParcelDetailEndpoint = parcelEndpoints.detail;
+export const getParcelDownloadInfosEndpoint = parcelEndpoints.downloadInfos;
+export const PARCEL_SUGGEST_SECTION_ENDPOINT = parcelEndpoints.suggestSection;
+export const PARCEL_SUGGEST_NUM_PARCEL_ENDPOINT = parcelEndpoints.suggestNumParcel;
 
-    throw new Error(`Unknown collectivity type ${collectivityType}`);
-};
+// Utils endpoints
+export const IMPORTS_INFOS_ENDPOINT = utilsEndpoints.importsInfos;
+export const GET_CUSTOM_GEOMETRY_ENDPOINT = utilsEndpoints.customGeometry;
+export const GET_ANNOTATION_GRID_ENDPOINT = utilsEndpoints.annotationGrid;
+export const getGeneratePriorLetterEndpoint = utilsEndpoints.generatePriorLetter;
 
-export const getGeoDetailEndpoint = (collectivityType: CollectivityType, uuid: string) => {
-    if (collectivityType === 'region') {
-        return getGeoRegionDetailEndpoint(uuid);
-    }
+// Statistics endpoints
+export const STATISTICS_VALIDATION_STATUS_EVOLUTION_ENDPOINT = statisticsEndpoints.validationStatusEvolution;
+export const STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT = statisticsEndpoints.validationStatusGlobal;
+export const STATISTICS_VALIDATION_STATUS_OBJECT_TYPES_GLOBAL_ENDPOINT =
+    statisticsEndpoints.validationStatusObjectTypesGlobal;
 
-    if (collectivityType === 'department') {
-        return getGeoDepartmentDetailEndpoint(uuid);
-    }
-
-    if (collectivityType === 'commune') {
-        return getGeoCommuneDetailEndpoint(uuid);
-    }
-
-    throw new Error(`Unknown collectivity type ${collectivityType}`);
-};
-
-const BASE_OBJECT_TYPE = `${BASE_API}object-type/`;
-export const OBJECT_TYPE_LIST_ENDPOINT = `${BASE_OBJECT_TYPE}`;
-export const OBJECT_TYPE_POST_ENDPOINT = `${BASE_OBJECT_TYPE}`;
-export const getObjectTypeDetailEndpoint = (uuid: string) => `${OBJECT_TYPE_LIST_ENDPOINT}${uuid}/`;
-
-const BASE_OBJECT_TYPE_CATEGORY = `${BASE_API}object-type-category/`;
-export const OBJECT_TYPE_CATEGORY_LIST_ENDPOINT = `${BASE_OBJECT_TYPE_CATEGORY}`;
-export const OBJECT_TYPE_CATEGORY_POST_ENDPOINT = `${BASE_OBJECT_TYPE_CATEGORY}`;
-export const getObjectTypeCategoryDetailEndpoint = (uuid: string) => `${OBJECT_TYPE_CATEGORY_LIST_ENDPOINT}${uuid}/`;
-
-const BASE_TILE_SET = `${BASE_API}tile-set/`;
-export const TILE_SET_LIST_ENDPOINT = `${BASE_TILE_SET}`;
-export const TILE_SET_POST_ENDPOINT = `${BASE_TILE_SET}`;
-export const TILE_SET_LAST_FROM_COORDINATES_ENDPOINT = `${BASE_TILE_SET}last-from-coordinates/`;
-export const getTileSetDetailEndpoint = (uuid: string) => `${BASE_TILE_SET}${uuid}/`;
-
-export const MAP_SETTINGS_ENDPOINT = `${BASE_API}map-settings/`;
-
-const BASE_DETECTION = `${BASE_API}detection/`;
-export const DETECTION_POST_ENDPOINT = `${BASE_DETECTION}`;
-export const DETECTION_LIST_ENDPOINT = `${BASE_API}detection-list/`;
-export const DETECTION_LIST_OVERVIEW_ENDPOINT = `${DETECTION_LIST_ENDPOINT}overview/`;
-const DETECTION_LIST_DOWNLOAD_ENDPOINT = `${DETECTION_LIST_ENDPOINT}download/`;
-export type DownloadOutputFormat = 'csv' | 'xlsx';
-export const getDetectionListDownloadEndpoint = (outputFormat: DownloadOutputFormat) => {
-    const searchParams = new URLSearchParams();
-    searchParams.set('outputFormat', outputFormat);
-
-    return `${DETECTION_LIST_DOWNLOAD_ENDPOINT}?${searchParams.toString()}`;
-};
-
-export const DETECTION_MULTIPLE_POST_ENDPOINT = `${BASE_DETECTION}multiple/`;
-export const getDetectionListEndpoint = (detail: boolean = false, geoFeature: boolean = false) => {
-    const searchParams = new URLSearchParams();
-
-    if (detail) {
-        searchParams.set('detail', 'true');
-    }
-
-    let base: string;
-
-    if (geoFeature) {
-        base = BASE_DETECTION;
-        searchParams.set('geoFeature', 'true');
-    } else {
-        base = DETECTION_LIST_ENDPOINT;
-    }
-
-    return `${base}?${searchParams.toString()}`;
-};
-export const getDetectionDetailEndpoint = (uuid: string) => `${BASE_DETECTION}${uuid}/`;
-export const getDetectionForceVisibleEndpoint = (uuid: string) => `${getDetectionDetailEndpoint(uuid)}force-visible/`;
-
-const BASE_DETECTION_OBJECT = `${BASE_API}detection-object/`;
-export const DETECTION_OBJECT_LIST_ENDPOINT = `${BASE_DETECTION_OBJECT}`;
-export const DETECTION_OBJECT_POST_ENDPOINT = `${BASE_DETECTION_OBJECT}`;
-export const getDetectionObjectDetailEndpoint = (uuid: string) => `${BASE_DETECTION_OBJECT}${uuid}/`;
-export const getDetectionObjectHistoryEndpoint = (uuid: string) => `${BASE_DETECTION_OBJECT}${uuid}/history/`;
-export const DETECTION_OBJECT_FROM_COORDINATES_ENDPOINT = `${BASE_DETECTION_OBJECT}from-coordinates/`;
-
-const BASE_DETECTION_DATA = `${BASE_API}detection-data/`;
-export const DETECTION_DATA_POST_ENDPOINT = `${BASE_DETECTION_DATA}`;
-export const getDetectionDataDetailEndpoint = (uuid: string) => `${BASE_DETECTION_DATA}${uuid}/`;
-
-const BASE_PARCEL = `${BASE_API}parcel/`;
-export const PARCEL_LIST_ENDPOINT = `${BASE_PARCEL}`;
-export const getDetectionParcelDetailEndpoint = (uuid: string) => `${BASE_PARCEL}${uuid}/`;
-export const getParcelDownloadInfosEndpoint = (uuid: string) =>
-    `${getDetectionParcelDetailEndpoint(uuid)}get_download_infos/`;
-export const PARCEL_SUGGEST_SECTION_ENDPOINT = `${BASE_PARCEL}suggest_section/`;
-export const PARCEL_SUGGEST_NUM_PARCEL_ENDPOINT = `${BASE_PARCEL}suggest_num_parcel/`;
-
-const BASE_UTILS = `${BASE_API}utils/`;
-export const IMPORTS_INFOS_ENDPOINT = `${BASE_UTILS}imports-infos/`;
-export const GET_CUSTOM_GEOMETRY_ENDPOINT = `${BASE_UTILS}get-custom-geometry/`;
-export const GET_ANNOTATION_GRID_ENDPOINT = `${BASE_UTILS}get-annotation-grid/`;
-export const getGeneratePriorLetterEndpoint = (detectionObjectUuid: string) =>
-    `${BASE_UTILS}generate-prior-letter/${detectionObjectUuid}/`;
-
-const BASE_STATISTICS = `${BASE_API}statistics/`;
-export const STATISTICS_VALIDATION_STATUS_EVOLUTION_ENDPOINT = `${BASE_STATISTICS}validation-status-evolution/`;
-export const STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT = `${BASE_STATISTICS}validation-status-global/`;
-export const STATISTICS_VALIDATION_STATUS_OBJECT_TYPES_GLOBAL_ENDPOINT = `${BASE_STATISTICS}validation-status-object-types-global/`;
+// Legacy function exports
+export { getGeoDetailEndpoint, getGeoListEndpoint, getGeoCreateEndpoint as getGeoPostEndpoint };
+export type { DownloadOutputFormat };

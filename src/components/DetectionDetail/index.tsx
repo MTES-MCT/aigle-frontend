@@ -1,4 +1,4 @@
-import { getDetectionForceVisibleEndpoint, getDetectionObjectDetailEndpoint } from '@/api-endpoints';
+import { getDetectionForceVisibleEndpoint } from '@/api-endpoints';
 import DetectionDetailDetectionData from '@/components/DetectionDetail/DetectionDetailDetectionData';
 import DetectionDetailDetectionObject from '@/components/DetectionDetail/DetectionDetailDetectionObject';
 import DetectionTileHistory from '@/components/DetectionDetail/DetectionTileHistory';
@@ -8,42 +8,38 @@ import DateInfo from '@/components/ui/DateInfo';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
 import WarningCard from '@/components/ui/WarningCard';
+import { useDetectionAddress, useDetectionObjectDetail, usePriorLetterDownload } from '@/hooks';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { useMap } from '@/utils/context/map-context';
 import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
-import { getAddressFromPolygon } from '@/utils/geojson';
-import { Accordion, ActionIcon, Button, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
+import { getDetectionObjectLink } from '@/utils/link';
+import { Accordion, ActionIcon, Anchor, Button, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
     IconCalendarClock,
     IconDownload,
     IconHexagon,
+    IconMailDown,
     IconMap,
     IconMapDown,
     IconMapPin,
     IconMapPinFilled,
     IconRoute,
+    IconShare2,
     IconX,
 } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
-import { centroid, getCoord } from '@turf/turf';
+import { centroid } from '@turf/turf';
 import clsx from 'clsx';
 import { Position } from 'geojson';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
 type SignalementPDFType = 'detectionObject' | 'parcel';
 
 const getGoogleMapLink = (point: Position) => `https://www.google.com/maps/?t=k&q=${point[1]},${point[0]}`;
-
-const updateAdress = (objectTypeUuid: string, address: string) => {
-    return api.patch(getDetectionObjectDetailEndpoint(objectTypeUuid), {
-        address,
-    });
-};
 
 interface ComponentInnerProps {
     detectionObject: DetectionObjectDetail;
@@ -66,6 +62,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     const [signalementPdfGenerating, setSignalementPdfGenerating] = useState<SignalementPDFType | undefined>();
     const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
+    // Use custom hooks for business logic
+    const { address, isLoading: isAddressLoading } = useDetectionAddress(detectionObject);
+    const { downloadPriorLetter, isDownloading } = usePriorLetterDownload();
+
     const initialDetection =
         detectionObject.detections.find((detection) => detection.uuid === detectionUuid) ||
         detectionObject.detections[0];
@@ -76,30 +76,28 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     } = centroid(initialDetection.geometry);
 
     const latLong = `${centerPoint[1].toFixed(5)}, ${centerPoint[0].toFixed(5)}`;
-    const [address, setAddress] = useState<string | null | undefined>(detectionObject.address || undefined);
-
-    useEffect(() => {
-        if (detectionObject.address) {
-            return;
-        }
-
-        const getAddress = async () => {
-            const address = await getAddressFromPolygon(detectionObject.detections[0].geometry);
-            setAddress(address);
-
-            if (address) {
-                await updateAdress(detectionObject.uuid, address);
-            }
-        };
-
-        getAddress();
-    }, []);
 
     return (
         <ScrollArea scrollbars="y" offsetScrollbars={true} classNames={{ root: classes.container }}>
             <div className={classes.inner}>
                 <div className={classes['top-section']}>
-                    <h1>Objet détecté #{detectionObject.id}</h1>
+                    <h1>
+                        Objet détecté{' '}
+                        <Anchor
+                            onClick={() => {
+                                navigator.clipboard.writeText(getDetectionObjectLink(detectionObject.uuid, true));
+                                notifications.show({
+                                    title: 'Lien copié dans le presse-papier',
+                                    message: "Le lien vers l'objet détecté a été copié dans le presse-papier",
+                                });
+                            }}
+                            component="button"
+                        >
+                            <h1>
+                                #{detectionObject.id} <IconShare2 />
+                            </h1>
+                        </Anchor>
+                    </h1>
 
                     {onClose ? (
                         <ActionIcon variant="transparent" onClick={onClose} aria-label="Fermer le détail de détection">
@@ -185,6 +183,22 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         />
                     ) : null}
                 </div>
+                <Tooltip label="Télécharger le courrier préalable à la parcelle" position="bottom-start">
+                    <Button
+                        fullWidth
+                        variant="outline"
+                        disabled={isDownloading}
+                        size="xs"
+                        onClick={async () => {
+                            setSignalementPdfGenerating('parcel');
+                            await downloadPriorLetter(detectionObject.uuid);
+                            eventEmitter.emit('UPDATE_DETECTION_DETAIL');
+                        }}
+                        leftSection={isDownloading ? <MantineLoader size="xs" /> : <IconMailDown size={20} />}
+                    >
+                        Courrier préalable à la parcelle
+                    </Button>
+                </Tooltip>
 
                 <Tooltip label="Ouvrir dans Google Maps" position="bottom-start">
                     <Button
@@ -249,7 +263,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                             address
                                         ) : (
                                             <>
-                                                {address === undefined ? (
+                                                {isAddressLoading || address === undefined ? (
                                                     <>
                                                         <i>Chargement de l&apos;adresse...</i>
                                                         <MantineLoader ml="xs" size="xs" />
@@ -376,39 +390,14 @@ const Component: React.FC<ComponentProps> = ({
     setDetectionUnhidden,
     onClose,
 }: ComponentProps) => {
-    const { eventEmitter, setIsDetailFetching } = useMap();
-    const fetchData = async () => {
-        const res = await api.get<DetectionObjectDetail>(getDetectionObjectDetailEndpoint(detectionObjectUuid));
-
-        return res.data;
-    };
+    // Use custom hook for detection object fetching
     const {
-        data: detectionObject,
+        detectionObject,
         isRefetching: detectionObjectRefreshing,
-        refetch,
-        isFetching: isFetchingDetectionObject,
-    } = useQuery({
-        queryKey: [getDetectionObjectDetailEndpoint(String(detectionObjectUuid))],
-        queryFn: async () => {
-            const res = await fetchData();
+        isLoading,
+    } = useDetectionObjectDetail(detectionObjectUuid);
 
-            eventEmitter.emit('JUMP_TO', getCoord(centroid(res.detections[0].geometry)));
-
-            return res;
-        },
-    });
-    useEffect(() => {
-        setIsDetailFetching(isFetchingDetectionObject);
-    }, [isFetchingDetectionObject]);
-    useEffect(() => {
-        eventEmitter.on('UPDATE_DETECTION_DETAIL', refetch);
-
-        return () => {
-            eventEmitter.off('UPDATE_DETECTION_DETAIL', refetch);
-        };
-    }, []);
-
-    if (!detectionObject) {
+    if (isLoading || !detectionObject) {
         return <Loader className={classes.loader} />;
     }
 

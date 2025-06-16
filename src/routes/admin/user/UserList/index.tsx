@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
 import { USERS_LIST_ENDPOINT } from '@/api-endpoints';
+import PillsDataCell from '@/components/admin/DataCells/PillsDataCell';
 import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import SoloAccordion from '@/components/admin/SoloAccordion';
-import PillsDataCell from '@/components/admin/data-cells/PillsDataCell';
 import UserGroupRightIcon from '@/components/icons/UserGroupRightIcon';
 import DateInfo from '@/components/ui/DateInfo';
 import { Uuided } from '@/models/data';

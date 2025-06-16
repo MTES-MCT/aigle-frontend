@@ -27,10 +27,10 @@ const scrollToTable = (tableRef: React.RefObject<HTMLTableElement>) => {
 
 const LIMITS: (typeof PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit)[] = [5, 10, 20, 50];
 
-interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
+interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object | undefined> {
     endpoint: string;
-    filter: T_FILTER;
-    SoloAccordion: ReactElement<typeof SoloAccordion>;
+    filter?: T_FILTER;
+    SoloAccordion?: ReactElement<typeof SoloAccordion>;
     tableHeader: ReactElement<typeof Table.Th>[];
     tableBodyRenderFns: ((item: T_DATA) => React.ReactNode)[];
     beforeTable?: ReactNode;
@@ -42,7 +42,7 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object> {
     setSelectedUuids?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-const Component = <T_DATA extends Uuided, T_FILTER extends object>({
+const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
     endpoint,
     filter,
     SoloAccordion,
@@ -86,7 +86,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
     };
 
     const { isLoading, error, data, isFetching } = useQuery({
-        queryKey: [endpoint, pagination.limit, pagination.offset, ...Object.values(filter)],
+        queryKey: [endpoint, pagination.limit, pagination.offset, ...(filter ? Object.values(filter) : [])],
         queryFn: ({ signal }) => fetchData(signal, pagination),
         placeholderData: keepPreviousData,
     });
@@ -95,7 +95,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
 
     return (
         <>
-            <div className={classes['filters-section']}>{SoloAccordion}</div>
+            {SoloAccordion ? <div className={classes['filters-section']}>{SoloAccordion}</div> : null}
 
             {error ? <ErrorCard className={classes['error-card']}>{error.message}</ErrorCard> : null}
 
@@ -186,7 +186,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object>({
                                         {showSelection ? (
                                             <Table.Td>
                                                 <Checkbox
-                                                    aria-label="Select row"
+                                                    aria-label="Selectionner l'élément"
                                                     checked={(selectedUuids || []).includes(item.uuid)}
                                                     onChange={(event) =>
                                                         setSelectedUuids &&

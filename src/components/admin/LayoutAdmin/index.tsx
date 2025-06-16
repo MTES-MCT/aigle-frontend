@@ -12,11 +12,14 @@ import {
     IconDatabaseImport,
     IconHexagon,
     IconMap,
+    IconTerminal,
     IconUser,
     IconUsers,
 } from '@tabler/icons-react';
 import { useLocation } from 'react-router-dom';
 import classes from './index.module.scss';
+
+const ICON_SIZE = 16;
 
 interface ComponentProps extends PropsWithChildren {
     title?: string;
@@ -47,14 +50,14 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                     label="Utilisateurs"
                     href="/admin/users"
                     active={pathname.includes('/admin/users')}
-                    leftSection={<IconUser size={16} />}
+                    leftSection={<IconUser size={ICON_SIZE} />}
                 />
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Groupes utilisateurs"
                         href="/admin/user-groups"
                         active={pathname.includes('/admin/user-groups')}
-                        leftSection={<IconUsers size={16} />}
+                        leftSection={<IconUsers size={ICON_SIZE} />}
                     />
                 ) : null}
 
@@ -63,14 +66,14 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                         label="Collectivités"
                         href="/admin/collectivites"
                         active={pathname.includes('/admin/collectivites')}
-                        leftSection={<IconBuilding size={16} />}
+                        leftSection={<IconBuilding size={ICON_SIZE} />}
                     />
                 ) : null}
                 <NavLink
                     label="Zones à enjeux"
                     href="/admin/custom-zones"
                     active={pathname.includes('/admin/custom-zones')}
-                    leftSection={<IconHexagon size={16} />}
+                    leftSection={<IconHexagon size={ICON_SIZE} />}
                 />
 
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
@@ -78,7 +81,7 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                         label="Types d'objets"
                         href="/admin/object-types"
                         active={pathname.includes('/admin/object-types')}
-                        leftSection={<IconCube size={16} />}
+                        leftSection={<IconCube size={ICON_SIZE} />}
                     />
                 ) : null}
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
@@ -86,7 +89,7 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                         label="Thématiques"
                         href="/admin/object-type-categories"
                         active={pathname.includes('/admin/object-type-categories')}
-                        leftSection={<IconCategory size={16} />}
+                        leftSection={<IconCategory size={ICON_SIZE} />}
                     />
                 ) : null}
 
@@ -95,7 +98,15 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                         label="Fonds de carte"
                         href="/admin/tile-sets"
                         active={pathname.includes('/admin/tile-sets')}
-                        leftSection={<IconMap size={16} />}
+                        leftSection={<IconMap size={ICON_SIZE} />}
+                    />
+                ) : null}
+                {userMe?.userRole === 'SUPER_ADMIN' ? (
+                    <NavLink
+                        label="Commandes"
+                        href="/admin/run-command"
+                        active={pathname.includes('/admin/run-command')}
+                        leftSection={<IconTerminal size={ICON_SIZE} />}
                     />
                 ) : null}
 
@@ -104,7 +115,7 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                         label="Imports"
                         href="/admin/imports"
                         active={pathname.includes('/admin/imports')}
-                        leftSection={<IconDatabaseImport size={16} />}
+                        leftSection={<IconDatabaseImport size={ICON_SIZE} />}
                     />
                 ) : null}
             </AppShell.Navbar>

@@ -63,8 +63,10 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
         onError: (error) => {
             setError(error);
             if (error.response?.data) {
-                // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                // Fixed TypeScript error
+                if (error.response?.data && typeof error.response.data === 'object') {
+                    form.setErrors(error.response.data as Record<string, string>);
+                }
             }
         },
     });
