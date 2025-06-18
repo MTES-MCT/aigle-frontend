@@ -1,3 +1,5 @@
+import { Timestamped, Uuided } from '@/models/data';
+
 type CommandParametersType = 'str' | 'int' | 'bool';
 
 export interface CommandParameter {
@@ -14,12 +16,21 @@ export interface CommandWithParameters {
     parameters: CommandParameter[];
 }
 
-export interface CommandTask {
+export const commandRunStatuses = ['PENDING', 'RUNNING', 'SUCCESS', 'ERROR', 'CANCELED'] as const;
+export type CommandRunStatus = (typeof commandRunStatuses)[number];
+
+type CommandRunArgmentsType = string | number | boolean;
+
+interface CommandRunArgments {
+    kwargs: Record<string, CommandRunArgmentsType>;
+    args: CommandRunArgmentsType[];
+}
+
+export interface CommandRun extends Uuided, Timestamped {
     taskId: string;
-    name: string;
-    args: string;
-    kwargs: Record<string, string | number | boolean>;
-    worker: string;
-    status: string;
-    eta: string;
+    commandName: string;
+    arguments: CommandRunArgments;
+    status: CommandRunStatus;
+    error: string | null;
+    output: string | null;
 }

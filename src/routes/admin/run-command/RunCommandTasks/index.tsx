@@ -1,66 +1,143 @@
 import React from 'react';
 
-import { RUN_COMMAND_TASKS_ENDPOINT } from '@/api-endpoints';
-import dataTableClasses from '@/components/admin/DataTable/index.module.scss';
-import ErrorCard from '@/components/ui/ErrorCard';
-import Loader from '@/components/ui/Loader';
-import { CommandTask } from '@/models/command';
-import { Paginated } from '@/models/data';
+import { getRunCommandCancelEndpoint, RUN_COMMAND_TASKS_ENDPOINT } from '@/api-endpoints';
+import DataTable from '@/components/admin/DataTable';
+import DateInfo from '@/components/ui/DateInfo';
+import { CommandRun, CommandRunStatus } from '@/models/command';
 import api from '@/utils/api';
-import { LoadingOverlay, Table } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { colors } from '@/utils/colors';
+import { ActionIcon, Badge, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { IconCancel } from '@tabler/icons-react';
+import { useMutation, UseMutationResult } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
+
+interface ArgumentsDisplayProps {
+    arguments: CommandRun['arguments'];
+}
+
+const ArgumentsDisplay: React.FC<ArgumentsDisplayProps> = ({ arguments: args }) => {
+    const hasKwargs = Object.keys(args.kwargs).length > 0;
+    const hasArgs = args.args.length > 0;
+
+    if (!hasKwargs && !hasArgs) {
+        return (
+            <Text size="sm" c="dimmed">
+                Aucun argument
+            </Text>
+        );
+    }
+
+    return (
+        <Stack gap="xs">
+            {hasKwargs && (
+                <div>
+                    <Text size="xs" fw={500} c="dimmed" mb={4}>
+                        Arguments nommés:
+                    </Text>
+                    <ul>
+                        {Object.entries(args.kwargs).map(([key, value]) => (
+                            <li key={key}>
+                                {key}: {String(value)}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {hasArgs && (
+                <div>
+                    <Text size="xs" fw={500} c="dimmed" mb={4}>
+                        Arguments positionnels:
+                    </Text>
+                    <ul>
+                        {args.args.map((arg, index) => (
+                            <li key={index}>{String(arg)}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </Stack>
+    );
+};
+
+interface StatusBadgeProps {
+    status: CommandRunStatus;
+}
+
+const COMMAND_RUN_STATUS_COLORS_MAP: Record<CommandRunStatus, string> = {
+    PENDING: colors.BLUE,
+    RUNNING: colors.YELLOW,
+    SUCCESS: colors.GREEN,
+    ERROR: colors.RED,
+    CANCELED: colors.GREY,
+};
+
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+    return (
+        <Badge color={COMMAND_RUN_STATUS_COLORS_MAP[status]} variant="filled">
+            {status}
+        </Badge>
+    );
+};
+
+const cancelTask = async (taskId: string) => {
+    const response = await api.post(getRunCommandCancelEndpoint(taskId));
+
+    return response.data;
+};
 
 const Component: React.FC = () => {
-    const fetchData = async () => {
-        const res = await api.get<Omit<Paginated<CommandTask>, 'previous' | 'next'>>(RUN_COMMAND_TASKS_ENDPOINT);
-        return res.data;
-    };
-    const { isLoading, error, data, isFetching } = useQuery({
-        queryKey: [RUN_COMMAND_TASKS_ENDPOINT],
-        queryFn: () => fetchData(),
+    const mutation: UseMutationResult<string, AxiosError, any> = useMutation({
+        mutationFn: (taskId: string) => cancelTask(taskId),
+        onSuccess: () => {
+            notifications.show({
+                title: 'La tâche a été annulée',
+                message: 'La tâche a été annulée avec succès.',
+            });
+        },
+        onError: (error) => {
+            notifications.show({
+                title: "Erreur lors de l'annulation de la tâche",
+                message: String(error.response?.data) || "Une erreur est survenue lors de l'annulation de la tâche.",
+            });
+        },
     });
 
     return (
-        <>
-            {error ? <ErrorCard>{error.message}</ErrorCard> : null}
-            <div className={dataTableClasses['table-container']}>
-                {isLoading ? (
-                    <Loader />
-                ) : (
-                    <Table striped highlightOnHover className={dataTableClasses.table}>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th key="taskId">ID</Table.Th>
-                                <Table.Th key="name">Nom</Table.Th>
-                                <Table.Th key="kwargs">Arguments</Table.Th>
-                                <Table.Th key="status">Statut</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-
-                        <Table.Tbody>
-                            <LoadingOverlay visible={isFetching || isLoading}>
-                                <Loader />
-                            </LoadingOverlay>
-                            {data?.count === 0 ? (
-                                <Table.Tr>
-                                    <Table.Td className="empty-results-cell" colSpan={4}>
-                                        Aucun résultat
-                                    </Table.Td>
-                                </Table.Tr>
-                            ) : null}
-                            {data?.results.map((item) => (
-                                <Table.Tr key={item.taskId}>
-                                    <Table.Td>{item.taskId}</Table.Td>
-                                    <Table.Td>{item.name}</Table.Td>
-                                    <Table.Td>{String(item.kwargs)}</Table.Td>
-                                    <Table.Td>{item.status}</Table.Td>
-                                </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                )}
-            </div>
-        </>
+        <DataTable<CommandRun, undefined>
+            endpoint={RUN_COMMAND_TASKS_ENDPOINT}
+            tableHeader={[
+                <Table.Th key="actions" />,
+                <Table.Th key="createdAt">Date</Table.Th>,
+                <Table.Th key="taskId">Task id</Table.Th>,
+                <Table.Th key="name">Nom</Table.Th>,
+                <Table.Th key="nameShort">Arguments</Table.Th>,
+                <Table.Th key="status">Statut</Table.Th>,
+                <Table.Th key="error">Erreur</Table.Th>,
+                <Table.Th key="output">Message</Table.Th>,
+            ]}
+            tableBodyRenderFns={[
+                (item: CommandRun) => (
+                    <Tooltip label="Annuler la tâche">
+                        <ActionIcon
+                            disabled={!['PENDING', 'RUNNING'].includes(item.status)}
+                            onClick={() => mutation.mutate(item.taskId)}
+                            color="red"
+                            variant="subtle"
+                        >
+                            <IconCancel />
+                        </ActionIcon>
+                    </Tooltip>
+                ),
+                (item: CommandRun) => <DateInfo date={item.createdAt} />,
+                (item: CommandRun) => item.taskId,
+                (item: CommandRun) => item.commandName,
+                (item: CommandRun) => <ArgumentsDisplay arguments={item.arguments} />,
+                (item: CommandRun) => <StatusBadge status={item.status} />,
+                (item: CommandRun) => item.error,
+                (item: CommandRun) => item.output,
+            ]}
+        />
     );
 };
 

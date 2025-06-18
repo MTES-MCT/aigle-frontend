@@ -2,7 +2,7 @@ import { RUN_COMMAND_RUN_ENDPOINT } from '@/api-endpoints';
 import ErrorCard from '@/components/ui/ErrorCard';
 import { CommandParameter, CommandWithParameters } from '@/models/command';
 import api from '@/utils/api';
-import { Button, Checkbox, Modal, NumberInput, TextInput } from '@mantine/core';
+import { Button, Checkbox, Modal, NumberInput, SegmentedControl, Textarea, TextInput } from '@mantine/core';
 import { IconPlayerPlay } from '@tabler/icons-react';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
@@ -73,25 +73,58 @@ interface ComponentProps {
 }
 const Component: React.FC<ComponentProps> = ({ isShowed, hide, command }: ComponentProps) => {
     const [paramsValues, setParamsValues] = useState<ParamsValues>({});
+    const [formMode, setFormMode] = useState<'normal' | 'json'>('normal');
+    const [jsonValue, setJsonValue] = useState<string>('{}');
 
     useEffect(() => {
         if (!command) {
             setParamsValues({});
+            setJsonValue('{}');
             return;
         }
 
-        setParamsValues(
-            command.parameters.reduce(
-                (prev, curr) => ({
-                    ...prev,
-                    [curr.name]: curr.default ? curr.default : curr.type === 'bool' ? false : undefined,
-                }),
-                {},
-            ),
+        const initialValues = command.parameters.reduce(
+            (prev, curr) => ({
+                ...prev,
+                [curr.name]: curr.default ? curr.default : curr.type === 'bool' ? false : undefined,
+            }),
+            {},
         );
+
+        setParamsValues(initialValues);
+        setJsonValue(JSON.stringify(initialValues, null, 2));
     }, [command]);
+
+    useEffect(() => {
+        if (formMode === 'json') {
+            setJsonValue(JSON.stringify(paramsValues, null, 2));
+        }
+    }, [formMode, paramsValues]);
+
+    const handleJsonChange = (value: string) => {
+        setJsonValue(value);
+        try {
+            const parsed = JSON.parse(value);
+            setParamsValues(parsed);
+        } catch (error) {
+            // Keep the invalid JSON in the textarea but don't update paramsValues
+        }
+    };
+
+    const isValidJson = useMemo(() => {
+        try {
+            JSON.parse(jsonValue);
+            return true;
+        } catch {
+            return false;
+        }
+    }, [jsonValue]);
     const paramsValid = useMemo(() => {
         if (!command) {
+            return false;
+        }
+
+        if (formMode === 'json' && !isValidJson) {
             return false;
         }
 
@@ -102,7 +135,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, hide, command }: Compon
             }
             return true;
         });
-    }, [paramsValues, command]);
+    }, [paramsValues, command, formMode, isValidJson]);
 
     const mutation: UseMutationResult<void, AxiosError, ParamsValues> = useMutation({
         mutationFn: (values: ParamsValues) => postForm(String(command?.name), values),
@@ -119,19 +152,44 @@ const Component: React.FC<ComponentProps> = ({ isShowed, hide, command }: Compon
             {command ? (
                 <>
                     {command.help ? <p className={classes['command-help']}>{command.help}</p> : null}
-                    {command.parameters.map((parameter) => (
-                        <CommandParam
-                            key={parameter.name}
-                            parameter={parameter}
-                            value={paramsValues[parameter.name]}
-                            setValue={(value: CommandParameterType) =>
-                                setParamsValues((paramsValues) => ({
-                                    ...paramsValues,
-                                    [parameter.name]: value,
-                                }))
-                            }
+
+                    <SegmentedControl
+                        fullWidth
+                        value={formMode}
+                        onChange={(value) => setFormMode(value as 'normal' | 'json')}
+                        data={[
+                            { label: 'Formulaire', value: 'normal' },
+                            { label: 'JSON', value: 'json' },
+                        ]}
+                        mt="md"
+                    />
+
+                    {formMode === 'normal' ? (
+                        command.parameters.map((parameter) => (
+                            <CommandParam
+                                key={parameter.name}
+                                parameter={parameter}
+                                value={paramsValues[parameter.name]}
+                                setValue={(value: CommandParameterType) =>
+                                    setParamsValues((paramsValues) => ({
+                                        ...paramsValues,
+                                        [parameter.name]: value,
+                                    }))
+                                }
+                            />
+                        ))
+                    ) : (
+                        <Textarea
+                            label="Paramètres JSON"
+                            placeholder="Entrez les paramètres au format JSON"
+                            value={jsonValue}
+                            onChange={(event) => handleJsonChange(event.currentTarget.value)}
+                            error={!isValidJson ? 'JSON invalide' : null}
+                            minRows={6}
+                            mt="sm"
+                            autosize
                         />
-                    ))}
+                    )}
 
                     <div className="form-actions">
                         <Button type="button" variant="outline" onClick={() => hide()}>
