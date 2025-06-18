@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
 
-import {
-    PARCEL_LIST_ENDPOINT,
-    PARCEL_SUGGEST_NUM_PARCEL_ENDPOINT,
-    PARCEL_SUGGEST_SECTION_ENDPOINT,
-    getGeoListEndpoint,
-} from '@/api-endpoints';
+import { getGeoListEndpoint, parcelEndpoints } from '@/api/endpoints';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
 import { Paginated } from '@/models/data';
 import { GeoCommune } from '@/models/geo/geo-commune';
 import { Parcel } from '@/models/parcel';
 import { SelectOption } from '@/models/ui/select-option';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
-import { useMap } from '@/utils/context/map-context';
 import { geoZoneToGeoOption } from '@/utils/geojson';
 import { Autocomplete, Button, Loader as MantineLoader } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
@@ -55,13 +50,13 @@ const searchParcel = async (
     }
 
     if (searchType === 'SECTION') {
-        url = PARCEL_SUGGEST_SECTION_ENDPOINT;
+        url = parcelEndpoints.suggestSection;
 
         if (values.numParcel) {
             params.numParcelQ = values.numParcel;
         }
     } else {
-        url = PARCEL_SUGGEST_NUM_PARCEL_ENDPOINT;
+        url = parcelEndpoints.suggestNumParcel;
 
         if (values.section) {
             params.sectionQ = values.section;
@@ -77,7 +72,7 @@ const searchParcel = async (
 };
 
 const fetchParcel = async (values: FormValues): Promise<Parcel | null> => {
-    const res = await api.get<Paginated<Parcel>>(PARCEL_LIST_ENDPOINT, {
+    const res = await api.get<Paginated<Parcel>>(parcelEndpoints.list, {
         params: {
             communeUuids: [values.commune?.value],
             section: values.section,

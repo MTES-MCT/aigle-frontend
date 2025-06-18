@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { getParcelDownloadInfosEndpoint } from '@/api-endpoints';
+import { parcelEndpoints } from '@/api/endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
 import SignalementPDFPage, {
     PreviewImage,
@@ -20,7 +20,7 @@ import { Polygon } from 'geojson';
 import classes from './index.module.scss';
 
 const fetchParcelDetail = async (uuid: string, detectionObjectUuid?: string) => {
-    const res = await api.get<ParcelDetail>(getParcelDownloadInfosEndpoint(uuid), {
+    const res = await api.get<ParcelDetail>(parcelEndpoints.downloadInfos(uuid), {
         params: {
             detectionObjectUuid,
         },
@@ -110,7 +110,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
     const [previewImages, setPreviewImages] = useState<Record<string, PreviewImage>>({});
 
     const { data: parcel, isLoading: parcelIsLoading } = useQuery({
-        queryKey: [getParcelDownloadInfosEndpoint(String(parcelUuid))],
+        queryKey: [parcelEndpoints.downloadInfos(String(parcelUuid))],
         queryFn: () => fetchParcelDetail(parcelUuid, detectionObjectUuid),
     });
 

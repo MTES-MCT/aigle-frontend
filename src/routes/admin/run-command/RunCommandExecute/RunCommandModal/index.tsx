@@ -1,4 +1,4 @@
-import { RUN_COMMAND_RUN_ENDPOINT } from '@/api-endpoints';
+import { runCommandEndpoints } from '@/api/endpoints';
 import ErrorCard from '@/components/ui/ErrorCard';
 import { CommandParameter, CommandWithParameters } from '@/models/command';
 import api from '@/utils/api';
@@ -60,7 +60,7 @@ const CommandParam = ({ parameter, value, setValue }: CommandParamProps) => {
 type ParamsValues = Record<string, CommandParameterType>;
 
 const postForm = async (command: string, values: ParamsValues) => {
-    await api.post(RUN_COMMAND_RUN_ENDPOINT, {
+    await api.post(runCommandEndpoints.run, {
         command,
         args: values,
     });

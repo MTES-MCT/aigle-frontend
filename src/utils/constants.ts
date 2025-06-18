@@ -1,4 +1,4 @@
-import { GEO_COMMUNE_LIST_ENDPOINT, GEO_DEPARTMENT_LIST_ENDPOINT, GEO_REGION_LIST_ENDPOINT } from '@/api-endpoints';
+import { geoEndpoints } from '@/api/endpoints';
 import {
     DetectionControlStatus,
     DetectionPrescriptionStatus,
@@ -140,9 +140,9 @@ export const DETECTION_SOURCE_NAMES_MAP: {
 export const COLLECTIVITY_TYPES_ENDPOINTS_MAP: {
     [role in CollectivityType]: string;
 } = {
-    region: GEO_REGION_LIST_ENDPOINT,
-    department: GEO_DEPARTMENT_LIST_ENDPOINT,
-    commune: GEO_COMMUNE_LIST_ENDPOINT,
+    region: geoEndpoints.region.list,
+    department: geoEndpoints.department.list,
+    commune: geoEndpoints.commune.list,
 } as const;
 
 export const DEFAULT_DATE_FORMAT = 'dd/MM/yyyy';

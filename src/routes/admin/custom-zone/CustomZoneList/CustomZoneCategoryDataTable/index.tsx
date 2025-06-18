@@ -1,4 +1,4 @@
-import { GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT } from '@/api-endpoints';
+import { customZoneEndpoints } from '@/api/endpoints';
 import DataTable from '@/components/admin/DataTable';
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
@@ -23,7 +23,7 @@ const Component: React.FC = () => {
 
     return (
         <DataTable<GeoCustomZoneCategory, DataFilter>
-            endpoint={GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT}
+            endpoint={customZoneEndpoints.category.list}
             filter={filter}
             SoloAccordion={
                 <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>

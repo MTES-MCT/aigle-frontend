@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { OBJECT_TYPE_CATEGORY_LIST_ENDPOINT, OBJECT_TYPE_LIST_ENDPOINT } from '@/api-endpoints';
+import { objectTypeCategoryEndpoints, objectTypeEndpoints } from '@/api/endpoints';
 import PillsDataCell from '@/components/admin/DataCells/PillsDataCell';
 import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
@@ -58,12 +58,12 @@ const Component: React.FC = () => {
     const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
 
     const fetchObjectTypes = async () => {
-        const res = await api.get<ObjectType[]>(OBJECT_TYPE_LIST_ENDPOINT);
+        const res = await api.get<ObjectType[]>(objectTypeEndpoints.list);
         return res.data;
     };
 
     const { data: objectTypes } = useQuery({
-        queryKey: [OBJECT_TYPE_LIST_ENDPOINT],
+        queryKey: [objectTypeEndpoints.list],
         queryFn: () => fetchObjectTypes(),
     });
     const objectTypesUuidsColorsMap: Record<string, string> =
@@ -87,7 +87,7 @@ const Component: React.FC = () => {
             }
         >
             <DataTable<ObjectTypeCategoryDetail, DataFilter>
-                endpoint={OBJECT_TYPE_CATEGORY_LIST_ENDPOINT}
+                endpoint={objectTypeCategoryEndpoints.list}
                 filter={filter}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>

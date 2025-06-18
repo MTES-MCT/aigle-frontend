@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 
-import {
-    GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT,
-    GEO_CUSTOM_ZONE_POST_ENDPOINT,
-    getGeoCustomZoneDetailEndpoint,
-} from '@/api-endpoints';
+import { customZoneEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
@@ -53,10 +49,10 @@ const postForm = async (values: FormValues, uuid?: string) => {
     };
 
     if (!uuid) {
-        const response = await api.post(GEO_CUSTOM_ZONE_POST_ENDPOINT, values_);
+        const response = await api.post(customZoneEndpoints.create, values_);
         return response.data;
     } else {
-        const response = await api.patch(getGeoCustomZoneDetailEndpoint(uuid), values_);
+        const response = await api.patch(customZoneEndpoints.detail(uuid), values_);
         return response.data;
     }
 };
@@ -224,7 +220,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 };
 
 const fetchGeoCustomZoneCategories = async () => {
-    const response = await api.get<GeoCustomZoneCategory[]>(GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT);
+    const response = await api.get<GeoCustomZoneCategory[]>(customZoneEndpoints.category.list);
     return response.data;
 };
 
@@ -260,7 +256,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             return;
         }
 
-        const res = await api.get<GeoCustomZoneWithCollectivities>(getGeoCustomZoneDetailEndpoint(uuid), {
+        const res = await api.get<GeoCustomZoneWithCollectivities>(customZoneEndpoints.detail(uuid), {
             params: {
                 with_collectivities: true,
             },
@@ -286,13 +282,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
     };
 
     const { isLoading, error, data } = useQuery({
-        queryKey: [getGeoCustomZoneDetailEndpoint(String(uuid))],
+        queryKey: [customZoneEndpoints.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });
 
     const { data: geoCustomZoneCategories } = useQuery({
-        queryKey: [GEO_CUSTOM_ZONE_CATEGORY_LIST_ENDPOINT],
+        queryKey: [customZoneEndpoints.category.list],
         queryFn: () => fetchGeoCustomZoneCategories(),
     });
 

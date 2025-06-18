@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { getGeoDetailEndpoint } from '@/api-endpoints';
+import { getGeoDetailEndpoint } from '@/api/endpoints';
 import Map from '@/components/Map';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';

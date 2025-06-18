@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { USERS_POST_ENDPOINT, USER_GROUP_LIST_ENDPOINT, getUserDetailEndpoint } from '@/api-endpoints';
+import { userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
@@ -58,9 +58,9 @@ const postForm = async (values: FormValues, uuid?: string) => {
             values_ = values;
         }
 
-        response = await api.patch(getUserDetailEndpoint(uuid), values_);
+        response = await api.patch(usersEndpoints.detail(uuid), values_);
     } else {
-        response = await api.post(USERS_POST_ENDPOINT, values);
+        response = await api.post(usersEndpoints.create, values);
     }
 
     return response.data;
@@ -293,7 +293,7 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<User>(getUserDetailEndpoint(uuid));
+        const res = await api.get<User>(usersEndpoints.detail(uuid));
         const initialValues = {
             ...res.data,
             password: '',
@@ -311,18 +311,18 @@ const ComponentInner: React.FC = () => {
         error,
         data: initialValues,
     } = useQuery({
-        queryKey: [getUserDetailEndpoint(String(uuid))],
+        queryKey: [usersEndpoints.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });
 
     const fetchUserGroups = async () => {
-        const res = await api.get<UserGroupDetail[]>(USER_GROUP_LIST_ENDPOINT);
+        const res = await api.get<UserGroupDetail[]>(userGroupEndpoints.list);
         return res.data;
     };
 
     const { data: userGroups, isLoading: userGroupsIsLoading } = useQuery({
-        queryKey: [USER_GROUP_LIST_ENDPOINT],
+        queryKey: [userGroupEndpoints.list],
         queryFn: () => fetchUserGroups(),
     });
 

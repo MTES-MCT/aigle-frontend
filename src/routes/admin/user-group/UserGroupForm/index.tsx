@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 
-import {
-    GEO_CUSTOM_ZONE_LIST_ENDPOINT,
-    OBJECT_TYPE_CATEGORY_LIST_ENDPOINT,
-    USER_GROUP_POST_ENDPOINT,
-    getUserDetailEndpoint,
-    getUserGroupDetailEndpoint,
-} from '@/api-endpoints';
+import { customZoneEndpoints, objectTypeCategoryEndpoints, userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
@@ -44,9 +38,9 @@ const postForm = async (values: FormValues, uuid?: string) => {
     let response: AxiosResponse<ObjectType>;
 
     if (uuid) {
-        response = await api.patch(getUserGroupDetailEndpoint(uuid), values);
+        response = await api.patch(userGroupEndpoints.detail(uuid), values);
     } else {
-        response = await api.post(USER_GROUP_POST_ENDPOINT, values);
+        response = await api.post(userGroupEndpoints.create, values);
     }
 
     return response.data;
@@ -204,7 +198,7 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<UserGroupDetail>(getUserGroupDetailEndpoint(uuid));
+        const res = await api.get<UserGroupDetail>(userGroupEndpoints.detail(uuid));
         const initialValues = {
             ...res.data,
             communesUuids: res.data.communes.map((commune) => commune.uuid),
@@ -225,7 +219,7 @@ const ComponentInner: React.FC = () => {
     };
 
     const { isLoading, error, data } = useQuery({
-        queryKey: [getUserDetailEndpoint(String(uuid))],
+        queryKey: [usersEndpoints.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });
@@ -233,22 +227,22 @@ const ComponentInner: React.FC = () => {
     // additional data
 
     const fetchObjectTypeCategories = async () => {
-        const res = await api.get<ObjectTypeCategory[]>(OBJECT_TYPE_CATEGORY_LIST_ENDPOINT);
+        const res = await api.get<ObjectTypeCategory[]>(objectTypeCategoryEndpoints.list);
         return res.data;
     };
 
     const { data: categories } = useQuery({
-        queryKey: [OBJECT_TYPE_CATEGORY_LIST_ENDPOINT],
+        queryKey: [objectTypeCategoryEndpoints.list],
         queryFn: () => fetchObjectTypeCategories(),
     });
 
     const fetchGeoCustomZones = async () => {
-        const res = await api.get<GeoCustomZone[]>(GEO_CUSTOM_ZONE_LIST_ENDPOINT);
+        const res = await api.get<GeoCustomZone[]>(customZoneEndpoints.list);
         return res.data;
     };
 
     const { data: geoCustomZones } = useQuery({
-        queryKey: [GEO_CUSTOM_ZONE_LIST_ENDPOINT],
+        queryKey: [customZoneEndpoints.list],
         queryFn: () => fetchGeoCustomZones(),
     });
 

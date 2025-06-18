@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { getRunCommandCancelEndpoint, RUN_COMMAND_TASKS_ENDPOINT } from '@/api-endpoints';
+import { runCommandEndpoints } from '@/api/endpoints';
 import DataTable from '@/components/admin/DataTable';
 import DateInfo from '@/components/ui/DateInfo';
 import { CommandRun, CommandRunStatus } from '@/models/command';
@@ -81,13 +81,13 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 };
 
 const cancelTask = async (taskId: string) => {
-    const response = await api.post(getRunCommandCancelEndpoint(taskId));
+    const response = await api.post(runCommandEndpoints.cancel(taskId));
 
     return response.data;
 };
 
 const Component: React.FC = () => {
-    const mutation: UseMutationResult<string, AxiosError, any> = useMutation({
+    const mutation: UseMutationResult<string, AxiosError, string> = useMutation({
         mutationFn: (taskId: string) => cancelTask(taskId),
         onSuccess: () => {
             notifications.show({
@@ -105,7 +105,7 @@ const Component: React.FC = () => {
 
     return (
         <DataTable<CommandRun, undefined>
-            endpoint={RUN_COMMAND_TASKS_ENDPOINT}
+            endpoint={runCommandEndpoints.tasks}
             tableHeader={[
                 <Table.Th key="actions" />,
                 <Table.Th key="createdAt">Date</Table.Th>,

@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 
-import {
-    GEO_CUSTOM_ZONE_CATEGORY_POST_ENDPOINT,
-    getGeoCustomZoneCategoryDetailEndpoint,
-    getGeoCustomZoneDetailEndpoint,
-} from '@/api-endpoints';
+import { customZoneEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
@@ -28,10 +24,10 @@ interface FormValues {
 
 const postForm = async (values: FormValues, uuid?: string) => {
     if (!uuid) {
-        const response = await api.post(GEO_CUSTOM_ZONE_CATEGORY_POST_ENDPOINT, values);
+        const response = await api.post(customZoneEndpoints.category.create, values);
         return response.data;
     } else {
-        const response = await api.patch(getGeoCustomZoneCategoryDetailEndpoint(uuid), values);
+        const response = await api.patch(customZoneEndpoints.category.detail(uuid), values);
         return response.data;
     }
 };
@@ -134,7 +130,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             return;
         }
 
-        const res = await api.get<GeoCustomZoneCategory>(getGeoCustomZoneCategoryDetailEndpoint(uuid));
+        const res = await api.get<GeoCustomZoneCategory>(customZoneEndpoints.category.detail(uuid));
         const initialValues: FormValues = {
             name: res.data.name,
             nameShort: res.data.nameShort,

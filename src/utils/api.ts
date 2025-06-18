@@ -1,4 +1,4 @@
-import { AUTH_REFRESH_TOKEN_ENDPOINT } from '@/api-endpoints';
+import { authEndpoints } from '@/api/endpoints';
 import { useAuth } from '@/utils/auth-context';
 import axios from 'axios';
 
@@ -45,7 +45,7 @@ api.interceptors.response.use(
 
             if (refreshToken) {
                 try {
-                    const { data } = await api.post(AUTH_REFRESH_TOKEN_ENDPOINT, {
+                    const { data } = await api.post(authEndpoints.refreshToken, {
                         token: refreshToken,
                     });
 

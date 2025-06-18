@@ -1,4 +1,4 @@
-import { RUN_COMMAND_LIST_ENDPOINT } from '@/api-endpoints';
+import { runCommandEndpoints } from '@/api/endpoints';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
 import { CommandWithParameters } from '@/models/command';
@@ -11,7 +11,7 @@ import classes from './index.module.scss';
 import RunCommandModal from './RunCommandModal';
 
 const fetchCommands = async (): Promise<CommandWithParameters[]> => {
-    const res = await api.get<CommandWithParameters[]>(RUN_COMMAND_LIST_ENDPOINT);
+    const res = await api.get<CommandWithParameters[]>(runCommandEndpoints.list);
     return res.data;
 };
 
@@ -81,7 +81,7 @@ const Component: React.FC = () => {
     const [commandModalShowed, setCommandModalShowed] = useState<CommandWithParameters>();
 
     const { data: commands, isLoading } = useQuery<CommandWithParameters[]>({
-        queryKey: [RUN_COMMAND_LIST_ENDPOINT],
+        queryKey: [runCommandEndpoints.list],
         queryFn: () => fetchCommands(),
     });
 

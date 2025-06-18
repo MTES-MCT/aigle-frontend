@@ -1,4 +1,4 @@
-import { DETECTION_MULTIPLE_POST_ENDPOINT } from '@/api-endpoints';
+import { detectionEndpoints } from '@/api/endpoints';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
@@ -9,9 +9,9 @@ import {
     detectionValidationStatuses,
 } from '@/models/detection';
 import { ObjectType } from '@/models/object-type';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
 import { DETECTION_CONTROL_STATUSES_NAMES_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -51,7 +51,7 @@ const postForm = async (values: FormValues, detectionsUuids: string[]) => {
         postValues.detectionValidationStatus = values.detectionValidationStatus;
     }
 
-    await api.post(DETECTION_MULTIPLE_POST_ENDPOINT, postValues);
+    await api.post(detectionEndpoints.multiple, postValues);
 };
 
 interface FormProps {

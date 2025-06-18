@@ -2,7 +2,7 @@ import React from 'react';
 
 import FilterObjects from '@/components/FilterObjects';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
-import { useMap } from '@/utils/context/map-context';
+import { useMap } from '@/store/slices/map';
 import { IconFilter } from '@tabler/icons-react';
 import classes from './index.module.scss';
 
