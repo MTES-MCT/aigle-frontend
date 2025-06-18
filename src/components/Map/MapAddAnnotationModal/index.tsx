@@ -1,12 +1,12 @@
-import { DETECTION_POST_ENDPOINT, TILE_SET_LAST_FROM_COORDINATES_ENDPOINT } from '@/api-endpoints';
+import { detectionEndpoints, tileSetEndpoints } from '@/api/endpoints';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
 import { ObjectType } from '@/models/object-type';
 import { TileSet } from '@/models/tile-set';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
-import { useMap } from '@/utils/context/map-context';
 import { getAddressFromPolygon } from '@/utils/geojson';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -26,7 +26,7 @@ interface FormValues {
 }
 
 const fetchTileSet = async (centroid: Feature<Point>) => {
-    const res = await api.get<TileSet>(TILE_SET_LAST_FROM_COORDINATES_ENDPOINT, {
+    const res = await api.get<TileSet>(tileSetEndpoints.lastFromCoordinates, {
         params: {
             lat: centroid.geometry.coordinates[1],
             lng: centroid.geometry.coordinates[0],
@@ -35,7 +35,7 @@ const fetchTileSet = async (centroid: Feature<Point>) => {
     return res.data;
 };
 const postForm = async (values: FormValues, tileSetUuid: string, polygon: Polygon, address: string | null) => {
-    await api.post(`${DETECTION_POST_ENDPOINT}`, {
+    await api.post(`${detectionEndpoints.create}`, {
         detectionObject: {
             objectTypeUuid: values.objectTypeUuid,
             address,
@@ -70,7 +70,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide }) => {
     }, [polygon]);
 
     const { isLoading: tileSetIsLoading, data: tileSet } = useQuery({
-        queryKey: [TILE_SET_LAST_FROM_COORDINATES_ENDPOINT, polygonCentroid],
+        queryKey: [tileSetEndpoints.lastFromCoordinates, polygonCentroid],
         queryFn: () => fetchTileSet(polygonCentroid),
         enabled: !!polygonCentroid,
     });

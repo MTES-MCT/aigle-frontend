@@ -1,7 +1,7 @@
-import { getDetectionObjectDetailEndpoint } from '@/api-endpoints';
+import { detectionObjectEndpoints } from '@/api/endpoints';
 import { DetectionObjectDetail } from '@/models/detection-object';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
-import { useMap } from '@/utils/context/map-context';
 import { useQuery } from '@tanstack/react-query';
 import { centroid, getCoord } from '@turf/turf';
 import { useCallback, useEffect } from 'react';
@@ -19,7 +19,7 @@ export const useDetectionObjectDetail = (
     const { onSuccess, jumpToDetection = true } = options;
 
     const fetchDetectionObject = useCallback(async () => {
-        const res = await api.get<DetectionObjectDetail>(getDetectionObjectDetailEndpoint(detectionObjectUuid));
+        const res = await api.get<DetectionObjectDetail>(detectionObjectEndpoints.detail(detectionObjectUuid));
         return res.data;
     }, [detectionObjectUuid]);
 
@@ -31,7 +31,7 @@ export const useDetectionObjectDetail = (
         refetch,
         error,
     } = useQuery({
-        queryKey: [getDetectionObjectDetailEndpoint(detectionObjectUuid)],
+        queryKey: [detectionObjectEndpoints.detail(detectionObjectUuid)],
         queryFn: async () => {
             const detectionObject = await fetchDetectionObject();
 

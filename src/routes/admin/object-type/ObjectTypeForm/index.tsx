@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { OBJECT_TYPE_POST_ENDPOINT, getObjectTypeDetailEndpoint } from '@/api-endpoints';
+import { objectTypeEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
@@ -29,9 +29,9 @@ const postForm = async (values: FormValues, uuid?: string) => {
     };
 
     if (uuid) {
-        response = await api.patch(getObjectTypeDetailEndpoint(uuid), values_);
+        response = await api.patch(objectTypeEndpoints.detail(uuid), values_);
     } else {
-        response = await api.post(OBJECT_TYPE_POST_ENDPOINT, values_);
+        response = await api.post(objectTypeEndpoints.create, values_);
     }
 
     return response.data;
@@ -145,7 +145,7 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<ObjectTypeDetail>(getObjectTypeDetailEndpoint(uuid));
+        const res = await api.get<ObjectTypeDetail>(objectTypeEndpoints.detail(uuid));
 
         return res.data;
     };
@@ -155,7 +155,7 @@ const ComponentInner: React.FC = () => {
         error,
         data: initialValues,
     } = useQuery({
-        queryKey: [getObjectTypeDetailEndpoint(String(uuid))],
+        queryKey: [objectTypeEndpoints.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });

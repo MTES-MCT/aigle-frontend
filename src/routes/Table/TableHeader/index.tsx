@@ -1,12 +1,12 @@
 import React from 'react';
 
-import { DETECTION_LIST_OVERVIEW_ENDPOINT } from '@/api-endpoints';
+import { detectionEndpoints } from '@/api/endpoints';
 import Loader from '@/components/ui/Loader';
 import { DetectionValidationStatus, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
+import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
 import { DETECTION_VALIDATION_STATUSES_COLORS_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
-import { useStatistics } from '@/utils/context/statistics-context';
 import { formatBigInt } from '@/utils/format';
 import { LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -67,7 +67,7 @@ const fetchData = async (
     departmentsUuids: string[],
     regionsUuids: string[],
 ): Promise<DetectionListOverviewWithPercentage> => {
-    const res = await api.get<DetectionListOverview>(DETECTION_LIST_OVERVIEW_ENDPOINT, {
+    const res = await api.get<DetectionListOverview>(detectionEndpoints.listOverview, {
         signal,
         params: {
             ...objectsFilter,
@@ -127,7 +127,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 }: ComponentInnerProps) => {
     const { data, isFetching } = useQuery({
         queryKey: [
-            DETECTION_LIST_OVERVIEW_ENDPOINT,
+            detectionEndpoints.listOverview,
             Object.values(objectsFilter),
             communesUuids.join(','),
             departmentsUuids.join(','),

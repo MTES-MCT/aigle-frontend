@@ -5,13 +5,13 @@ import { detectionControlStatuses, detectionValidationStatuses } from '@/models/
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
+import { useMap } from '@/store/slices/map';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
     OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
 import { ActionIcon, Badge, Button, Checkbox, Group, MultiSelect, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconChecks, IconX } from '@tabler/icons-react';

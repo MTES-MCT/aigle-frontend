@@ -3,7 +3,7 @@ import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
-import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/utils/context/utils';
+import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/store/utils';
 import { getInitialObjectFilters } from '@/utils/objects-filter';
 import { create } from 'zustand';
 

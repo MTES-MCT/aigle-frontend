@@ -3,7 +3,7 @@ import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 import { TileSet, TileSetStatus, TileSetType } from '@/models/tile-set';
-import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/utils/context/utils';
+import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/store/utils';
 import { getInitialObjectFilters, setObjectFilters } from '@/utils/objects-filter';
 import { format } from 'date-fns';
 import EventEmitter from 'eventemitter3';

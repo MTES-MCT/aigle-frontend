@@ -3,7 +3,7 @@ import { UseFormReturnType, useForm } from '@mantine/form';
 import { AxiosError } from 'axios';
 import React, { useState } from 'react';
 
-import { AUTH_RESET_PASSWORD_CONFIRM_ENDPOINT } from '@/api-endpoints';
+import { authEndpoints } from '@/api/endpoints';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
 import api from '@/utils/api';
@@ -40,7 +40,7 @@ interface FormValues {
 }
 
 const resetPasswordConfirm = async (form: FormValues, uid: string, token: string) => {
-    await api.post(AUTH_RESET_PASSWORD_CONFIRM_ENDPOINT, {
+    await api.post(authEndpoints.resetPasswordConfirm, {
         newPassword: form.newPassword,
         uid,
         token,

@@ -1,4 +1,4 @@
-import { getDetectionForceVisibleEndpoint } from '@/api-endpoints';
+import { detectionEndpoints } from '@/api/endpoints';
 import DetectionDetailDetectionData from '@/components/DetectionDetail/DetectionDetailDetectionData';
 import DetectionDetailDetectionObject from '@/components/DetectionDetail/DetectionDetailDetectionObject';
 import DetectionTileHistory from '@/components/DetectionDetail/DetectionTileHistory';
@@ -11,8 +11,8 @@ import WarningCard from '@/components/ui/WarningCard';
 import { useDetectionAddress, useDetectionObjectDetail, usePriorLetterDownload } from '@/hooks';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
-import { useMap } from '@/utils/context/map-context';
 import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
 import { getDetectionObjectLink } from '@/utils/link';
 import { Accordion, ActionIcon, Anchor, Button, Loader as MantineLoader, ScrollArea, Tooltip } from '@mantine/core';
@@ -240,7 +240,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 });
 
                                 setForceVisibleLoading(true);
-                                await api.patch(getDetectionForceVisibleEndpoint(detectionObject.detections[0].uuid));
+                                await api.patch(detectionEndpoints.forceVisible(detectionObject.detections[0].uuid));
                                 setForceVisibleLoading(false);
                                 setDetectionUnhidden && setDetectionUnhidden();
                             }}

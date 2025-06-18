@@ -1,10 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import {
-    OBJECT_TYPE_CATEGORY_POST_ENDPOINT,
-    OBJECT_TYPE_LIST_ENDPOINT,
-    getObjectTypeCategoryDetailEndpoint,
-} from '@/api-endpoints';
+import { objectTypeCategoryEndpoints, objectTypeEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
@@ -41,9 +37,9 @@ const postForm = async (values: FormValues, uuid?: string) => {
     let response: AxiosResponse<ObjectTypeCategory>;
 
     if (uuid) {
-        response = await api.patch(getObjectTypeCategoryDetailEndpoint(uuid), values);
+        response = await api.patch(objectTypeCategoryEndpoints.detail(uuid), values);
     } else {
-        response = await api.post(OBJECT_TYPE_CATEGORY_POST_ENDPOINT, values);
+        response = await api.post(objectTypeCategoryEndpoints.create, values);
     }
 
     return response.data;
@@ -216,7 +212,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, objectTypes }) => {
 };
 
 const fetchObjectTypes = async () => {
-    const res = await api.get<ObjectType[]>(OBJECT_TYPE_LIST_ENDPOINT);
+    const res = await api.get<ObjectType[]>(objectTypeEndpoints.list);
     return res.data;
 };
 
@@ -233,7 +229,7 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<ObjectTypeCategoryDetail>(getObjectTypeCategoryDetailEndpoint(uuid));
+        const res = await api.get<ObjectTypeCategoryDetail>(objectTypeCategoryEndpoints.detail(uuid));
         const initialValues: FormValues = {
             ...res.data,
             objectTypeCategoryObjectTypes: res.data.objectTypeCategoryObjectTypes.map(
@@ -252,13 +248,13 @@ const ComponentInner: React.FC = () => {
         error,
         data: initialValues,
     } = useQuery({
-        queryKey: [getObjectTypeCategoryDetailEndpoint(String(uuid))],
+        queryKey: [objectTypeCategoryEndpoints.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });
 
     const { data: objectTypes } = useQuery({
-        queryKey: [OBJECT_TYPE_LIST_ENDPOINT],
+        queryKey: [objectTypeEndpoints.list],
         queryFn: () => fetchObjectTypes(),
     });
 

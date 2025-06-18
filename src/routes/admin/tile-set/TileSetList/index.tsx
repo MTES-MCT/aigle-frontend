@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { TILE_SET_LIST_ENDPOINT } from '@/api-endpoints';
+import { tileSetEndpoints } from '@/api/endpoints';
 import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import SoloAccordion from '@/components/admin/SoloAccordion';
@@ -54,7 +54,7 @@ const Component: React.FC = () => {
                 </p>
             </InfoCard>
             <DataTable<TileSetDetail, DataFilter>
-                endpoint={TILE_SET_LIST_ENDPOINT}
+                endpoint={tileSetEndpoints.list}
                 filter={filter}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>

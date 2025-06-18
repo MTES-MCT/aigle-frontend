@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { TILE_SET_POST_ENDPOINT, getTileSetDetailEndpoint } from '@/api-endpoints';
+import { tileSetEndpoints } from '@/api/endpoints';
 import Map from '@/components/Map';
 import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
@@ -19,10 +19,10 @@ import {
     tileSetTypes,
 } from '@/models/tile-set';
 import { User } from '@/models/user';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
 import { useAuth } from '@/utils/auth-context';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 import { Button, Card, Checkbox, NumberInput, Select, TextInput } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
@@ -125,9 +125,9 @@ const postForm = async (values: FormValues, uuid?: string) => {
     let response: AxiosResponse<TileSet>;
 
     if (uuid) {
-        response = await api.patch(getTileSetDetailEndpoint(uuid), values);
+        response = await api.patch(tileSetEndpoints.detail(uuid), values);
     } else {
-        response = await api.post(TILE_SET_POST_ENDPOINT, values);
+        response = await api.post(tileSetEndpoints.create, values);
     }
 
     return response.data;
@@ -432,7 +432,7 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<TileSetDetailWithGeometry>(getTileSetDetailEndpoint(uuid));
+        const res = await api.get<TileSetDetailWithGeometry>(tileSetEndpoints.detail(uuid));
         const initialValues: FormValues = {
             ...res.data,
             date: new Date(res.data.date),
@@ -450,7 +450,7 @@ const ComponentInner: React.FC = () => {
     };
 
     const { isLoading, error, data } = useQuery({
-        queryKey: [getTileSetDetailEndpoint(String(uuid))],
+        queryKey: [tileSetEndpoints.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });

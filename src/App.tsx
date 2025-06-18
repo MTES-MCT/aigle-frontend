@@ -1,12 +1,12 @@
-import { MAP_SETTINGS_ENDPOINT, USERS_ME_ENDPOINT } from '@/api-endpoints';
+import { mapEndpoints, usersEndpoints } from '@/api/endpoints';
 import { MapSettings } from '@/models/map-settings';
 import { User } from '@/models/user';
 import { allRoutes } from '@/routes/config';
+import { useMap } from '@/store/slices/map';
+import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
 import { useAuth } from '@/utils/auth-context';
 import { DEFAULT_ROUTE } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
-import { useStatistics } from '@/utils/context/statistics-context';
 import { setupMatomo } from '@/utils/matomo';
 import ProtectedRoute from '@/utils/ProtectedRoute';
 import { Crisp } from 'crisp-sdk-web';
@@ -29,7 +29,7 @@ const App: React.FC = () => {
 
     const getUser = useCallback(async () => {
         try {
-            const { data: user } = await api.get<User>(USERS_ME_ENDPOINT);
+            const { data: user } = await api.get<User>(usersEndpoints.me);
             setUser(user);
             setupMatomo(user);
         } catch (err) {
@@ -43,7 +43,7 @@ const App: React.FC = () => {
 
     const getMapSettings = useCallback(async () => {
         try {
-            const res = await api.get<MapSettings>(MAP_SETTINGS_ENDPOINT);
+            const res = await api.get<MapSettings>(mapEndpoints.settings);
             setMapSettings(res.data);
             setStatisticsMapSettings(res.data);
             return res.data;

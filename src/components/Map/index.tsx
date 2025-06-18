@@ -1,13 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Map, { GeolocateControl, Layer, Source, ViewStateChangeEvent } from 'react-map-gl';
 
-import {
-    DETECTION_OBJECT_FROM_COORDINATES_ENDPOINT,
-    DETECTION_OBJECT_LIST_ENDPOINT,
-    GET_ANNOTATION_GRID_ENDPOINT,
-    GET_CUSTOM_GEOMETRY_ENDPOINT,
-    getDetectionListEndpoint,
-} from '@/api-endpoints';
+import { detectionEndpoints, detectionObjectEndpoints, utilsEndpoints } from '@/api/endpoints';
 import DetectionDetail from '@/components/DetectionDetail';
 import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import MapAddAnnotationModal from '@/components/Map/MapAddAnnotationModal';
@@ -24,9 +18,9 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -109,7 +103,7 @@ const MAP_CONTROLS: {
 const getSourceId = (layer: MapTileSetLayer) => `source-${layer.tileSet.uuid}`;
 const getLayerId = (layer: MapTileSetLayer) => `layer-${layer.tileSet.uuid}`;
 
-const DETECTION_ENDPOINT = getDetectionListEndpoint(false, true);
+const DETECTION_ENDPOINT = detectionEndpoints.getList(false, true);
 
 const GEOJSON_CUSTOM_ZONES_LAYER_ID = 'custom-zones-geojson-layer';
 const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outline';
@@ -506,7 +500,7 @@ const Component: React.FC<ComponentProps> = ({
                 });
 
                 const detectionObjectsDetailsRes = await api.get<DetectionObjectDetail[]>(
-                    DETECTION_OBJECT_LIST_ENDPOINT,
+                    detectionObjectEndpoints.list,
                     {
                         params: {
                             detectionUuids: detectionUuids.join(','),
@@ -587,7 +581,7 @@ const Component: React.FC<ComponentProps> = ({
             return null;
         }
 
-        const res = await api.get<DetectionGeojsonData>(GET_ANNOTATION_GRID_ENDPOINT, {
+        const res = await api.get<DetectionGeojsonData>(utilsEndpoints.annotationGrid, {
             params: {
                 ...mapBounds,
                 ...annotationGridFilters,
@@ -600,7 +594,7 @@ const Component: React.FC<ComponentProps> = ({
     };
     const { data: annotationGrid, refetch: refetchAnnotationGrid } = useQuery({
         queryKey: [
-            GET_ANNOTATION_GRID_ENDPOINT,
+            utilsEndpoints.annotationGrid,
             ...Object.values(mapBounds || {}),
             ...Object.values(annotationGridFilters || {}),
             ...tileSetsUuidsDetection,
@@ -617,7 +611,7 @@ const Component: React.FC<ComponentProps> = ({
             return null;
         }
 
-        const res = await api.get<GeoCustomZoneResponse>(GET_CUSTOM_GEOMETRY_ENDPOINT, {
+        const res = await api.get<GeoCustomZoneResponse>(utilsEndpoints.customGeometry, {
             params: {
                 ...mapBounds,
                 uuids: customZoneLayersDisplayedUuids,
@@ -630,7 +624,7 @@ const Component: React.FC<ComponentProps> = ({
     };
     const { data: customZonesData } = useQuery({
         queryKey: [
-            GET_CUSTOM_GEOMETRY_ENDPOINT,
+            utilsEndpoints.customGeometry,
             ...Object.values(mapBounds || {}),
             customZoneLayersDisplayedUuids.join(','),
             (objectsFilter?.customZonesUuids || []).join(','),
@@ -766,7 +760,7 @@ const Component: React.FC<ComponentProps> = ({
                 objectFromCoordinates: undefined,
             }));
 
-            const res = await api.get<ObjectFromCoordinates>(DETECTION_OBJECT_FROM_COORDINATES_ENDPOINT, {
+            const res = await api.get<ObjectFromCoordinates>(detectionObjectEndpoints.fromCoordinates, {
                 params: {
                     lat,
                     lng,

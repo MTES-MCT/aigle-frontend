@@ -1,4 +1,4 @@
-import { getDetectionListEndpoint } from '@/api-endpoints';
+import { detectionEndpoints } from '@/api/endpoints';
 import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import FilterObjects from '@/components/FilterObjects';
 import LayoutBase from '@/components/LayoutBase';
@@ -17,13 +17,13 @@ import { ObjectType } from '@/models/object-type';
 import { TileSet } from '@/models/tile-set';
 import TableDownloadButton from '@/routes/Table/TableDownloadButton';
 import TableHeader from '@/routes/Table/TableHeader';
+import { useStatistics } from '@/store/slices/statistics';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP,
     DETECTION_SOURCE_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
-import { useStatistics } from '@/utils/context/statistics-context';
 import { formatParcel } from '@/utils/format';
 import { getDetectionObjectLink } from '@/utils/link';
 import { Affix, Badge, Button, Switch, Table, Tooltip } from '@mantine/core';
@@ -47,7 +47,7 @@ const getOrderParams = (
     };
 };
 
-const ENDPOINT = getDetectionListEndpoint();
+const ENDPOINT = detectionEndpoints.getList();
 
 interface FormValues {
     communesUuids: string[];

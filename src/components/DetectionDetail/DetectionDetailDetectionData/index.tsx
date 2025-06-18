@@ -1,4 +1,4 @@
-import { DETECTION_POST_ENDPOINT, getDetectionDataDetailEndpoint } from '@/api-endpoints';
+import { detectionDataEndpoints, detectionEndpoints } from '@/api/endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoBubble from '@/components/ui/InfoBubble';
@@ -15,6 +15,7 @@ import {
 } from '@/models/detection';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
 import {
     DEFAULT_DATE_FORMAT,
@@ -22,7 +23,6 @@ import {
     DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
 import { Button, Checkbox, LoadingOverlay, Loader as MantineLoader, Select, Text } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -64,7 +64,7 @@ const postForm = async (
     }
 
     if (uuid) {
-        const response = await api.patch<DetectionData>(getDetectionDataDetailEndpoint(uuid), values_);
+        const response = await api.patch<DetectionData>(detectionDataEndpoints.detail(uuid), values_);
         resValue = response.data;
     } else {
         const body = {
@@ -73,7 +73,7 @@ const postForm = async (
             geometry,
             detectionData: values_,
         };
-        const response = await api.post<DetectionDetail>(DETECTION_POST_ENDPOINT, body);
+        const response = await api.post<DetectionDetail>(detectionEndpoints.create, body);
         resValue = response.data.detectionData;
     }
 

@@ -6,7 +6,7 @@ import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
-import { useStatistics } from '@/utils/context/statistics-context';
+import { useStatistics } from '@/store/slices/statistics';
 import { MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { useMemo } from 'react';

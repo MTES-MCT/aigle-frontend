@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { USERS_LIST_ENDPOINT } from '@/api-endpoints';
+import { usersEndpoints } from '@/api/endpoints';
 import PillsDataCell from '@/components/admin/DataCells/PillsDataCell';
 import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
@@ -47,7 +47,7 @@ const Component: React.FC = () => {
             }
         >
             <DataTable<User, DataFilter>
-                endpoint={USERS_LIST_ENDPOINT}
+                endpoint={usersEndpoints.list}
                 filter={filter}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>

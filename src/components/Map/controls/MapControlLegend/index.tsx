@@ -3,8 +3,8 @@ import React, { useMemo } from 'react';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
+import { useMap } from '@/store/slices/map';
 import { CUSTOM_ZONE_NEGATIVE_COLOR, OTHER_OBJECT_TYPE, PARCEL_COLOR } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
