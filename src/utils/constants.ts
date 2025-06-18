@@ -12,6 +12,7 @@ import { ObjectTypeCategoryObjectTypeStatus } from '@/models/object-type-categor
 import { TileSetStatus, TileSetType } from '@/models/tile-set';
 import { UserGroupRight, UserRole } from '@/models/user';
 import { UserGroupType } from '@/models/user-group';
+import { colors } from '@/utils/colors';
 
 export const DEFAULT_ROUTE = '/';
 
@@ -99,10 +100,10 @@ export const DETECTION_VALIDATION_STATUSES_NAMES_MAP: {
 export const DETECTION_VALIDATION_STATUSES_COLORS_MAP: {
     [status in DetectionValidationStatus]: string;
 } = {
-    DETECTED_NOT_VERIFIED: '#2196F3',
-    SUSPECT: '#936e00',
-    LEGITIMATE: '#39833c',
-    INVALIDATED: '#bb1c18',
+    DETECTED_NOT_VERIFIED: colors.BLUE,
+    SUSPECT: colors.YELLOW,
+    LEGITIMATE: colors.GREEN,
+    INVALIDATED: colors.RED,
 } as const;
 
 export const USER_GROUP_TYPES_NAMES_MAP: {

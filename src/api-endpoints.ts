@@ -46,6 +46,7 @@ export const getUserGroupDetailEndpoint = userGroupEndpoints.detail;
 export const RUN_COMMAND_LIST_ENDPOINT = runCommandEndpoints.list;
 export const RUN_COMMAND_RUN_ENDPOINT = runCommandEndpoints.run;
 export const RUN_COMMAND_TASKS_ENDPOINT = runCommandEndpoints.tasks;
+export const getRunCommandCancelEndpoint = runCommandEndpoints.cancel;
 
 // Geo endpoints
 export const GEO_REGION_LIST_ENDPOINT = geoEndpoints.region.list;

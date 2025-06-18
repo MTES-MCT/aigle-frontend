@@ -7,8 +7,18 @@ import { Paginated, Uuided } from '@/models/data';
 import { PAGINATION_OFFSET_LIMIT_INITIAL_VALUE, PaginationOffsetLimit } from '@/models/table';
 import api from '@/utils/api';
 import { getPaginationPage } from '@/utils/pagination';
-import { Button, Checkbox, LoadingOverlay, Pagination, Select, Table, TableProps } from '@mantine/core';
-import { IconChecks } from '@tabler/icons-react';
+import {
+    ActionIcon,
+    Button,
+    Checkbox,
+    Flex,
+    LoadingOverlay,
+    Pagination,
+    Select,
+    Table,
+    TableProps,
+} from '@mantine/core';
+import { IconChecks, IconRefresh } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -85,7 +95,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
         return res.data.results;
     };
 
-    const { isLoading, error, data, isFetching } = useQuery({
+    const { isLoading, error, data, isFetching, refetch } = useQuery({
         queryKey: [endpoint, pagination.limit, pagination.offset, ...(filter ? Object.values(filter) : [])],
         queryFn: ({ signal }) => fetchData(signal, pagination),
         placeholderData: keepPreviousData,
@@ -110,19 +120,28 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                         </p>
                     ) : null}
                 </div>
-
-                <Select
-                    label="Nombre de lignes"
-                    className={classes['select-limit']}
-                    data={LIMITS.map(String)}
-                    value={String(pagination.limit)}
-                    onChange={(limit) =>
-                        setPagination((prev) => ({
-                            ...prev,
-                            limit: Number(limit),
-                        }))
-                    }
-                />
+                <Flex gap="xs" align="flex-end" justify="flex-end">
+                    <ActionIcon
+                        variant="subtle"
+                        onClick={() => refetch({ cancelRefetch: true })}
+                        title="Rafraichir la liste"
+                        size="lg"
+                    >
+                        <IconRefresh />
+                    </ActionIcon>
+                    <Select
+                        label="Nombre de lignes"
+                        className={classes['select-limit']}
+                        data={LIMITS.map(String)}
+                        value={String(pagination.limit)}
+                        onChange={(limit) =>
+                            setPagination((prev) => ({
+                                ...prev,
+                                limit: Number(limit),
+                            }))
+                        }
+                    />
+                </Flex>
             </div>
 
             {showSelection ? (
