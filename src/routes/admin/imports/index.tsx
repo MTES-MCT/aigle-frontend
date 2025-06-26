@@ -1,4 +1,4 @@
-import { IMPORTS_INFOS_ENDPOINT } from '@/api-endpoints';
+import { utilsEndpoints } from '@/api/endpoints';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import Loader from '@/components/ui/Loader';
 import { ImportsInfos } from '@/models/info-imports';
@@ -9,7 +9,7 @@ import React from 'react';
 import classes from './index.module.scss';
 
 const fetchImportInfos = async (): Promise<ImportsInfos> => {
-    const res = await api.get<ImportsInfos>(IMPORTS_INFOS_ENDPOINT);
+    const res = await api.get<ImportsInfos>(utilsEndpoints.importsInfos);
     return res.data;
 };
 

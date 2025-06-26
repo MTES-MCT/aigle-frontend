@@ -1,4 +1,4 @@
-import { getDetectionObjectDetailEndpoint } from '@/api-endpoints';
+import { detectionObjectEndpoints } from '@/api/endpoints';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import api from '@/utils/api';
 import { getAddressFromPolygon } from '@/utils/geojson';
@@ -9,7 +9,7 @@ export const useDetectionAddress = (detectionObject: DetectionObjectDetail) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const updateAddress = async (detectionObjectUuid: string, newAddress: string) => {
-        return api.patch(getDetectionObjectDetailEndpoint(detectionObjectUuid), {
+        return api.patch(detectionObjectEndpoints.detail(detectionObjectUuid), {
             address: newAddress,
         });
     };

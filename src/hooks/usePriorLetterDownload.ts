@@ -1,9 +1,9 @@
-import { getGeneratePriorLetterEndpoint } from '@/api-endpoints';
+import { utilsEndpoints } from '@/api/endpoints';
 import api from '@/utils/api';
 import { useMutation } from '@tanstack/react-query';
 
 const downloadPriorLetter = async (detectionObjectUuid: string) => {
-    const response = await api.get<Blob>(getGeneratePriorLetterEndpoint(detectionObjectUuid), {
+    const response = await api.get<Blob>(utilsEndpoints.generatePriorLetter(detectionObjectUuid), {
         responseType: 'blob',
     });
 

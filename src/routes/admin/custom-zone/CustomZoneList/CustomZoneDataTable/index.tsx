@@ -1,4 +1,4 @@
-import { GEO_CUSTOM_ZONE_LIST_ENDPOINT } from '@/api-endpoints';
+import { customZoneEndpoints } from '@/api/endpoints';
 import DataTable from '@/components/admin/DataTable';
 import SoloAccordion from '@/components/admin/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
@@ -27,7 +27,7 @@ const Component: React.FC = () => {
 
     return (
         <DataTable<GeoCustomZone, DataFilter>
-            endpoint={GEO_CUSTOM_ZONE_LIST_ENDPOINT}
+            endpoint={customZoneEndpoints.list}
             filter={filter}
             SoloAccordion={
                 <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
@@ -46,6 +46,7 @@ const Component: React.FC = () => {
                 </SoloAccordion>
             }
             tableHeader={[
+                <Table.Th key="id">ID</Table.Th>,
                 <Table.Th key="createdAt">Date création</Table.Th>,
                 <Table.Th key="name">Nom</Table.Th>,
                 <Table.Th key="nameShort">Nom court</Table.Th>,
@@ -54,6 +55,7 @@ const Component: React.FC = () => {
                 ...(userMe?.userRole === 'SUPER_ADMIN' ? [<Table.Th key="status">Statut</Table.Th>] : []),
             ]}
             tableBodyRenderFns={[
+                (item: GeoCustomZone) => item.id,
                 (item: GeoCustomZone) => <DateInfo date={item.createdAt} />,
                 (item: GeoCustomZone) => item.name,
                 (item: GeoCustomZone) => <OptionalText text={item.nameShort} />,

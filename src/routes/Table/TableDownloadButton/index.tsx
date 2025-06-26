@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { DownloadOutputFormat, getDetectionListDownloadEndpoint } from '@/api-endpoints';
+import { DownloadOutputFormat, detectionEndpoints } from '@/api/endpoints';
 import { ObjectsFilter } from '@/models/detection-filter';
+import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
-import { useStatistics } from '@/utils/context/statistics-context';
 import { Button, Loader as MantineLoader } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
@@ -24,7 +24,7 @@ const download = async (
         throw new Error('No objects filter provided');
     }
 
-    const res = await api.get(getDetectionListDownloadEndpoint(outputFormat), {
+    const res = await api.get(detectionEndpoints.download(outputFormat), {
         params: {
             ...objectsFilter,
             communesUuids: communesUuids.join(','),

@@ -3,7 +3,7 @@ import { isEmail, useForm, UseFormReturnType } from '@mantine/form';
 import { AxiosError } from 'axios';
 import React, { useState } from 'react';
 
-import { AUTH_LOGIN_ENDPOINT } from '@/api-endpoints';
+import { authEndpoints } from '@/api/endpoints';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
 import WarningCard from '@/components/ui/WarningCard';
@@ -25,7 +25,7 @@ interface FormValues {
 }
 
 const login = async (user: FormValues) => {
-    const response = await api.post<JwtAuthResponse>(AUTH_LOGIN_ENDPOINT, user);
+    const response = await api.post<JwtAuthResponse>(authEndpoints.login, user);
     return response.data;
 };
 

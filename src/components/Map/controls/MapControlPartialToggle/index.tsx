@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
+import { useMap } from '@/store/slices/map';
 import { TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
-import { useMap } from '@/utils/context/map-context';
 import { Button } from '@mantine/core';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import classes from './index.module.scss';

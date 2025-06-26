@@ -1,4 +1,4 @@
-import { STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT } from '@/api-endpoints';
+import { statisticsEndpoints } from '@/api/endpoints';
 import { objectsFilterToApiParams, valueFormatter } from '@/components/Statistics/utils';
 import Loader from '@/components/ui/Loader';
 import { detectionValidationStatuses } from '@/models/detection';
@@ -47,7 +47,7 @@ const fetchData = async (
         params.prescripted = objectsFilter.prescripted;
     }
 
-    const res = await api.get<ValidationStatusGlobal[]>(STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT, {
+    const res = await api.get<ValidationStatusGlobal[]>(statisticsEndpoints.validationStatusGlobal, {
         params,
         signal,
     });
@@ -87,7 +87,7 @@ const Component: React.FC<ComponentProps> = ({
 }: ComponentProps) => {
     const { data: statistics, isFetching } = useQuery({
         queryKey: [
-            STATISTICS_VALIDATION_STATUS_GLOBAL_ENDPOINT,
+            statisticsEndpoints.validationStatusGlobal,
             Object.values(objectsFilter),
             tileSetsUuids.join(','),
             communesUuids.join(','),

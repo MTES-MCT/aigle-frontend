@@ -1,9 +1,9 @@
-import { DETECTION_OBJECT_POST_ENDPOINT, getDetectionObjectDetailEndpoint } from '@/api-endpoints';
+import { detectionObjectEndpoints } from '@/api/endpoints';
 import SelectItem from '@/components/ui/SelectItem';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { ObjectType } from '@/models/object-type';
+import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
-import { useMap } from '@/utils/context/map-context';
 import { Button, Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -19,7 +19,7 @@ interface FormValues {
 }
 
 const postForm = async (detectionUuid: string, values: FormValues) => {
-    await api.patch(`${DETECTION_OBJECT_POST_ENDPOINT}${detectionUuid}/`, values);
+    await api.patch(detectionObjectEndpoints.detail(detectionUuid), values);
 };
 
 interface ComponentProps {
@@ -68,7 +68,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
         mutationFn: (values: FormValues) => postForm(detectionObject.uuid, values),
         onSuccess: () => {
             queryClient.setQueryData(
-                [getDetectionObjectDetailEndpoint(detectionObject.uuid)],
+                [detectionObjectEndpoints.detail(detectionObject.uuid)],
                 (prev: DetectionObjectDetail) => {
                     const objectTypeUuid = form.getValues().objectTypeUuid;
                     const objectType = (objectTypes || []).find((ot) => ot.uuid === objectTypeUuid);

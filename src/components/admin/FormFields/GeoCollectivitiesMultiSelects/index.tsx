@@ -1,4 +1,4 @@
-import { getGeoListEndpoint } from '@/api-endpoints';
+import { getGeoListEndpoint } from '@/api/endpoints';
 import { Paginated } from '@/models/data';
 import { CollectivityType, GeoCollectivity, collectivityTypes } from '@/models/geo/_common';
 import { GeoCommune } from '@/models/geo/geo-commune';
