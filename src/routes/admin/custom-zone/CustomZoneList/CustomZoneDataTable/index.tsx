@@ -46,6 +46,7 @@ const Component: React.FC = () => {
                 </SoloAccordion>
             }
             tableHeader={[
+                <Table.Th key="id">ID</Table.Th>,
                 <Table.Th key="createdAt">Date création</Table.Th>,
                 <Table.Th key="name">Nom</Table.Th>,
                 <Table.Th key="nameShort">Nom court</Table.Th>,
@@ -54,6 +55,7 @@ const Component: React.FC = () => {
                 ...(userMe?.userRole === 'SUPER_ADMIN' ? [<Table.Th key="status">Statut</Table.Th>] : []),
             ]}
             tableBodyRenderFns={[
+                (item: GeoCustomZone) => item.id,
                 (item: GeoCustomZone) => <DateInfo date={item.createdAt} />,
                 (item: GeoCustomZone) => item.name,
                 (item: GeoCustomZone) => <OptionalText text={item.nameShort} />,

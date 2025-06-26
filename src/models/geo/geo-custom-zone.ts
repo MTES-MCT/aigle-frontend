@@ -11,6 +11,7 @@ export const geoCustomZoneTypes = ['COMMON', 'COLLECTIVITY_MANAGED'] as const;
 export type GeoCustomZoneType = (typeof geoCustomZoneTypes)[number];
 
 export interface GeoCustomZone extends GeoZone {
+    id: number;
     color: string;
     nameShort: string;
     geoCustomZoneStatus: GeoCustomZoneStatus;
