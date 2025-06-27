@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { runCommandEndpoints } from '@/api/endpoints';
 import DataTable from '@/components/admin/DataTable';
+import SoloAccordion from '@/components/admin/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
-import { CommandRun, CommandRunStatus } from '@/models/command';
+import { CommandRun, CommandRunStatus, commandRunStatuses } from '@/models/command';
 import api from '@/utils/api';
 import { colors } from '@/utils/colors';
-import { ActionIcon, Badge, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Checkbox, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCancel } from '@tabler/icons-react';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { isEqual } from 'lodash';
 
 interface ArgumentsDisplayProps {
     arguments: CommandRun['arguments'];
@@ -72,10 +74,18 @@ const COMMAND_RUN_STATUS_COLORS_MAP: Record<CommandRunStatus, string> = {
     CANCELED: colors.GREY,
 };
 
+const COMMAND_RUN_STATUS_NAMES_MAP: Record<CommandRunStatus, string> = {
+    PENDING: 'En attente',
+    RUNNING: 'En cours',
+    SUCCESS: 'Succès',
+    ERROR: 'Erreur',
+    CANCELED: 'Annulé',
+};
+
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     return (
         <Badge color={COMMAND_RUN_STATUS_COLORS_MAP[status]} variant="filled">
-            {status}
+            {COMMAND_RUN_STATUS_NAMES_MAP[status]}
         </Badge>
     );
 };
@@ -84,6 +94,14 @@ const cancelTask = async (taskId: string) => {
     const response = await api.post(runCommandEndpoints.cancel(taskId));
 
     return response.data;
+};
+
+interface DataFilter {
+    statuses: CommandRunStatus[];
+}
+
+const DATA_FILTER_INITIAL_VALUE: DataFilter = {
+    statuses: [...commandRunStatuses].sort(),
 };
 
 const Component: React.FC = () => {
@@ -102,10 +120,37 @@ const Component: React.FC = () => {
             });
         },
     });
+    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
 
     return (
-        <DataTable<CommandRun, undefined>
+        <DataTable<CommandRun, DataFilter>
             endpoint={runCommandEndpoints.tasks}
+            filter={filter}
+            SoloAccordion={
+                <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                    <Checkbox.Group
+                        label="Rôles"
+                        value={filter.statuses}
+                        onChange={(statuses) => {
+                            setFilter((filter) => ({
+                                ...filter,
+                                statuses: (statuses as CommandRunStatus[]).sort(),
+                            }));
+                        }}
+                    >
+                        <Stack gap={0}>
+                            {commandRunStatuses.map((status) => (
+                                <Checkbox
+                                    mt="xs"
+                                    key={status}
+                                    value={status}
+                                    label={COMMAND_RUN_STATUS_NAMES_MAP[status]}
+                                />
+                            ))}
+                        </Stack>
+                    </Checkbox.Group>
+                </SoloAccordion>
+            }
             tableHeader={[
                 <Table.Th key="actions" />,
                 <Table.Th key="createdAt">Date</Table.Th>,
