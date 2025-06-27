@@ -28,5 +28,5 @@ export const runCommandEndpoints = {
     list: BASE_RUN_COMMAND,
     run: `${BASE_RUN_COMMAND}run/`,
     tasks: `${BASE_RUN_COMMAND}tasks/`,
-    cancel: (taskId: string) => `${BASE_RUN_COMMAND}${taskId}/cancel`,
+    cancel: (taskId: string) => `${BASE_RUN_COMMAND}${taskId}/cancel/`,
 };
