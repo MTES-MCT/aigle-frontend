@@ -1,7 +1,7 @@
+import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import ValidationStatusEvolutionChart from '@/components/Statistics/ValidationStatusEvolutionChart';
 import ValidationStatusObjectTypesLineChart from '@/components/Statistics/ValidationStatusObjectTypesLineChart';
 import ValidationStatusPieChart from '@/components/Statistics/ValidationStatusPieChart';
-import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
@@ -11,7 +11,7 @@ import { MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { useMemo } from 'react';
 import FilterObjects from '../FilterObjects';
-import SoloAccordion from '../admin/SoloAccordion';
+import SoloAccordion from '../SoloAccordion';
 
 interface FormValues {
     tileSetsUuids: string[];

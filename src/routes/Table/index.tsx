@@ -1,12 +1,12 @@
 import { detectionEndpoints } from '@/api/endpoints';
+import PillsDataCell from '@/components/DataCells/PillsDataCell';
+import DataTable from '@/components/DataTable';
+import DataTableSortableHeaderColumn, { SortOrder } from '@/components/DataTable/DataTableSortableHeaderColumn';
 import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import FilterObjects from '@/components/FilterObjects';
+import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutBase from '@/components/LayoutBase';
-import PillsDataCell from '@/components/admin/DataCells/PillsDataCell';
-import DataTable from '@/components/admin/DataTable';
-import DataTableSortableHeaderColumn, { SortOrder } from '@/components/admin/DataTable/DataTableSortableHeaderColumn';
-import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
-import SoloAccordion from '@/components/admin/SoloAccordion';
+import SoloAccordion from '@/components/SoloAccordion';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
 import { DetectionListItem } from '@/models/detection';

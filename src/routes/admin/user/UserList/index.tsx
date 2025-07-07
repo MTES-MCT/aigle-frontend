@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
 import { usersEndpoints } from '@/api/endpoints';
-import PillsDataCell from '@/components/admin/DataCells/PillsDataCell';
-import DataTable from '@/components/admin/DataTable';
+import PillsDataCell from '@/components/DataCells/PillsDataCell';
+import DataTable from '@/components/DataTable';
+import SoloAccordion from '@/components/SoloAccordion';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
-import SoloAccordion from '@/components/admin/SoloAccordion';
 import UserGroupRightIcon from '@/components/icons/UserGroupRightIcon';
 import DateInfo from '@/components/ui/DateInfo';
 import { Uuided } from '@/models/data';

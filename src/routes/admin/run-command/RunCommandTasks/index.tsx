@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
 import { runCommandEndpoints } from '@/api/endpoints';
-import DataTable from '@/components/admin/DataTable';
-import SoloAccordion from '@/components/admin/SoloAccordion';
+import DataTable from '@/components/DataTable';
+import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { CommandRun, CommandRunStatus, commandRunStatuses } from '@/models/command';
 import api from '@/utils/api';

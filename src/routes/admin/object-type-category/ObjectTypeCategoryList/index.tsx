@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
 import { objectTypeCategoryEndpoints, objectTypeEndpoints } from '@/api/endpoints';
-import PillsDataCell from '@/components/admin/DataCells/PillsDataCell';
-import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
-import SoloAccordion from '@/components/admin/SoloAccordion';
+import PillsDataCell from '@/components/DataCells/PillsDataCell';
+import DataTable from '@/components/DataTable';
+import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import SelectItem from '@/components/ui/SelectItem';
 import { Uuided } from '@/models/data';

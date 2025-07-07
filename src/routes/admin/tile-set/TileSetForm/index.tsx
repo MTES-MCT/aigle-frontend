@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 import { tileSetEndpoints } from '@/api/endpoints';
+import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import Map from '@/components/Map';
-import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';

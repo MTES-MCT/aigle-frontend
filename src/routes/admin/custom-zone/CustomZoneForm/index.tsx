@@ -12,7 +12,7 @@ import { useMutation, UseMutationResult, useQuery } from '@tanstack/react-query'
 import { AxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
+import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import InfoCard from '@/components/ui/InfoCard';
 import {
     GeoCustomZoneDetail,

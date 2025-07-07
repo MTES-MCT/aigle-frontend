@@ -1,6 +1,6 @@
 import React, { ReactElement, ReactNode, useEffect, useRef, useState } from 'react';
 
-import SoloAccordion from '@/components/admin/SoloAccordion';
+import SoloAccordion from '@/components/SoloAccordion';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import { Paginated, Uuided } from '@/models/data';
