@@ -1,63 +1,30 @@
 import React from 'react';
 
-import { detectionEndpoints } from '@/api/endpoints';
+import { parcelEndpoints } from '@/api/endpoints';
 import Loader from '@/components/ui/Loader';
-import { DetectionValidationStatus, detectionValidationStatuses } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
+import { ParcelOverview } from '@/models/parcel';
 import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
-import { DETECTION_VALIDATION_STATUSES_COLORS_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { formatBigInt } from '@/utils/format';
 import { LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import classes from './index.module.scss';
 
-const populatePercentages = (
-    items: DetectionListOverviewValidationStatusesItem[],
-): DetectionListOverviewValidationStatusesItemWithPercentage[] => {
-    const total = items.reduce((sum, item) => sum + item.count, 0);
-
-    // Calculate percentages with one decimal place
-    const percentages = items.map((item) => Math.floor((item.count / total) * 1000) / 10);
-
-    // Find how much we need to add to reach 100%
-    const currentSum = percentages.reduce((sum, p) => sum + p, 0);
-    let remaining = Math.round((100 - currentSum) * 10) / 10;
-
-    // Add 0.1% to values starting from the largest until we reach 100%
-    const indices = items.map((_, i) => i).sort((a, b) => items[b].count - items[a].count);
-
-    let i = 0;
-    while (remaining > 0) {
-        percentages[indices[i % items.length]] += 0.1;
-        remaining -= 0.1;
-        i++;
-    }
-
-    // Create new array with percentage property as string
-    return items.map((item, index) => ({
-        ...item,
-        percentage: `${percentages[index].toFixed(1)}%`,
-    }));
+const calculatePercentage = (count: number, total: number): string => {
+    if (total === 0) return '0.0%';
+    return `${((count / total) * 100).toFixed(1)}%`;
 };
 
-interface DetectionListOverviewValidationStatusesItem {
+interface ParcelOverviewItem {
     count: number;
-    detectionValidationStatus: DetectionValidationStatus;
-}
-
-interface DetectionListOverviewValidationStatusesItemWithPercentage
-    extends DetectionListOverviewValidationStatusesItem {
     percentage: string;
+    label: string;
+    color: string;
 }
 
-interface DetectionListOverview {
-    totalCount: number;
-    validationStatusesCount: DetectionListOverviewValidationStatusesItem[];
-}
-
-interface DetectionListOverviewWithPercentage extends DetectionListOverview {
-    validationStatusesCount: DetectionListOverviewValidationStatusesItemWithPercentage[];
+interface ParcelOverviewWithPercentage extends ParcelOverview {
+    items: ParcelOverviewItem[];
 }
 
 const fetchData = async (
@@ -66,8 +33,8 @@ const fetchData = async (
     communesUuids: string[],
     departmentsUuids: string[],
     regionsUuids: string[],
-): Promise<DetectionListOverviewWithPercentage> => {
-    const res = await api.get<DetectionListOverview>(detectionEndpoints.listOverview, {
+): Promise<ParcelOverviewWithPercentage> => {
+    const res = await api.get<ParcelOverview>(parcelEndpoints.overview, {
         signal,
         params: {
             ...objectsFilter,
@@ -77,37 +44,43 @@ const fetchData = async (
         },
     });
 
+    const items: ParcelOverviewItem[] = [
+        {
+            count: res.data.verified,
+            percentage: calculatePercentage(res.data.verified, res.data.total),
+            label: 'Vérifiées',
+            color: '#28a745', // Green for verified
+        },
+        {
+            count: res.data.notVerified,
+            percentage: calculatePercentage(res.data.notVerified, res.data.total),
+            label: 'Non-vérifiées',
+            color: '#dc3545', // Red for not verified
+        },
+    ];
+
     return {
         ...res.data,
-        validationStatusesCount: populatePercentages(
-            [...res.data.validationStatusesCount].sort((a, b) => {
-                const indexA = detectionValidationStatuses.indexOf(a.detectionValidationStatus);
-                const indexB = detectionValidationStatuses.indexOf(b.detectionValidationStatus);
-                return indexA - indexB;
-            }),
-        ),
+        items,
     };
 };
 
-interface DetectionListOverviewItemProps extends DetectionListOverviewValidationStatusesItemWithPercentage {
-    totalCount: number;
-}
-
-const DetectionListOverviewItem: React.FC<DetectionListOverviewItemProps> = ({
+const DetectionListOverviewItem: React.FC<ParcelOverviewItem> = ({
     count,
     percentage,
-    detectionValidationStatus,
-}: DetectionListOverviewItemProps) => {
+    label,
+    color,
+}: ParcelOverviewItem) => {
     return (
         <div
             className={classes['detection-list-overview-item']}
             style={{
-                backgroundColor: `${DETECTION_VALIDATION_STATUSES_COLORS_MAP[detectionValidationStatus]}33`,
+                backgroundColor: `${color}33`,
             }}
         >
             <div className={classes['detection-list-overview-item-count']}>{percentage}</div>
             <div className={classes['detection-list-overview-item-label']}>
-                {DETECTION_VALIDATION_STATUSES_NAMES_MAP[detectionValidationStatus]} ({formatBigInt(count)})
+                {label} ({formatBigInt(count)})
             </div>
         </div>
     );
@@ -125,9 +98,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     departmentsUuids,
     regionsUuids,
 }: ComponentInnerProps) => {
+    const queryEnabled = communesUuids.length > 0;
     const { data, isFetching } = useQuery({
         queryKey: [
-            detectionEndpoints.listOverview,
+            parcelEndpoints.overview,
             Object.values(objectsFilter),
             communesUuids.join(','),
             departmentsUuids.join(','),
@@ -135,7 +109,12 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         ],
         placeholderData: keepPreviousData,
         queryFn: ({ signal }) => fetchData(signal, objectsFilter, communesUuids, departmentsUuids, regionsUuids),
+        enabled: queryEnabled,
     });
+
+    if (!queryEnabled) {
+        return null;
+    }
 
     if (!data) {
         return <Loader />;
@@ -147,17 +126,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 <Loader />
             </LoadingOverlay>
             <div className={classes['detection-list-overview-items-container']}>
-                {data.validationStatusesCount.map((validationStatusCount) => (
-                    <DetectionListOverviewItem
-                        key={validationStatusCount.detectionValidationStatus}
-                        totalCount={data.totalCount}
-                        {...validationStatusCount}
-                    />
+                {data.items.map((item) => (
+                    <DetectionListOverviewItem key={item.label} {...item} />
                 ))}
             </div>
             <div className={classes['detection-list-overview-total']}>
-                <span className={classes['detection-list-overview-total-number']}>{formatBigInt(data.totalCount)}</span>
-                {data.totalCount > 1 ? 'detection(s)' : 'detection'}
+                <span className={classes['detection-list-overview-total-number']}>{formatBigInt(data.total)}</span>
+                {data.total > 1 ? 'parcelle(s)' : 'parcelle'}
             </div>
         </div>
     );

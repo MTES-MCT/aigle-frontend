@@ -13,6 +13,8 @@ export const parcelEndpoints = {
     downloadInfos: (uuid: string) => `${BASE_PARCEL}${uuid}/get_download_infos/`,
     suggestSection: `${BASE_PARCEL}suggest_section/`,
     suggestNumParcel: `${BASE_PARCEL}suggest_num_parcel/`,
+    listItems: `${BASE_PARCEL}list_items/`,
+    overview: `${BASE_PARCEL}overview/`,
 };
 
 export const utilsEndpoints = {

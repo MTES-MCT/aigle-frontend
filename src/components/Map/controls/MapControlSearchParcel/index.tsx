@@ -43,10 +43,10 @@ const searchParcel = async (
     let url: string;
 
     const params: Record<string, string | string[]> = {
-        q,
+        [searchType === 'SECTION' ? 'sectionQ' : 'numParcelQ']: q,
     };
     if (values.commune?.value) {
-        params.communeUuids = [values.commune?.value];
+        params.communesUuids = [values.commune?.value];
     }
 
     if (searchType === 'SECTION') {
@@ -74,7 +74,7 @@ const searchParcel = async (
 const fetchParcel = async (values: FormValues): Promise<Parcel | null> => {
     const res = await api.get<Paginated<Parcel>>(parcelEndpoints.list, {
         params: {
-            communeUuids: [values.commune?.value],
+            communesUuids: [values.commune?.value],
             section: values.section,
             numParcel: values.numParcel,
             limit: 1,

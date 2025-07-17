@@ -24,10 +24,21 @@ export interface ParcelDetectionObject extends DetectionObjectMinimal {
     detections: DetectionWithTile[];
 }
 
+export interface ParcelListItem extends ParcelWithCommuneSerializer {
+    zoneNames: string[];
+    detectionsCount: number;
+}
+
 export interface ParcelDetail extends Parcel, ParcelWithCommuneSerializer {
     detectionsUpdatedAt: string;
     tileSetPreviews: DetectionObjectDetailTilesetPreview[];
     detectionObjects: ParcelDetectionObject[];
     customGeoZones: GeoCustomZoneWithSubZones[];
     communeEnvelope: Polygon;
+}
+
+export interface ParcelOverview {
+    notVerified: number;
+    verified: number;
+    total: number;
 }

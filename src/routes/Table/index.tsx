@@ -1,4 +1,4 @@
-import { detectionEndpoints } from '@/api/endpoints';
+import { parcelEndpoints } from '@/api/endpoints';
 import PillsDataCell from '@/components/DataCells/PillsDataCell';
 import DataTable from '@/components/DataTable';
 import DataTableSortableHeaderColumn, { SortOrder } from '@/components/DataTable/DataTableSortableHeaderColumn';
@@ -9,30 +9,21 @@ import LayoutBase from '@/components/LayoutBase';
 import SoloAccordion from '@/components/SoloAccordion';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
-import { DetectionListItem } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
-import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
-import { TileSet } from '@/models/tile-set';
+import { ParcelListItem } from '@/models/parcel';
+import DetectionsTable from '@/routes/Table/DetectionsTable';
 import TableDownloadButton from '@/routes/Table/TableDownloadButton';
 import TableHeader from '@/routes/Table/TableHeader';
+import { FormValues } from '@/routes/Table/utils';
 import { useStatistics } from '@/store/slices/statistics';
-import {
-    DETECTION_CONTROL_STATUSES_NAMES_MAP,
-    DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP,
-    DETECTION_SOURCE_NAMES_MAP,
-    DETECTION_VALIDATION_STATUSES_NAMES_MAP,
-} from '@/utils/constants';
 import { formatParcel } from '@/utils/format';
-import { getDetectionObjectLink } from '@/utils/link';
-import { Affix, Badge, Button, Switch, Table, Tooltip } from '@mantine/core';
+import { ActionIcon, Affix, Button, Switch, Table, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import { IconEdit, IconExternalLink } from '@tabler/icons-react';
+import { IconChevronDown, IconEdit } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import classes from './index.module.scss';
 
 const getOrderParams = (
     order?: FieldOrder,
@@ -47,13 +38,7 @@ const getOrderParams = (
     };
 };
 
-const ENDPOINT = detectionEndpoints.getList();
-
-interface FormValues {
-    communesUuids: string[];
-    departmentsUuids: string[];
-    regionsUuids: string[];
-}
+const ENDPOINT = parcelEndpoints.listItems;
 
 interface FieldOrder {
     sortOrder?: SortOrder;
@@ -89,20 +74,30 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         },
     });
     const queryClient = useQueryClient();
+    const dataTableFilter: DataTableFilter = { ...objectsFilter, ...form.getValues() };
     const filter = useMemo(
-        () => ({ ...objectsFilter, ...form.getValues(), ...getOrderParams(order) }),
+        () => ({ ...dataTableFilter, ...getOrderParams(order) }),
         [objectsFilter, form.getValues(), order],
     );
 
     return (
         <div>
-            <DataTable<DetectionListItem, DataTableFilter>
+            <DataTable<ParcelListItem, DataTableFilter>
                 endpoint={ENDPOINT}
                 filter={filter}
-                showSelection={selectionShowed}
-                selectedUuids={selectedUuids}
-                setSelectedUuids={setSelectedUuids}
+                queryEnabled={form.getValues().communesUuids.length > 0}
                 layout="auto"
+                getExpandedContent={(item: ParcelListItem) => (
+                    <DetectionsTable
+                        parcelUuid={item.uuid}
+                        dataTableFilter={dataTableFilter}
+                        selectionShowed={selectionShowed}
+                        selectedUuids={selectedUuids}
+                        setSelectedUuids={setSelectedUuids}
+                    />
+                )}
+                striped={false}
+                highlightOnHover={false}
                 SoloAccordion={
                     <SoloAccordion opened>
                         <GeoCollectivitiesMultiSelects form={form} displayedCollectivityTypes={new Set(['commune'])} />
@@ -134,11 +129,17 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     </div>
                 }
                 tableHeader={[
-                    <Table.Th key="detectionObjectId">Object n°</Table.Th>,
                     <Table.Th key="commune">Commune</Table.Th>,
                     <Table.Th key="geoCustomZones">Zones à enjeux</Table.Th>,
-                    <Table.Th key="objectTypeName">Type</Table.Th>,
-                    <Table.Th key="tileSets">Millésime</Table.Th>,
+                    <DataTableSortableHeaderColumn
+                        key="detectionsCount"
+                        onOrderChange={(sortOrder?: SortOrder) =>
+                            setOrder(sortOrder ? { sortOrder, field: 'detectionsCount' } : undefined)
+                        }
+                        sortOrder={order?.field === 'detectionsCount' ? order.sortOrder : undefined}
+                    >
+                        Nombre de détections
+                    </DataTableSortableHeaderColumn>,
                     <DataTableSortableHeaderColumn
                         key="parcel"
                         onOrderChange={(sortOrder?: SortOrder) =>
@@ -148,93 +149,29 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     >
                         Parcelle
                     </DataTableSortableHeaderColumn>,
-                    <DataTableSortableHeaderColumn
-                        key="score"
-                        onOrderChange={(sortOrder?: SortOrder) =>
-                            setOrder(sortOrder ? { sortOrder, field: 'score' } : undefined)
-                        }
-                        sortOrder={order?.field === 'score' ? order.sortOrder : undefined}
-                    >
-                        Score
-                    </DataTableSortableHeaderColumn>,
-                    <Table.Th key="detectionSource">Source</Table.Th>,
-                    <DataTableSortableHeaderColumn
-                        key="detectionControlStatus"
-                        onOrderChange={(sortOrder?: SortOrder) =>
-                            setOrder(sortOrder ? { sortOrder, field: 'detectionControlStatus' } : undefined)
-                        }
-                        sortOrder={order?.field === 'detectionControlStatus' ? order.sortOrder : undefined}
-                    >
-                        Statut de contrôle
-                    </DataTableSortableHeaderColumn>,
-                    <Table.Th key="detectionPrescriptionStatus">Prescription</Table.Th>,
-                    <Table.Th key="detectionValidationStatus">Statut de validation</Table.Th>,
+                    <Table.Th key="actions" />,
                 ]}
                 tableBodyRenderFns={[
-                    (item: DetectionListItem) => (
-                        <Button
-                            component={Link}
-                            target="_blank"
-                            variant="light"
-                            size="compact-xs"
-                            leftSection={<IconExternalLink size={14} />}
-                            to={getDetectionObjectLink(item.detectionObjectUuid)}
-                        >
-                            {item.detectionObjectId}
-                        </Button>
+                    (item: ParcelListItem) => <OptionalText text={`${item.commune.name} (${item.commune.code})`} />,
+                    (item: ParcelListItem) => (
+                        <PillsDataCell<string> direction="column" items={item.zoneNames} getLabel={(zone) => zone} />
                     ),
-                    (item: DetectionListItem) => <OptionalText text={`${item.communeName} (${item.communeIsoCode})`} />,
-                    (item: DetectionListItem) => (
-                        <PillsDataCell<GeoCustomZone>
-                            direction="column"
-                            items={item.geoCustomZones}
-                            getLabel={(zone) => zone.geoCustomZoneCategory?.name || zone.name}
-                        />
-                    ),
-                    (item: DetectionListItem) => (
-                        <div className={classes['object-type-cell']}>
-                            <Badge
-                                className={classes['object-type-cell-badge']}
-                                color={item.objectType.color}
-                                radius={100}
-                            />
-                            {item.objectType.name}
-                        </div>
-                    ),
-                    (item: DetectionListItem) => (
-                        <PillsDataCell<TileSet>
-                            direction="column"
-                            items={item.tileSets}
-                            getLabel={(tileSet) => tileSet.name}
-                        />
-                    ),
-                    (item: DetectionListItem) => (
+                    (item: ParcelListItem) => item.detectionsCount,
+                    (item: ParcelListItem) => (
                         <OptionalText
                             text={
-                                item.parcel ? (
-                                    <Tooltip label={item.parcel.idParcellaire}>
-                                        <span>{formatParcel(item.parcel, false)}</span>
-                                    </Tooltip>
-                                ) : null
+                                <Tooltip label={item.idParcellaire}>
+                                    <span>{formatParcel(item, false)}</span>
+                                </Tooltip>
                             }
                         />
                     ),
-                    (item: DetectionListItem) => Math.round(item.score * 100),
-                    (item: DetectionListItem) => <>{DETECTION_SOURCE_NAMES_MAP[item.detectionSource]}</>,
-                    (item: DetectionListItem) => (
-                        <>{DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionControlStatus]}</>
-                    ),
-                    (item: DetectionListItem) => (
-                        <>
-                            {
-                                DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP[
-                                    item.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
-                                ]
-                            }
-                        </>
-                    ),
-                    (item: DetectionListItem) => (
-                        <>{DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionValidationStatus]}</>
+                    () => (
+                        <Tooltip label="Afficher les détections associées à cette parcelle">
+                            <ActionIcon variant="subtle">
+                                <IconChevronDown size={16} />
+                            </ActionIcon>
+                        </Tooltip>
                     ),
                 ]}
                 initialLimit={50}

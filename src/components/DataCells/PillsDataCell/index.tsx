@@ -4,14 +4,14 @@ import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
-interface ItemPillProps<T extends Uuided> {
+interface ItemPillProps<T extends Uuided | string> {
     item: T;
     toLink?: (item: T) => string;
     getLabel: (item: T) => string;
     getLeftSection?: (item: T) => React.ReactNode;
 }
 
-const ItemPill = <T extends Uuided>({ item, toLink, getLabel, getLeftSection }: ItemPillProps<T>) => {
+const ItemPill = <T extends Uuided | string>({ item, toLink, getLabel, getLeftSection }: ItemPillProps<T>) => {
     if (!toLink) {
         return (
             <Badge
@@ -30,7 +30,7 @@ const ItemPill = <T extends Uuided>({ item, toLink, getLabel, getLeftSection }: 
             component={Link}
             autoContrast
             radius={100}
-            key={item.uuid}
+            key={typeof item === 'string' ? item : item.uuid}
             to={toLink(item)}
             onClick={(e) => e.stopPropagation()}
             target="_blank"
@@ -43,14 +43,20 @@ const ItemPill = <T extends Uuided>({ item, toLink, getLabel, getLeftSection }: 
     );
 };
 
-interface ComponentProps<T extends Uuided> {
+interface ComponentProps<T extends Uuided | string> {
     direction?: 'row' | 'column';
     items: T[];
     toLink?: (item: T) => string;
     getLabel: (item: T) => string;
     getLeftSection?: (item: T) => React.ReactNode;
 }
-const Component = <T extends Uuided>({ items, toLink, getLabel, getLeftSection, direction }: ComponentProps<T>) => {
+const Component = <T extends Uuided | string>({
+    items,
+    toLink,
+    getLabel,
+    getLeftSection,
+    direction,
+}: ComponentProps<T>) => {
     return (
         <ScrollArea scrollbars="x" offsetScrollbars>
             <Group
@@ -63,7 +69,7 @@ const Component = <T extends Uuided>({ items, toLink, getLabel, getLeftSection, 
             >
                 {items.map((item) => (
                     <ItemPill<T>
-                        key={item.uuid}
+                        key={typeof item === 'string' ? item : item.uuid}
                         item={item}
                         toLink={toLink}
                         getLabel={getLabel}
