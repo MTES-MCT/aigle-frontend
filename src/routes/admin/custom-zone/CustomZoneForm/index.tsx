@@ -24,7 +24,7 @@ import {
 } from '@/models/geo/geo-custom-zone';
 import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 import { UserRole } from '@/models/user';
-import { useAuth } from '@/utils/auth-context';
+import { useAuth } from '@/store/slices/auth';
 import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP, GEO_CUSTOM_ZONE_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 

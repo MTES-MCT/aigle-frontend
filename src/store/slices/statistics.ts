@@ -3,30 +3,8 @@ import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
-import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/store/utils';
-import { getInitialObjectFilters } from '@/utils/objects-filter';
+import { getCommonMapSettingsData, getInitialStatisticsLayers } from '@/store/utils';
 import { create } from 'zustand';
-
-const getInitialLayers = (settings: MapSettings) => {
-    const layers: MapTileSetLayer[] = [];
-
-    settings.tileSetSettings.forEach(({ tileSet, geometry }) => {
-        let displayed = false;
-
-        if (tileSet.tileSetType === 'INDICATIVE') {
-            return;
-        }
-
-        displayed = tileSet.tileSetStatus === 'VISIBLE';
-
-        layers.push({
-            tileSet: { ...tileSet, geometry },
-            displayed,
-        });
-    });
-
-    return layers;
-};
 
 interface ZonesFilter {
     tileSetsUuids: string[];
@@ -51,14 +29,9 @@ interface StatisticsState {
 
 const useStatistics = create<StatisticsState>()((set) => ({
     setMapSettings: (settings: MapSettings) => {
-        const { allObjectTypes, visibleObjectTypesUuids, otherObjectTypesUuids } =
-            extractObjectTypesFromSettings(settings);
-        const layers = getInitialLayers(settings);
-        const initialMapGeoCustomZoneLayers = getInitialMapGeoCustomZoneLayers(settings);
-        const { objectsFilter } = getInitialObjectFilters(
-            Array.from(visibleObjectTypesUuids),
-            initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
-        );
+        const layers = getInitialStatisticsLayers(settings);
+        const { allObjectTypes, otherObjectTypesUuids, initialMapGeoCustomZoneLayers, objectsFilter } =
+            getCommonMapSettingsData(settings);
 
         set(() => ({
             layers,

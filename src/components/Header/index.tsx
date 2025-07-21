@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 
 import logoSmallImg from '@/assets/logo_small.png';
 import marianneImg from '@/assets/marianne.svg';
-import { useAuth } from '@/utils/auth-context';
+import { useAuth } from '@/store/slices/auth';
 import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
 import { getColorFromString, getEmailInitials } from '@/utils/string';
 import { Avatar, Burger, Button, Image, Menu, Tabs } from '@mantine/core';

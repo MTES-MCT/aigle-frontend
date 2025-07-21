@@ -1,7 +1,7 @@
 import React, { PropsWithChildren } from 'react';
 
 import Header from '@/components/Header';
-import { useAuth } from '@/utils/auth-context';
+import { useAuth } from '@/store/slices/auth';
 import { getPageTitle } from '@/utils/html';
 import { AppShell, NavLink } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';

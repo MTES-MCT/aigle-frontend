@@ -19,9 +19,9 @@ import {
     tileSetTypes,
 } from '@/models/tile-set';
 import { User } from '@/models/user';
+import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
-import { useAuth } from '@/utils/auth-context';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 import { Button, Card, Checkbox, NumberInput, Select, TextInput } from '@mantine/core';

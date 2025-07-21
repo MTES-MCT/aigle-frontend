@@ -9,7 +9,7 @@ import UserGroupRightIcon from '@/components/icons/UserGroupRightIcon';
 import DateInfo from '@/components/ui/DateInfo';
 import { Uuided } from '@/models/data';
 import { User, UserRole, UserUserGroup, userRoles } from '@/models/user';
-import { useAuth } from '@/utils/auth-context';
+import { useAuth } from '@/store/slices/auth';
 import { ROLES_NAMES_MAP, USER_GROUP_RIGHTS_ORDERED } from '@/utils/constants';
 import { Button, Checkbox, Input, Stack, Table } from '@mantine/core';
 import { IconSearch, IconUserPlus } from '@tabler/icons-react';

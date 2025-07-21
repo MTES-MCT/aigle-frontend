@@ -3,50 +3,12 @@ import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 import { TileSet, TileSetStatus, TileSetType } from '@/models/tile-set';
-import { extractObjectTypesFromSettings, getInitialMapGeoCustomZoneLayers } from '@/store/utils';
-import { getInitialObjectFilters, setObjectFilters } from '@/utils/objects-filter';
+import { getCommonMapSettingsData, getInitialMapLayers } from '@/store/utils';
+import { setObjectFilters } from '@/utils/objects-filter';
 import { format } from 'date-fns';
 import EventEmitter from 'eventemitter3';
 import { isEqual } from 'lodash';
 import { create } from 'zustand';
-
-const getInitialLayers = (settings: MapSettings) => {
-    const layers: MapTileSetLayer[] = [];
-    const backgroundLayerYears: Set<string> = new Set();
-    let layerYearDisplayed: string;
-
-    settings.tileSetSettings.forEach(({ tileSet, geometry }) => {
-        let displayed = false;
-
-        if (tileSet.tileSetType !== 'BACKGROUND') {
-            displayed = tileSet.tileSetStatus === 'VISIBLE';
-        } else {
-            const layerYear = format(tileSet.date, 'yyyy');
-            backgroundLayerYears.add(layerYear);
-            if (layerYearDisplayed) {
-                displayed = layerYear === layerYearDisplayed;
-            } else {
-                displayed = true;
-                layerYearDisplayed = layerYear;
-            }
-        }
-
-        layers.push({
-            tileSet: { ...tileSet, geometry },
-            displayed,
-        });
-    });
-
-    // sort years by descinding order
-    let backgroundLayerYears_ = [...backgroundLayerYears];
-    backgroundLayerYears_.sort();
-    backgroundLayerYears_ = backgroundLayerYears_.reverse();
-
-    return {
-        layers,
-        backgroundLayerYears: backgroundLayerYears_,
-    };
-};
 
 type MapEventType =
     | 'UPDATE_DETECTIONS'
@@ -89,15 +51,14 @@ interface MapState {
 
 const useMap = create<MapState>()((set, get) => ({
     setMapSettings: (settings: MapSettings) => {
-        const { allObjectTypes, visibleObjectTypesUuids, otherObjectTypesUuids } =
-            extractObjectTypesFromSettings(settings);
-
-        const { layers, backgroundLayerYears } = getInitialLayers(settings);
-        const initialMapGeoCustomZoneLayers = getInitialMapGeoCustomZoneLayers(settings);
-        const { objectsFilter, detectionObjectUuid } = getInitialObjectFilters(
-            Array.from(visibleObjectTypesUuids),
-            initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
-        );
+        const { layers, backgroundLayerYears } = getInitialMapLayers(settings);
+        const {
+            allObjectTypes,
+            otherObjectTypesUuids,
+            initialMapGeoCustomZoneLayers,
+            objectsFilter,
+            detectionObjectUuid,
+        } = getCommonMapSettingsData(settings);
 
         set(() => ({
             settings,
@@ -132,7 +93,7 @@ const useMap = create<MapState>()((set, get) => ({
             return;
         }
 
-        const { layers } = getInitialLayers(settings);
+        const { layers } = getInitialMapLayers(settings);
 
         set((state) => {
             state.eventEmitter.emit('LAYERS_UPDATED');
