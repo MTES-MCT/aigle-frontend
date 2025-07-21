@@ -1,3 +1,4 @@
+import { GeoZone, GeoZoneType } from '@/models/geo/geo-zone';
 import { User } from '@/models/user';
 import { UserGroupType } from '@/models/user-group';
 import { create } from 'zustand';
@@ -13,6 +14,7 @@ interface AuthState {
     setUser: (userMe?: User) => void;
     logout: () => void;
     getUserGroupType: () => UserGroupType;
+    getAccessibleGeozones: (geoZoneType?: GeoZoneType) => GeoZone[];
 
     isAuthenticated: () => boolean;
 }
@@ -42,6 +44,21 @@ const useAuth = create<AuthState>()(
                     userMe: undefined,
                 }));
                 window.location.reload();
+            },
+            getAccessibleGeozones: (geoZoneType?: GeoZoneType) => {
+                const userMe = get().userMe;
+
+                if (!userMe) {
+                    return [];
+                }
+
+                const geoZones = userMe.userUserGroups.flatMap(({ userGroup }) => userGroup.geoZones);
+
+                if (geoZoneType) {
+                    return geoZones.filter((geoZone) => geoZone.geoZoneType === geoZoneType);
+                }
+
+                return geoZones;
             },
             getUserGroupType: () => {
                 const userMe = get().userMe;

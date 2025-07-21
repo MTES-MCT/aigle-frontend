@@ -7,6 +7,7 @@ import FilterObjects from '@/components/FilterObjects';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutBase from '@/components/LayoutBase';
 import SoloAccordion from '@/components/SoloAccordion';
+import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
 import { ObjectsFilter } from '@/models/detection-filter';
@@ -18,7 +19,9 @@ import TableDownloadButton from '@/routes/Table/TableDownloadButton';
 import TableHeader from '@/routes/Table/TableHeader';
 import { FormValues } from '@/routes/Table/utils';
 import { useStatistics } from '@/store/slices/statistics';
+import { useAuth } from '@/utils/auth-context';
 import { formatParcel } from '@/utils/format';
+import { geoZoneToGeoOption } from '@/utils/geojson';
 import { ActionIcon, Affix, Button, Switch, Table, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconChevronDown, IconEdit } from '@tabler/icons-react';
@@ -66,9 +69,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     const [order, setOrder] = React.useState<FieldOrder | undefined>();
     const [selectionShowed, setSelectionShowed] = React.useState(false);
     const [editMultipleDetectionsModalShowed, setEditMultipleDetectionsModalShowed] = React.useState(false);
+    const { getAccessibleGeozones } = useAuth();
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
-            communesUuids: [] as string[],
+            communesUuids: getAccessibleGeozones('COMMUNE').map((zone) => zone.uuid),
             departmentsUuids: [] as string[],
             regionsUuids: [] as string[],
         },
@@ -100,7 +104,17 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 highlightOnHover={false}
                 SoloAccordion={
                     <SoloAccordion opened>
-                        <GeoCollectivitiesMultiSelects form={form} displayedCollectivityTypes={new Set(['commune'])} />
+                        <GeoCollectivitiesMultiSelects
+                            form={form}
+                            initialGeoSelectedValues={{
+                                commune: getAccessibleGeozones('COMMUNE').map((com) => geoZoneToGeoOption(com)),
+                                region: [],
+                                department: [],
+                            }}
+                            displayedCollectivityTypes={new Set(['commune'])}
+                        />
+
+                        <InfoCard>Vous devez sélectionner au moins une commune pour afficher les parcelles.</InfoCard>
 
                         <FilterObjects
                             objectTypes={allObjectTypes}
