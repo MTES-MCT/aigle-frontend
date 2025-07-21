@@ -81,11 +81,30 @@ export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
     REHABILITATED: 'Remis en état',
 } as const;
 
+export const DETECTION_CONTROL_STATUSES_COLORS_MAP: {
+    [status in DetectionControlStatus]: string;
+} = {
+    NOT_CONTROLLED: colors.BLUE,
+    PRIOR_LETTER_SENT: colors.YELLOW,
+    CONTROLLED_FIELD: '#a05a08',
+    OFFICIAL_REPORT_DRAWN_UP: '#ad460f',
+    ADMINISTRATIVE_CONSTRAINT: '#ba3216',
+    OBSERVARTION_REPORT_REDACTED: colors.RED,
+    REHABILITATED: colors.GREEN,
+} as const;
+
 export const DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP: {
     [status in DetectionPrescriptionStatus]: string;
 } = {
     PRESCRIBED: 'Prescrit',
     NOT_PRESCRIBED: 'Non prescrit',
+} as const;
+
+export const DETECTION_PRESCRIPTION_STATUSES_COLORS_MAP: {
+    [status in DetectionPrescriptionStatus]: string;
+} = {
+    PRESCRIBED: colors.GREY,
+    NOT_PRESCRIBED: colors.BLUE,
 } as const;
 
 export const DETECTION_VALIDATION_STATUSES_NAMES_MAP: {

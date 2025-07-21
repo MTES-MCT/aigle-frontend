@@ -8,8 +8,11 @@ import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { TileSet } from '@/models/tile-set';
 import { DataTableFilter } from '@/routes/Table/utils';
 import {
+    DETECTION_CONTROL_STATUSES_COLORS_MAP,
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
+    DETECTION_PRESCRIPTION_STATUSES_COLORS_MAP,
     DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP,
+    DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
 import { getDetectionObjectLink } from '@/utils/link';
@@ -48,7 +51,7 @@ const Component: React.FC<ComponentProps> = ({
     const [order, setOrder] = React.useState<FieldOrder | undefined>();
 
     return (
-        <div>
+        <div className={classes.container}>
             <DataTable<DetectionListItem, ParcelDataTableFilter>
                 endpoint={ENDPOINT}
                 paginated={false}
@@ -62,6 +65,7 @@ const Component: React.FC<ComponentProps> = ({
                 selectedUuids={selectedUuids}
                 setSelectedUuids={setSelectedUuids}
                 layout="auto"
+                striped={false}
                 tableHeader={[
                     <Table.Th key="detectionObjectId">Object n°</Table.Th>,
                     <Table.Th key="commune">Commune</Table.Th>,
@@ -119,19 +123,23 @@ const Component: React.FC<ComponentProps> = ({
                         />
                     ),
                     (item: DetectionListItem) => (
-                        <>{DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionControlStatus]}</>
+                        <Badge color={DETECTION_CONTROL_STATUSES_COLORS_MAP[item.detectionControlStatus]}>
+                            {DETECTION_CONTROL_STATUSES_NAMES_MAP[item.detectionControlStatus]}
+                        </Badge>
                     ),
                     (item: DetectionListItem) => (
-                        <>
+                        <Badge color={DETECTION_PRESCRIPTION_STATUSES_COLORS_MAP[item.detectionPrescriptionStatus]}>
                             {
                                 DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP[
                                     item.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
                                 ]
                             }
-                        </>
+                        </Badge>
                     ),
                     (item: DetectionListItem) => (
-                        <>{DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionValidationStatus]}</>
+                        <Badge color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[item.detectionValidationStatus]}>
+                            {DETECTION_VALIDATION_STATUSES_NAMES_MAP[item.detectionValidationStatus]}
+                        </Badge>
                     ),
                 ]}
             />
