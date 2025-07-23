@@ -1,4 +1,4 @@
-import { parcelEndpoints } from '@/api/endpoints';
+import { detectionEndpoints, parcelEndpoints } from '@/api/endpoints';
 import PillsDataCell from '@/components/DataCells/PillsDataCell';
 import DataTable from '@/components/DataTable';
 import DataTableSortableHeaderColumn, { SortOrder } from '@/components/DataTable/DataTableSortableHeaderColumn';
@@ -211,7 +211,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 
                     if (dataUpdated) {
                         // Invalidate the query to refresh the data
-                        queryClient.invalidateQueries({ queryKey: [ENDPOINT] });
+                        queryClient.invalidateQueries({ queryKey: [ENDPOINT, detectionEndpoints.getList()] });
                     }
                 }}
                 detectionsUuids={selectedUuids}
