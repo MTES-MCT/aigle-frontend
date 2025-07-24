@@ -6,6 +6,7 @@ import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModa
 import FilterObjects from '@/components/FilterObjects';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutBase from '@/components/LayoutBase';
+import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import SoloAccordion from '@/components/SoloAccordion';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
@@ -78,7 +79,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         },
     });
     const queryClient = useQueryClient();
-    const dataTableFilter: DataTableFilter = { ...objectsFilter, ...form.getValues() };
+    const dataTableFilter: DataTableFilter = {
+        ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
+        ...form.getValues(),
+    };
     const filter = useMemo(
         () => ({ ...dataTableFilter, ...getOrderParams(order) }),
         [objectsFilter, form.getValues(), order],

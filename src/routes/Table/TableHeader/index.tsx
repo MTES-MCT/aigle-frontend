@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { parcelEndpoints } from '@/api/endpoints';
+import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { ParcelOverview } from '@/models/parcel';
@@ -33,11 +34,12 @@ const fetchData = async (
     communesUuids: string[],
     departmentsUuids: string[],
     regionsUuids: string[],
+    otherObjectTypesUuids: Set<string>,
 ): Promise<ParcelOverviewWithPercentage> => {
     const res = await api.get<ParcelOverview>(parcelEndpoints.overview, {
         signal,
         params: {
-            ...objectsFilter,
+            ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
             communesUuids: communesUuids.join(','),
             departmentsUuids: departmentsUuids.join(','),
             regionsUuids: regionsUuids.join(','),
@@ -91,12 +93,14 @@ interface ComponentInnerProps {
     communesUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
+    otherObjectTypesUuids: Set<string>;
 }
 const ComponentInner: React.FC<ComponentInnerProps> = ({
     objectsFilter,
     communesUuids,
     departmentsUuids,
     regionsUuids,
+    otherObjectTypesUuids,
 }: ComponentInnerProps) => {
     const queryEnabled = communesUuids.length > 0;
     const { data, isFetching } = useQuery({
@@ -108,7 +112,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
             regionsUuids.join(','),
         ],
         placeholderData: keepPreviousData,
-        queryFn: ({ signal }) => fetchData(signal, objectsFilter, communesUuids, departmentsUuids, regionsUuids),
+        queryFn: ({ signal }) =>
+            fetchData(signal, objectsFilter, communesUuids, departmentsUuids, regionsUuids, otherObjectTypesUuids),
         enabled: queryEnabled,
     });
 
@@ -145,9 +150,9 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ communesUuids, departmentsUuids, regionsUuids }) => {
-    const { objectsFilter } = useStatistics();
+    const { objectsFilter, otherObjectTypesUuids } = useStatistics();
 
-    if (!objectsFilter) {
+    if (!objectsFilter || !otherObjectTypesUuids) {
         return <Loader />;
     }
 
@@ -157,6 +162,7 @@ const Component: React.FC<ComponentProps> = ({ communesUuids, departmentsUuids, 
             communesUuids={communesUuids}
             departmentsUuids={departmentsUuids}
             regionsUuids={regionsUuids}
+            otherObjectTypesUuids={otherObjectTypesUuids}
         />
     );
 };
