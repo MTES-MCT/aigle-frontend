@@ -15,6 +15,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import { ParcelListItem } from '@/models/parcel';
+import DetectionCountCell from '@/routes/Table/DetectionCountCell';
 import DetectionsTable from '@/routes/Table/DetectionsTable';
 import TableDownloadButton from '@/routes/Table/TableDownloadButton';
 import TableHeader from '@/routes/Table/TableHeader';
@@ -174,7 +175,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     (item: ParcelListItem) => (
                         <PillsDataCell<string> direction="column" items={item.zoneNames} getLabel={(zone) => zone} />
                     ),
-                    (item: ParcelListItem) => item.detectionsCount,
+                    (item: ParcelListItem) => <DetectionCountCell parcel={item} />,
                     (item: ParcelListItem) => (
                         <OptionalText
                             text={

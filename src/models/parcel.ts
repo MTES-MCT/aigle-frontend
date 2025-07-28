@@ -24,9 +24,17 @@ export interface ParcelDetectionObject extends DetectionObjectMinimal {
     detections: DetectionWithTile[];
 }
 
+export interface ParcelListItemDetectionCountByObjectType {
+    objectTypeName: string;
+    objectTypeUuid: string;
+    objectTypeColor: string;
+    count: number;
+}
+
 export interface ParcelListItem extends ParcelWithCommuneSerializer {
     zoneNames: string[];
     detectionsCount: number;
+    detectionsCountByObjectType: ParcelListItemDetectionCountByObjectType[];
 }
 
 export interface ParcelDetail extends Parcel, ParcelWithCommuneSerializer {
