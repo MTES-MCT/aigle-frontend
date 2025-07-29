@@ -48,5 +48,7 @@ export interface ParcelDetail extends Parcel, ParcelWithCommuneSerializer {
 export interface ParcelOverview {
     notVerified: number;
     verified: number;
+    notControlled: number;
+    controlled: number;
     total: number;
 }

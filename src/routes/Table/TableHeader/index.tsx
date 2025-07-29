@@ -2,11 +2,13 @@ import React from 'react';
 
 import { parcelEndpoints } from '@/api/endpoints';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
+import InfoBubble from '@/components/ui/InfoBubble';
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { ParcelOverview } from '@/models/parcel';
 import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
+import { GREEN, RED } from '@/utils/colors';
 import { formatBigInt } from '@/utils/format';
 import { LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -22,10 +24,12 @@ interface ParcelOverviewItem {
     percentage: string;
     label: string;
     color: string;
+    tooltip: string;
 }
 
-interface ParcelOverviewWithPercentage extends ParcelOverview {
+interface ParcelOverviewWithPercentage {
     items: ParcelOverviewItem[];
+    total: number;
 }
 
 const fetchData = async (
@@ -46,24 +50,48 @@ const fetchData = async (
         },
     });
 
-    const items: ParcelOverviewItem[] = [
-        {
-            count: res.data.verified,
-            percentage: calculatePercentage(res.data.verified, res.data.total),
-            label: 'Vérifiées',
-            color: '#28a745', // Green for verified
-        },
-        {
-            count: res.data.notVerified,
-            percentage: calculatePercentage(res.data.notVerified, res.data.total),
-            label: 'Non-vérifiées',
-            color: '#dc3545', // Red for not verified
-        },
-    ];
+    // if there is not `notVerified` field, it means we are dealing with control statuses instead of detection statuses
+    if (!res.data.notVerified) {
+        return {
+            items: [
+                {
+                    count: res.data.controlled,
+                    percentage: calculatePercentage(res.data.controlled, res.data.total),
+                    label: 'Contrôlées',
+                    color: GREEN,
+                    tooltip:
+                        'Statut de contrôle modifié par un agent (contrôlé terrain, courrier préalable envoyé, PV dressé, astreinte administrative, rapport de constatations rédigé, remis en état).',
+                },
+                {
+                    count: res.data.notControlled,
+                    percentage: calculatePercentage(res.data.notControlled, res.data.total),
+                    label: 'Non-contrôlées',
+                    color: RED,
+                    tooltip: 'Statut de contrôle encore "Non contrôlé", sans action d\'un agent.',
+                },
+            ],
+            total: res.data.total,
+        };
+    }
 
     return {
-        ...res.data,
-        items,
+        items: [
+            {
+                count: res.data.verified,
+                percentage: calculatePercentage(res.data.verified, res.data.total),
+                label: 'Vérifiées',
+                color: GREEN,
+                tooltip: 'Statut de validation modifié par un agent (suspect, légal ou invalidé).',
+            },
+            {
+                count: res.data.notVerified,
+                percentage: calculatePercentage(res.data.notVerified, res.data.total),
+                label: 'Non-vérifiées',
+                color: RED,
+                tooltip: 'Statut de validation encore "Non vérifié", sans action d\'un agent.',
+            },
+        ],
+        total: res.data.total,
     };
 };
 
@@ -72,6 +100,7 @@ const DetectionListOverviewItem: React.FC<ParcelOverviewItem> = ({
     percentage,
     label,
     color,
+    tooltip,
 }: ParcelOverviewItem) => {
     return (
         <div
@@ -82,7 +111,7 @@ const DetectionListOverviewItem: React.FC<ParcelOverviewItem> = ({
         >
             <div className={classes['detection-list-overview-item-count']}>{percentage}</div>
             <div className={classes['detection-list-overview-item-label']}>
-                {label} ({formatBigInt(count)})
+                {label} ({formatBigInt(count)}) <InfoBubble>{tooltip}</InfoBubble>
             </div>
         </div>
     );
