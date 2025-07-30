@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
 import { tileSetEndpoints } from '@/api/endpoints';
-import DataTable from '@/components/admin/DataTable';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
-import SoloAccordion from '@/components/admin/SoloAccordion';
+import DataTable from '@/components/DataTable';
+import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import InfoCard from '@/components/ui/InfoCard';
 import { TileSetDetail, TileSetScheme, TileSetStatus, tileSetSchemes, tileSetStatuses } from '@/models/tile-set';

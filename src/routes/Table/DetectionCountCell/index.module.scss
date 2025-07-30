@@ -1,0 +1,12 @@
+.detection-count-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+
+    .detection-count-list-item {
+        display: flex;
+        align-items: center;
+        gap: var(--mantine-spacing-xs);
+        
+    }
+}

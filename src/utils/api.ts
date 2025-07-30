@@ -1,5 +1,5 @@
 import { authEndpoints } from '@/api/endpoints';
-import { useAuth } from '@/utils/auth-context';
+import { useAuth } from '@/store/slices/auth';
 import axios from 'axios';
 
 const api = axios.create({

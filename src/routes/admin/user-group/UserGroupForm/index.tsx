@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import { customZoneEndpoints, objectTypeCategoryEndpoints, userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
-import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
+import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';

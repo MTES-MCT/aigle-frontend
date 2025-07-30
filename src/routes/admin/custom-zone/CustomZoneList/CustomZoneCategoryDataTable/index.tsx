@@ -1,6 +1,6 @@
 import { customZoneEndpoints } from '@/api/endpoints';
-import DataTable from '@/components/admin/DataTable';
-import SoloAccordion from '@/components/admin/SoloAccordion';
+import DataTable from '@/components/DataTable';
+import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 import { ColorSwatch, Input, Table } from '@mantine/core';

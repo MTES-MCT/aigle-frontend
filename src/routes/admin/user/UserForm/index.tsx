@@ -9,8 +9,8 @@ import { ObjectType } from '@/models/object-type';
 import { SelectOption } from '@/models/ui/select-option';
 import { User, UserRole, UserUserGroupInput, userGroupRights, userRoles } from '@/models/user';
 import { UserGroup, UserGroupDetail } from '@/models/user-group';
+import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
-import { useAuth } from '@/utils/auth-context';
 import { PASSWORD_MIN_LENGTH, ROLES_NAMES_MAP, USER_GROUP_RIGHTS_NAMES_MAP } from '@/utils/constants';
 import {
     ActionIcon,

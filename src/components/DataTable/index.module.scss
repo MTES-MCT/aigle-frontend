@@ -61,3 +61,14 @@ $space-between-elements: 16px;
     margin-left: 10px; // var(--table-vertical-spacing)
     margin-bottom: $space-between-elements;
 }
+
+.table-row {
+    &.row-clickable {
+        cursor: pointer;
+    }
+}
+
+.loader {
+    margin-top: var(--mantine-spacing-md);
+    margin-bottom: var(--mantine-spacing-md);
+}

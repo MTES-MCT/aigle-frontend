@@ -141,7 +141,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
     };
 
     const { isLoading, error, data } = useQuery({
-        queryKey: [getGeoCustomZoneDetailEndpoint(String(uuid))],
+        queryKey: [customZoneEndpoints.category.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });

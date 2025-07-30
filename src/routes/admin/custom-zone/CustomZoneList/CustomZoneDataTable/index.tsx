@@ -1,10 +1,10 @@
 import { customZoneEndpoints } from '@/api/endpoints';
-import DataTable from '@/components/admin/DataTable';
-import SoloAccordion from '@/components/admin/SoloAccordion';
+import DataTable from '@/components/DataTable';
+import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import OptionalText from '@/components/ui/OptionalText';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
-import { useAuth } from '@/utils/auth-context';
+import { useAuth } from '@/store/slices/auth';
 import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { ColorSwatch, Input, Table } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';

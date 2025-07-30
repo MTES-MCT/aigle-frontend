@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 import { tileSetEndpoints } from '@/api/endpoints';
+import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import Map from '@/components/Map';
-import GeoCollectivitiesMultiSelects from '@/components/admin/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
@@ -19,9 +19,9 @@ import {
     tileSetTypes,
 } from '@/models/tile-set';
 import { User } from '@/models/user';
+import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
-import { useAuth } from '@/utils/auth-context';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 import { Button, Card, Checkbox, NumberInput, Select, TextInput } from '@mantine/core';
