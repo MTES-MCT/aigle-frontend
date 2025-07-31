@@ -157,7 +157,11 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide }) => {
                     Annuler
                 </Button>
 
-                <Button type="submit" leftSection={<IconShape />} disabled={mutation.status === 'pending'}>
+                <Button
+                    type="submit"
+                    leftSection={<IconShape />}
+                    disabled={tileSetIsLoading || mutation.status === 'pending'}
+                >
                     Ajouter l&apos;objet
                 </Button>
             </div>
