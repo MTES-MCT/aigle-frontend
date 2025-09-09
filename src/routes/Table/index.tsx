@@ -84,10 +84,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
         ...form.getValues(),
     };
-    const filter = useMemo(
-        () => ({ ...dataTableFilter, ...getOrderParams(order) }),
-        [objectsFilter, form.getValues(), order],
-    );
+    const orderParams = getOrderParams(order);
+    const filter = useMemo(() => ({ ...dataTableFilter, ...orderParams }), [objectsFilter, form.getValues(), order]);
 
     return (
         <div>
@@ -132,7 +130,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 }
                 beforeTable={
                     <div>
-                        <TableDownloadButton {...form.getValues()} />
+                        <TableDownloadButton {...form.getValues()} ordering={orderParams.ordering} />
                         <TableHeader {...form.getValues()} />
                         <Switch
                             mt="md"

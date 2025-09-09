@@ -19,6 +19,7 @@ const download = async (
     departmentsUuids: string[],
     regionsUuids: string[],
     objectsFilter?: ObjectsFilter,
+    ordering?: string,
 ) => {
     if (!objectsFilter) {
         throw new Error('No objects filter provided');
@@ -30,6 +31,11 @@ const download = async (
             communesUuids: communesUuids.join(','),
             departmentsUuids: departmentsUuids.join(','),
             regionsUuids: regionsUuids.join(','),
+            ...(ordering
+                ? {
+                      ordering,
+                  }
+                : {}),
         },
         responseType: 'blob',
     });
@@ -40,13 +46,19 @@ interface ComponentProps {
     communesUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
+    ordering?: string;
 }
-const Component: React.FC<ComponentProps> = ({ communesUuids, departmentsUuids, regionsUuids }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({
+    communesUuids,
+    departmentsUuids,
+    regionsUuids,
+    ordering,
+}: ComponentProps) => {
     const { objectsFilter } = useStatistics();
 
     const mutation: UseMutationResult<void, AxiosError, DownloadOutputFormat> = useMutation({
         mutationFn: (outputFormat: DownloadOutputFormat) =>
-            download(outputFormat, communesUuids, departmentsUuids, regionsUuids, objectsFilter),
+            download(outputFormat, communesUuids, departmentsUuids, regionsUuids, objectsFilter, ordering),
         onSuccess: (data, outputFormat) => {
             const blob = new Blob([data], { type: data.type });
             const url = window.URL.createObjectURL(blob);

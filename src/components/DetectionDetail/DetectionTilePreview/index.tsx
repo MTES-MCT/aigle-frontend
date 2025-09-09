@@ -7,8 +7,8 @@ import { IconPencil, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { Polygon, Position } from 'geojson';
-import React, { useEffect, useRef, useState } from 'react';
-import Map, { Layer, MapRef, Source } from 'react-map-gl';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Map, { Layer, MapRef, MapSourceDataEvent, Source } from 'react-map-gl';
 import classes from './index.module.scss';
 
 interface PreviewGeometry {
@@ -38,7 +38,7 @@ interface ComponentProps {
     editDetection?: () => void;
     extendedLevel?: number;
     id?: string;
-    onIdle?: () => void;
+    onFullyLoaded?: () => void;
     marker?: React.ReactNode;
     reuseMaps?: boolean;
     pinPosition?: Position;
@@ -57,7 +57,7 @@ const Component: React.FC<ComponentProps> = ({
     editDetection,
     extendedLevel = 0,
     id,
-    onIdle,
+    onFullyLoaded,
     reuseMaps = true,
     pinPosition,
     fitBoundsOptions,
@@ -65,6 +65,78 @@ const Component: React.FC<ComponentProps> = ({
     const mapRef = useRef<MapRef>();
     const [currentExtendedLevel, setCurrentExtendedLevel] = useState(extendedLevel);
     const bounds_ = currentExtendedLevel ? extendBbox(bounds, currentExtendedLevel) : bounds;
+
+    const [sourcesLoaded, setSourcesLoaded] = useState(new Set<string>());
+    const [styleLoaded, setStyleLoaded] = useState(false);
+    const [renderComplete, setRenderComplete] = useState(false);
+    const checkCompleteTimeoutRef = useRef<NodeJS.Timeout>();
+
+    const checkIfFullyRendered = useCallback(() => {
+        if (!mapRef.current) return;
+
+        const map = mapRef.current.getMap();
+
+        // Check if all sources are loaded
+        const allSourcesLoaded = ['geojson-data', 'raster-source'].every((sourceId) => {
+            return map.isSourceLoaded(sourceId);
+        });
+
+        const isMapLoaded = map.loaded();
+        const isStyleLoaded = map.isStyleLoaded();
+
+        if (isMapLoaded && isStyleLoaded && allSourcesLoaded) {
+            // Wait for the next render cycle to ensure geometries are painted
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setRenderComplete(true);
+                    if (onFullyLoaded) {
+                        onFullyLoaded();
+                    }
+                });
+            });
+        } else {
+            // Retry in a short time
+            checkCompleteTimeoutRef.current = setTimeout(checkIfFullyRendered, 100);
+        }
+    }, [onFullyLoaded]);
+
+    const onSourceData = useCallback((e: MapSourceDataEvent) => {
+        if (e.isSourceLoaded && e.sourceId) {
+            setSourcesLoaded((prev) => new Set([...prev, e.sourceId || '']));
+        }
+    }, []);
+
+    const onStyleData = useCallback(() => {
+        setStyleLoaded(true);
+    }, []);
+
+    const onRender = useCallback(() => {
+        // Clear any existing timeout
+        if (checkCompleteTimeoutRef.current) {
+            clearTimeout(checkCompleteTimeoutRef.current);
+        }
+        // Check if fully rendered after a short delay
+        checkCompleteTimeoutRef.current = setTimeout(checkIfFullyRendered, 100);
+    }, [checkIfFullyRendered]);
+
+    useEffect(() => {
+        const requiredSources = ['geojson-data', 'raster-source'];
+        const allSourcesLoaded = requiredSources.every((sourceId) => sourcesLoaded.has(sourceId));
+
+        if (allSourcesLoaded && styleLoaded && !renderComplete) {
+            // All sources and style loaded, start checking for render completion
+            checkIfFullyRendered();
+        }
+    }, [sourcesLoaded, styleLoaded, renderComplete, checkIfFullyRendered]);
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (checkCompleteTimeoutRef.current) {
+                clearTimeout(checkCompleteTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!mapRef.current) {
@@ -119,7 +191,7 @@ const Component: React.FC<ComponentProps> = ({
                 ) : null}
                 <div className={clsx(classes['detection-tile-preview'], classNames?.inner)}>
                     <Map
-                        preserveDrawingBuffer
+                        preserveDrawingBuffer={true}
                         ref={mapRef}
                         mapboxAccessToken={MAPBOX_TOKEN}
                         style={{ width: '100%', height: '100%' }}
@@ -128,8 +200,10 @@ const Component: React.FC<ComponentProps> = ({
                         reuseMaps={reuseMaps}
                         bounds={bounds_}
                         fitBoundsOptions={fitBoundsOptions}
+                        onSourceData={onSourceData}
+                        onStyleData={onStyleData}
+                        onRender={onRender}
                         {...(id ? { id } : {})}
-                        {...(onIdle ? { onIdle } : {})}
                     >
                         <Source type="geojson" data={{ type: 'Point', coordinates: pinPosition }}>
                             <Layer
