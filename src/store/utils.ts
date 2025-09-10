@@ -56,7 +56,7 @@ export const getInitialMapLayers = (settings: MapSettings) => {
     const backgroundLayerYears: Set<string> = new Set();
     let layerYearDisplayed: string;
 
-    settings.tileSetSettings.forEach(({ tileSet, geometry }) => {
+    settings.tileSetSettings.forEach(({ tileSet }) => {
         let displayed = false;
 
         if (tileSet.tileSetType !== 'BACKGROUND') {
@@ -73,7 +73,7 @@ export const getInitialMapLayers = (settings: MapSettings) => {
         }
 
         layers.push({
-            tileSet: { ...tileSet, geometry },
+            tileSet: { ...tileSet },
             displayed,
         });
     });
@@ -92,7 +92,7 @@ export const getInitialMapLayers = (settings: MapSettings) => {
 export const getInitialStatisticsLayers = (settings: MapSettings): MapTileSetLayer[] => {
     const layers: MapTileSetLayer[] = [];
 
-    settings.tileSetSettings.forEach(({ tileSet, geometry }) => {
+    settings.tileSetSettings.forEach(({ tileSet }) => {
         if (tileSet.tileSetType === 'INDICATIVE') {
             return;
         }
@@ -100,7 +100,7 @@ export const getInitialStatisticsLayers = (settings: MapSettings): MapTileSetLay
         const displayed = tileSet.tileSetStatus === 'VISIBLE';
 
         layers.push({
-            tileSet: { ...tileSet, geometry },
+            tileSet: { ...tileSet },
             displayed,
         });
     });

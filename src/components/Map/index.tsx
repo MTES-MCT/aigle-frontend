@@ -38,11 +38,18 @@ import classes from './index.module.scss';
 
 const ZOOM_LIMIT_TO_DISPLAY_DETECTIONS = 9;
 const ZOOM_LIMIT_TO_DISPLAY_ANNOTATION_GRID = 13;
-const MAP_INITIAL_VIEW_STATE_DEFAULT = {
+const getMapInitialViewState = (initialPosition?: GeoJSON.Position | null, initialDetectionObjectUuid?: string) => ({
     longitude: 3.95657,
     latitude: 43.61951,
     zoom: 16,
-} as const;
+    ...(initialDetectionObjectUuid
+        ? {
+              zoom: 19,
+              padding: MAP_PADDINGS.detailSectionShowed,
+          }
+        : {}),
+    ...(initialPosition ? { longitude: initialPosition[0], latitude: initialPosition[1] } : {}),
+});
 
 const DRAW_MODE_ADD_DETECTION = 'draw_rectangle'; // draw new detection
 const DRAW_MODE_MULTIPOLYGON = 'draw_polygon'; // edit multiple detections and download multiple detections
@@ -99,6 +106,20 @@ const MAP_CONTROLS: {
         hideWhenNoDetection: true,
     },
 ] as const;
+const MAP_PADDINGS = {
+    detailSectionShowed: {
+        top: 0,
+        right: 500, // $detection-detail-panel-width
+        bottom: 0,
+        left: 0,
+    },
+    noSectionShowed: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+    },
+};
 
 const getSourceId = (layer: MapTileSetLayer) => `source-${layer.tileSet.uuid}`;
 const getLayerId = (layer: MapTileSetLayer) => `layer-${layer.tileSet.uuid}`;
@@ -721,12 +742,7 @@ const Component: React.FC<ComponentProps> = ({
             objectFromCoordinates: undefined,
         }));
         mapRef?.easeTo({
-            padding: {
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-            },
+            padding: MAP_PADDINGS.noSectionShowed,
             duration: 250,
         });
     }, [mapRef]);
@@ -793,12 +809,7 @@ const Component: React.FC<ComponentProps> = ({
                 objectFromCoordinates,
             }));
 
-            target.setPadding({
-                top: 0,
-                right: 500, // $detection-detail-panel-width
-                bottom: 0,
-                left: 0,
-            });
+            target.setPadding(MAP_PADDINGS.detailSectionShowed);
             target.flyTo({
                 center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
             });
@@ -817,12 +828,7 @@ const Component: React.FC<ComponentProps> = ({
             detectionUuid: detectionProperties.uuid,
         });
 
-        target.setPadding({
-            top: 0,
-            right: 500, // $detection-detail-panel-width
-            bottom: 0,
-            left: 0,
-        });
+        target.setPadding(MAP_PADDINGS.detailSectionShowed);
         target.flyTo({
             center: getCoord(centroid(clickedFeature.geometry as Polygon)) as [number, number],
         });
@@ -875,10 +881,7 @@ const Component: React.FC<ComponentProps> = ({
                 reuseMaps={true}
                 ref={handleMapRef}
                 mapboxAccessToken={MAPBOX_TOKEN}
-                initialViewState={{
-                    ...MAP_INITIAL_VIEW_STATE_DEFAULT,
-                    ...(initialPosition ? { longitude: initialPosition[0], latitude: initialPosition[1] } : {}),
-                }}
+                initialViewState={getMapInitialViewState(initialPosition, initialDetectionObjectUuid)}
                 onLoad={loadDataFromBounds}
                 onMoveEnd={loadDataFromBounds}
                 interactiveLayerIds={[GEOJSON_DETECTIONS_LAYER_ID]}
