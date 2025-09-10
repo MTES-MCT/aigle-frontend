@@ -6,7 +6,7 @@ import SignalementPDFPage, {
     PreviewImage,
     ComponentProps as SignalementPDFPageProps,
 } from '@/components/signalement-pdf/SignalementPDFPage';
-import { ParcelDetail } from '@/models/parcel';
+import { ParcelDetail, ParcelDetectionObject } from '@/models/parcel';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { PARCEL_COLOR } from '@/utils/constants';
@@ -100,6 +100,39 @@ const PLAN_URL_TILESET: TileSet = {
 
 const getPreviewId = (tileSetUuid: string, parcelUuid: string) => `preview-${parcelUuid}-${tileSetUuid}`;
 
+interface PreviewGeometry {
+    geometry: Polygon;
+    color: string;
+}
+
+const getPreviewGeometries = (
+    tileSetUuid: string,
+    detectionObjects: ParcelDetectionObject[],
+    detectionObjectUuid?: string,
+): PreviewGeometry[] => {
+    const res: PreviewGeometry[] = [];
+
+    detectionObjects.forEach((detectionObject) => {
+        detectionObject.detections.forEach((detection) => {
+            if (detection.tileSet.uuid !== tileSetUuid) {
+                return;
+            }
+
+            // we only want to display the detection of the current detection object if specified
+            if (detectionObjectUuid && detectionObjectUuid !== detectionObject.uuid) {
+                return;
+            }
+
+            res.push({
+                geometry: detection.geometry,
+                color: detectionObject.objectType.color,
+            });
+        });
+    });
+
+    return res;
+};
+
 interface PreviewImagesProps {
     setFinalData: (previewImages: PreviewImage[], parcel: ParcelDetail) => void;
     parcelUuid: string;
@@ -123,38 +156,6 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
 
         setFinalData(Object.values(previewImages), parcel);
     }, [previewImages, parcel]);
-    const tileSetUuidsGeometryMap = useMemo(() => {
-        const res: Record<
-            string,
-            {
-                geometry: Polygon;
-                color: string;
-            }[]
-        > = {};
-
-        if (!parcel) {
-            return res;
-        }
-
-        parcel.detectionObjects.forEach((detectionObject) => {
-            detectionObject.detections.forEach((detection) => {
-                // we only want to display the detection of the current detection object if specified
-                if (detectionObjectUuid && detectionObjectUuid !== detectionObject.uuid) {
-                    return;
-                }
-
-                if (!res[detection.tileSet.uuid]) {
-                    res[detection.tileSet.uuid] = [];
-                }
-                res[detection.tileSet.uuid].push({
-                    geometry: detection.geometry,
-                    color: detectionObject.objectType.color,
-                });
-            });
-        });
-
-        return res;
-    }, [parcel]);
 
     const previewBounds = useMemo(() => {
         if (!parcel) {
@@ -188,7 +189,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
         }));
     }, []);
 
-    if (parcelIsLoading || !parcel || !previewBounds || !tileSetUuidsGeometryMap || !tileSetsToRender) {
+    if (parcelIsLoading || !parcel || !previewBounds || !tileSetsToRender) {
         return null;
     }
     const planPreviewId = getPreviewId(PLAN_URL_TILESET.uuid, parcel.uuid);
@@ -205,7 +206,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                 return (
                     <DetectionTilePreview
                         geometries={[
-                            ...(tileSetUuidsGeometryMap[tileSet.uuid] || []),
+                            ...(getPreviewGeometries(tileSet.uuid, parcel.detectionObjects, detectionObjectUuid) || []),
                             ...(parcel?.geometry ? [{ geometry: parcel.geometry, color: PARCEL_COLOR }] : []),
                         ]}
                         tileSet={tileSet}
@@ -218,12 +219,9 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                         reuseMaps={false}
                         id={previewId}
                         displayName={false}
-                        onIdle={() => {
-                            setTimeout(
-                                () => getPreviewImage(tileSet.uuid, previewId, format(tileSet.date, 'yyyy'), index),
-                                3000,
-                            );
-                        }}
+                        onFullyLoaded={() =>
+                            getPreviewImage(tileSet.uuid, previewId, format(tileSet.date, 'yyyy'), index)
+                        }
                         fitBoundsOptions={{ padding: 10 }}
                     />
                 );
@@ -244,12 +242,8 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                     id={planPreviewId}
                     displayName={false}
                     reuseMaps={false}
-                    onIdle={() =>
-                        setTimeout(
-                            () =>
-                                getPreviewImage(PLAN_URL_TILESET.uuid, planPreviewId, 'Plan', tileSetsToRender.length),
-                            3000,
-                        )
+                    onFullyLoaded={() =>
+                        getPreviewImage(PLAN_URL_TILESET.uuid, planPreviewId, 'Plan', tileSetsToRender.length)
                     }
                     pinPosition={parcel?.geometry ? centroid(parcel?.geometry).geometry.coordinates : undefined}
                 />
