@@ -269,18 +269,18 @@ const Component: React.FC<ComponentProps> = ({
 }) => {
     const [detectionSelected, setDetectionSelected] = useState<DetectionWithTile | undefined>(initialDetection);
 
-    const previewBounds = useMemo(
-        () => bbox(initialDetection.tile.geometry) as [number, number, number, number],
-        [detectionObject],
-    );
+    const previewBounds = useMemo(() => {
+        const detection = detectionSelected || initialDetection;
+        return bbox(detection.tile.geometry) as [number, number, number, number];
+    }, [detectionSelected?.uuid, initialDetection.tile.geometry]);
 
     useEffect(() => {
         selectTileSet(tileSetSelected.uuid);
-    }, [detectionObject]);
+    }, [detectionObject.uuid]);
 
     useEffect(() => {
         selectDetection(tileSetSelected.uuid);
-    }, [tileSetSelected, detectionObject]);
+    }, [tileSetSelected, detectionObject.uuid]);
 
     const selectTileSet = (tileSetUuid: string) => {
         const tileSetPreview = detectionObject.tileSets.find(({ tileSet }) => tileSet.uuid === tileSetUuid);
@@ -317,7 +317,7 @@ const Component: React.FC<ComponentProps> = ({
 
                 <div className={classes['detection-tile-preview-container']}>
                     <DetectionTilePreview
-                        key={`${tileSetSelected.uuid}-${detectionSelected?.uuid}`}
+                        key={`${tileSetSelected.uuid}-${detectionObject.uuid}${detectionSelected?.uuid}`}
                         controlsDisplayed={['ZOOM']}
                         bounds={previewBounds}
                         geometries={[
