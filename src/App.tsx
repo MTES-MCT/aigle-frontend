@@ -21,7 +21,7 @@ declare global {
 }
 
 const App: React.FC = () => {
-    const { isAuthenticated, setUser } = useAuth();
+    const { isAuthenticated, setUser, logout } = useAuth();
     const { setMapSettings } = useMap();
     const { setMapSettings: setStatisticsMapSettings } = useStatistics();
 
@@ -33,7 +33,7 @@ const App: React.FC = () => {
             setUser(user);
             setupMatomo(user);
         } catch (err) {
-            console.error(err);
+            logout();
         }
     }, [setUser]);
 

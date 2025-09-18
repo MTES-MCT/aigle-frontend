@@ -24,6 +24,10 @@ interface FormValues {
     password: string;
 }
 
+interface ErrorBody {
+    detail?: string;
+}
+
 const login = async (user: FormValues) => {
     const response = await api.post<JwtAuthResponse>(authEndpoints.login, user);
     return response.data;
@@ -31,7 +35,7 @@ const login = async (user: FormValues) => {
 
 const Component: React.FC = () => {
     const { setAccessToken, setRefreshToken } = useAuth();
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<AxiosError<ErrorBody>>();
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
@@ -44,7 +48,7 @@ const Component: React.FC = () => {
         },
     });
 
-    const mutation: UseMutationResult<JwtAuthResponse, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<JwtAuthResponse, AxiosError<ErrorBody>, FormValues> = useMutation({
         mutationFn: login,
         onSuccess: (data) => {
             setAccessToken(data.access);
@@ -77,7 +81,11 @@ const Component: React.FC = () => {
             ) : null}
 
             <form className={classes.form} onSubmit={form.onSubmit(handleSubmit)}>
-                {error ? <ErrorCard className={classes['error-card']}>Identifiants invalides</ErrorCard> : null}
+                {error ? (
+                    <ErrorCard className={classes['error-card']}>
+                        {error.response?.data?.detail ? error.response.data.detail : 'Identifiants invalides'}
+                    </ErrorCard>
+                ) : null}
                 <TextInput
                     mt="md"
                     withAsterisk
