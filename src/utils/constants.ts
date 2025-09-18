@@ -32,6 +32,7 @@ export const ROLES_NAMES_MAP: { [role in UserRole]: string } = {
     SUPER_ADMIN: 'super admin',
     ADMIN: 'admin',
     REGULAR: 'normal',
+    DEACTIVATED: 'désactivé',
 } as const;
 export const COLLECTIVITY_TYPES_NAMES_MAP: {
     [role in CollectivityType]: string;
