@@ -111,7 +111,13 @@ const Form: React.FC<FormProps> = ({
 
     useEffect(() => {
         form.setValues(initialValues);
-    }, [initialValues]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        initialValues.detectionControlStatus,
+        initialValues.detectionValidationStatus,
+        initialValues.detectionPrescriptionStatus,
+        initialValues.officialReportDate,
+    ]);
 
     const mutation: UseMutationResult<FormValues, AxiosError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, geometry, tileSetUuid, detectionObjectUuid, uuid),
@@ -272,7 +278,7 @@ const Component: React.FC<ComponentProps> = ({
     const previewBounds = useMemo(() => {
         const detection = detectionSelected || initialDetection;
         return bbox(detection.tile.geometry) as [number, number, number, number];
-    }, [detectionSelected?.uuid, initialDetection.tile.geometry]);
+    }, [detectionObject.uuid, tileSetSelected.uuid, detectionSelected, initialDetection]);
 
     useEffect(() => {
         selectTileSet(tileSetSelected.uuid);
@@ -317,7 +323,7 @@ const Component: React.FC<ComponentProps> = ({
 
                 <div className={classes['detection-tile-preview-container']}>
                     <DetectionTilePreview
-                        key={`${tileSetSelected.uuid}-${detectionObject.uuid}${detectionSelected?.uuid}`}
+                        key={`${tileSetSelected.uuid}-${detectionObject.uuid}-${detectionSelected?.uuid}`}
                         controlsDisplayed={['ZOOM']}
                         bounds={previewBounds}
                         geometries={[
@@ -329,6 +335,7 @@ const Component: React.FC<ComponentProps> = ({
                         strokedLine={!detectionSelected}
                         tileSet={tileSetSelected}
                         displayName={false}
+                        reuseMaps={false}
                         classNames={{
                             inner: 'detection-tile-preview-detail-container',
                             main: 'detection-tile-preview-detail',
