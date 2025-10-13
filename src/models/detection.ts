@@ -21,6 +21,9 @@ export type DetectionControlStatus = (typeof detectionControlStatuses)[number];
 export const detectionValidationStatuses = ['DETECTED_NOT_VERIFIED', 'SUSPECT', 'LEGITIMATE', 'INVALIDATED'] as const;
 export type DetectionValidationStatus = (typeof detectionValidationStatuses)[number];
 
+export const detectionValidationStatusChangeReasons = ['SITADEL'] as const;
+export type DetectionValidationStatusChangeReason = (typeof detectionValidationStatusChangeReasons)[number];
+
 export const detectionPrescriptionStatuses = ['PRESCRIBED', 'NOT_PRESCRIBED'] as const;
 export type DetectionPrescriptionStatus = (typeof detectionPrescriptionStatuses)[number];
 
@@ -45,6 +48,8 @@ export interface DetectionData extends Uuided, Timestamped {
     detectionValidationStatus: DetectionValidationStatus;
     detectionPrescriptionStatus: DetectionPrescriptionStatus | null;
     officialReportDate: string | null;
+    detectionValidationStatusChangeReason: DetectionValidationStatusChangeReason | null;
+    legitimateDate: string | null;
     userLastUpdateUuid: string;
 }
 
