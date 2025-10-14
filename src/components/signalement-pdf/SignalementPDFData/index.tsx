@@ -165,29 +165,32 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
         return bbox(parcel.geometry) as [number, number, number, number];
     }, [parcel]);
 
-    const getPreviewImage = useCallback((uuid: string, previewId: string, title: string, index: number) => {
-        if (previewImages[uuid]) {
-            return;
-        }
+    const getPreviewImage = useCallback(
+        (uuid: string, previewId: string, title: string, index: number) => {
+            if (previewImages[uuid]) {
+                return;
+            }
 
-        const canvas = document.querySelector(`#${previewId} canvas`);
+            const canvas = document.querySelector(`#${previewId} canvas`);
 
-        let src;
-        try {
-            src = (canvas as HTMLCanvasElement).toDataURL('image/png');
-        } catch (e) {
-            return;
-        }
+            let src;
+            try {
+                src = (canvas as HTMLCanvasElement).toDataURL('image/png');
+            } catch (e) {
+                return;
+            }
 
-        setPreviewImages((prev) => ({
-            ...prev,
-            [uuid]: {
-                index: index,
-                src: src,
-                title: title,
-            },
-        }));
-    }, []);
+            setPreviewImages((prev) => ({
+                ...prev,
+                [uuid]: {
+                    index: index,
+                    src: src,
+                    title: title,
+                },
+            }));
+        },
+        [previewImages],
+    );
 
     if (parcelIsLoading || !parcel || !previewBounds || !tileSetsToRender) {
         return null;
@@ -280,30 +283,27 @@ const Component: React.FC<ComponentProps> = ({
             return;
         }
 
-        const pagePreviewsToDisplay = previewParams.filter(
-            (param) =>
-                !pagePreviewsDone.some(
-                    (donePp) =>
-                        donePp.parcelUuid === param.parcelUuid &&
-                        donePp.detectionObjectUuid === param.detectionObjectUuid,
-                ),
-        );
+        setPagesDisplayed((currentPagesDisplayed) => {
+            // Filter out pages that are already displayed or done
+            const pagePreviewsToDisplay = previewParams.filter(
+                (param) =>
+                    !currentPagesDisplayed.some(
+                        (displayedPp) =>
+                            displayedPp.parcelUuid === param.parcelUuid &&
+                            displayedPp.detectionObjectUuid === param.detectionObjectUuid,
+                    ),
+            );
 
-        if (pagePreviewsToDisplay.length === 0) {
-            return;
-        }
+            if (pagePreviewsToDisplay.length === 0) {
+                return currentPagesDisplayed;
+            }
 
-        const nbrElementsToDisplay = Math.min(
-            NBR_PAGES_TO_RENDER_AT_ONCE,
-            previewParams.length - pagePreviewsDone.length,
-        );
+            const nbrElementsToDisplay = Math.min(NBR_PAGES_TO_RENDER_AT_ONCE, pagePreviewsToDisplay.length);
 
-        setPagesDisplayed((pagesDisplayed) => [
-            ...pagesDisplayed,
-            ...pagePreviewsToDisplay.slice(0, nbrElementsToDisplay),
-        ]);
+            return [...currentPagesDisplayed, ...pagePreviewsToDisplay.slice(0, nbrElementsToDisplay)];
+        });
         setNbrDetectionObjectsProcessed && setNbrDetectionObjectsProcessed(pagePreviewsDone.length);
-    }, [pagePreviewsDone]);
+    }, [pagePreviewsDone, previewParams]);
 
     return (
         <div className={classes.container}>
