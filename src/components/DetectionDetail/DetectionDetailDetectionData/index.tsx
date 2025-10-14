@@ -9,6 +9,7 @@ import {
     DetectionDetail,
     DetectionPrescriptionStatus,
     DetectionValidationStatus,
+    DetectionValidationStatusChangeReason,
     DetectionWithTile,
     detectionControlStatuses,
     detectionValidationStatuses,
@@ -40,10 +41,14 @@ interface FormValues {
     detectionValidationStatus: DetectionValidationStatus;
     detectionPrescriptionStatus: DetectionPrescriptionStatus | null;
     officialReportDate: Date | null;
+    legitimateDate: Date | null;
+    detectionValidationStatusChangeReason: DetectionValidationStatusChangeReason | null;
 }
 
-interface RequestData extends Omit<FormValues, 'officialReportDate'> {
+interface RequestData
+    extends Omit<FormValues, 'officialReportDate' | 'legitimateDate' | 'detectionValidationStatusChangeReason'> {
     officialReportDate?: string | null;
+    legitimateDate?: string | null;
 }
 
 const postForm = async (
@@ -54,13 +59,20 @@ const postForm = async (
     uuid?: string,
 ) => {
     let resValue: DetectionData;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { detectionValidationStatusChangeReason, ...valuesToPost } = values;
     const values_: RequestData = {
-        ...values,
+        ...valuesToPost,
         officialReportDate: values.officialReportDate ? format(values.officialReportDate, 'yyyy-MM-dd') : null,
+        legitimateDate: values.legitimateDate ? format(values.legitimateDate, 'yyyy-MM-dd') : null,
     };
 
     if (values.detectionControlStatus !== 'OFFICIAL_REPORT_DRAWN_UP') {
         delete values_.officialReportDate;
+    }
+
+    if (values.detectionValidationStatus !== 'LEGITIMATE') {
+        delete values_.legitimateDate;
     }
 
     if (uuid) {
@@ -80,6 +92,7 @@ const postForm = async (
     return {
         ...resValue,
         officialReportDate: resValue.officialReportDate ? new Date(resValue.officialReportDate) : null,
+        legitimateDate: resValue.legitimateDate ? new Date(resValue.legitimateDate) : null,
     };
 };
 
@@ -109,14 +122,16 @@ const Form: React.FC<FormProps> = ({
         initialValues,
     });
 
+    console.log(initialValues);
+
     useEffect(() => {
         form.setValues(initialValues);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         initialValues.detectionControlStatus,
         initialValues.detectionValidationStatus,
         initialValues.detectionPrescriptionStatus,
         initialValues.officialReportDate,
+        initialValues.legitimateDate,
     ]);
 
     const mutation: UseMutationResult<FormValues, AxiosError, FormValues> = useMutation({
@@ -147,6 +162,7 @@ const Form: React.FC<FormProps> = ({
     form.watch('detectionValidationStatus', submit);
     form.watch('detectionPrescriptionStatus', submit);
     form.watch('officialReportDate', submit);
+    form.watch('legitimateDate', submit);
 
     const handleSubmit = (values: FormValues) => {
         mutation.mutate(values);
@@ -198,13 +214,34 @@ const Form: React.FC<FormProps> = ({
                             variant={form.getValues().detectionValidationStatus === status ? 'filled' : 'outline'}
                             color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
                             key={status}
-                            disabled={mutation.status === 'pending'}
+                            disabled={
+                                mutation.status === 'pending' ||
+                                form.getValues().detectionValidationStatusChangeReason === 'SITADEL'
+                            }
                             onClick={() => form.setFieldValue('detectionValidationStatus', status)}
                         >
                             {DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
                         </Button>
                     ))}
             </div>
+            {form.getValues().detectionValidationStatus === 'LEGITIMATE' ? (
+                <DateInput
+                    mt="md"
+                    label="Date d'autorisation"
+                    dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
+                    valueFormat="DD/MM/YYYY"
+                    placeholder="26/02/2023"
+                    description="Optionel"
+                    clearable
+                    disabled={
+                        disabled ||
+                        mutation.status === 'pending' ||
+                        form.getValues().detectionValidationStatusChangeReason === 'SITADEL'
+                    }
+                    key={form.key('legitimateDate')}
+                    {...form.getInputProps('legitimateDate')}
+                />
+            ) : null}
 
             {prescriptionDurationYears ? (
                 <Checkbox
@@ -244,6 +281,7 @@ const Form: React.FC<FormProps> = ({
                     placeholder="26/02/2023"
                     description="Optionel"
                     clearable
+                    disabled={disabled || mutation.status === 'pending'}
                     key={form.key('officialReportDate')}
                     {...form.getInputProps('officialReportDate')}
                 />
@@ -257,6 +295,8 @@ const EMPTY_FORM_VALUES: FormValues = {
     detectionValidationStatus: 'SUSPECT',
     detectionPrescriptionStatus: null,
     officialReportDate: null,
+    legitimateDate: null,
+    detectionValidationStatusChangeReason: null,
 };
 
 interface ComponentProps {
@@ -286,7 +326,7 @@ const Component: React.FC<ComponentProps> = ({
 
     useEffect(() => {
         selectDetection(tileSetSelected.uuid);
-    }, [tileSetSelected, detectionObject.uuid]);
+    }, [tileSetSelected, detectionObject]);
 
     const selectTileSet = (tileSetUuid: string) => {
         const tileSetPreview = detectionObject.tileSets.find(({ tileSet }) => tileSet.uuid === tileSetUuid);
@@ -303,6 +343,8 @@ const Component: React.FC<ComponentProps> = ({
 
         setDetectionSelected(detection);
     };
+
+    console.log('SELECTED', detectionSelected?.detectionData);
 
     return (
         <div className={classes.container}>
@@ -358,6 +400,11 @@ const Component: React.FC<ComponentProps> = ({
                                   officialReportDate: detectionSelected.detectionData.officialReportDate
                                       ? new Date(detectionSelected.detectionData.officialReportDate)
                                       : null,
+                                  legitimateDate: detectionSelected.detectionData.legitimateDate
+                                      ? new Date(detectionSelected.detectionData.legitimateDate)
+                                      : null,
+                                  detectionValidationStatusChangeReason:
+                                      detectionSelected.detectionData.detectionValidationStatusChangeReason,
                               }
                             : EMPTY_FORM_VALUES
                     }
