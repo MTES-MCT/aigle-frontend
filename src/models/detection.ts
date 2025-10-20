@@ -49,6 +49,7 @@ export interface DetectionData extends Uuided, Timestamped {
     detectionPrescriptionStatus: DetectionPrescriptionStatus | null;
     officialReportDate: string | null;
     detectionValidationStatusChangeReason: DetectionValidationStatusChangeReason | null;
+    authorizationIds: string[] | null;
     legitimateDate: string | null;
     userLastUpdateUuid: string;
 }
