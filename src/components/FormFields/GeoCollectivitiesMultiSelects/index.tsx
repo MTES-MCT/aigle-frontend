@@ -84,7 +84,7 @@ interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     form: UseFormReturnType<T>;
     initialGeoSelectedValues?: GeoValues;
     className?: string;
-
+    onChange?: (geoSelectedValues: GeoValues) => void;
     displayedCollectivityTypes?: Set<CollectivityType>;
 }
 
@@ -92,6 +92,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     form,
     initialGeoSelectedValues,
     className,
+    onChange,
     displayedCollectivityTypes = new Set(['region', 'department', 'commune']),
 }: ComponentProps<T>) => {
     const [geoInputValues, setGeoInputValues] = useState<{
@@ -148,17 +149,25 @@ const Component = <T extends GeoCollectivitiesFormValues>({
             return;
         }
 
-        setGeoSelectedValues((prev) => ({
-            ...prev,
-            [collectivityType]: [...prev[collectivityType], geoZoneToGeoOption(option)],
-        }));
+        setGeoSelectedValues((prev) => {
+            const newValues = {
+                ...prev,
+                [collectivityType]: [...prev[collectivityType], geoZoneToGeoOption(option)],
+            };
+            onChange?.(newValues);
+            return newValues;
+        });
     };
 
     const geoOnRemove = (uuid: string, collectivityType: CollectivityType) => {
-        setGeoSelectedValues((prev) => ({
-            ...prev,
-            [collectivityType]: prev[collectivityType].filter((geo) => geo.value !== uuid),
-        }));
+        setGeoSelectedValues((prev) => {
+            const newValues = {
+                ...prev,
+                [collectivityType]: prev[collectivityType].filter((geo) => geo.value !== uuid),
+            };
+            onChange?.(newValues);
+            return newValues;
+        });
     };
 
     return (

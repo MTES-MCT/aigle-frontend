@@ -200,9 +200,8 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                         </Table.Tr>
                                     ) : null}
                                     {data?.map((item, index) => (
-                                        <>
+                                        <React.Fragment key={item.uuid}>
                                             <Table.Tr
-                                                key={item.uuid}
                                                 bg={
                                                     (selectedUuids || []).includes(item.uuid)
                                                         ? 'var(--mantine-primary-color-light)'
@@ -262,7 +261,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                                     </Table.Td>
                                                 </Table.Tr>
                                             ) : null}
-                                        </>
+                                        </React.Fragment>
                                     ))}
                                 </Table.Tbody>
                             </Table>

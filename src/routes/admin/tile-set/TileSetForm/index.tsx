@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { tileSetEndpoints } from '@/api/endpoints';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import Map from '@/components/Map';
+import SoloAccordion from '@/components/SoloAccordion';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
@@ -220,6 +221,26 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
             url: form.isValid('url') ? value : undefined,
         })),
     );
+    form.watch('date', ({ value }) => {
+        if (value) {
+            const year = value.getFullYear().toString();
+            if (year.length !== 4) {
+                return;
+            }
+            const currentName = form.getValues().name;
+
+            if (!currentName) {
+                // If name is empty, set it to the year
+                form.setFieldValue('name', year);
+            } else if (/\d{4}/.test(currentName)) {
+                // If name contains a 4-digit year, replace it with the new year
+                form.setFieldValue('name', currentName.replace(/\d{4}/, year));
+            } else {
+                // If name doesn't contain a year, append the year
+                form.setFieldValue('name', `${currentName} ${year}`);
+            }
+        }
+    });
     form.watch('name', ({ value }) =>
         setMapPreviewProps((prev) => ({
             ...prev,
@@ -273,50 +294,6 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     <p>Voir les indications ci-dessous pour plus d&apos;info</p>
                 </ErrorCard>
             ) : null}
-            <TextInput
-                mt="md"
-                withAsterisk
-                label="Nom du fond de carte"
-                placeholder="Mon fond de carte"
-                key={form.key('name')}
-                {...form.getInputProps('name')}
-            />
-            <TextInput
-                mt="md"
-                withAsterisk
-                label="URL du fond de carte"
-                placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                description="Doit contenir {x}, {y} et {z} pour les coordonnées des tuiles"
-                type="url"
-                key={form.key('url')}
-                {...form.getInputProps('url')}
-            />
-            <Select
-                allowDeselect={false}
-                label="Scheme"
-                withAsterisk
-                mt="md"
-                mb="md"
-                data={tileSetSchemes.map((scheme) => ({
-                    value: scheme,
-                    label: scheme,
-                }))}
-                key={form.key('tileSetScheme')}
-                {...form.getInputProps('tileSetScheme')}
-            />
-            <Select
-                allowDeselect={false}
-                label="Type"
-                withAsterisk
-                mt="md"
-                mb="md"
-                data={tileSetTypes.map((type) => ({
-                    value: type,
-                    label: TILE_SET_TYPES_NAMES_MAP[type],
-                }))}
-                key={form.key('tileSetType')}
-                {...form.getInputProps('tileSetType')}
-            />
             <DateInput
                 mt="md"
                 withAsterisk
@@ -328,45 +305,132 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 key={form.key('date')}
                 {...form.getInputProps('date')}
             />
-            <Select
-                allowDeselect={false}
-                label="Status"
-                withAsterisk
-                mt="md"
-                data={tileSetStatuses.map((status) => ({
-                    value: status,
-                    label: TILE_SET_STATUSES_NAMES_MAP[status],
-                }))}
-                key={form.key('tileSetStatus')}
-                {...form.getInputProps('tileSetStatus')}
-            />
-            <Checkbox
-                checked={form.values.monochrome}
-                mt="md"
-                label="Monochrome"
-                key={form.key('monochrome')}
-                {...form.getInputProps('monochrome')}
-            />
-            <NumberInput
-                mt="md"
-                label="Zoom minimum d'affichage"
-                placeholder="15"
-                min={0}
-                key={form.key('minZoom')}
-                {...form.getInputProps('minZoom')}
-            />
-            <NumberInput
-                mt="md"
-                label="Zoom maximum d'affichage"
-                placeholder="19"
-                min={0}
-                key={form.key('maxZoom')}
-                {...form.getInputProps('maxZoom')}
-            />
 
             {userMe.userRole === 'SUPER_ADMIN' ? (
-                <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
+                <Card withBorder mt="md">
+                    <h3>Zones géographiques</h3>
+                    <GeoCollectivitiesMultiSelects
+                        form={form}
+                        initialGeoSelectedValues={initialGeoSelectedValues}
+                        onChange={(geoSelectedValues: GeoValues) => {
+                            const collectivitiesNames = [
+                                ...geoSelectedValues.commune.map((commune) => commune.label),
+                                ...geoSelectedValues.department.map((department) => department.label),
+                                ...geoSelectedValues.region.map((region) => region.label),
+                            ];
+
+                            if (collectivitiesNames.length !== 1) {
+                                return;
+                            }
+
+                            // Extract collectivity name, removing parenthesis part if present
+                            const collectivityName = collectivitiesNames[0].replace(/\s*\([^)]*\)/, '').trim();
+                            const currentName = form.getValues().name.trim();
+
+                            // Check if the name is only a year (4 digits, ignoring spaces)
+                            const onlyYearMatch = currentName.match(/^\d{4}$/);
+
+                            if (onlyYearMatch) {
+                                // If name is only a year, add collectivity name as prefix
+                                form.setFieldValue('name', `${collectivityName} ${currentName}`);
+                            } else if (!currentName) {
+                                // If name is empty, set it to collectivity name
+                                form.setFieldValue('name', collectivityName);
+                            } else if (/\d{4}/.test(currentName)) {
+                                // If name contains a year AND other text, extract year and use collectivity name
+                                const yearMatch = currentName.match(/\d{4}/);
+                                if (yearMatch) {
+                                    form.setFieldValue('name', `${collectivityName} ${yearMatch[0]}`);
+                                }
+                            }
+                        }}
+                    />
+                </Card>
             ) : null}
+
+            <TextInput
+                mt="md"
+                withAsterisk
+                label="Nom du fond de carte"
+                placeholder="Mon fond de carte"
+                key={form.key('name')}
+                {...form.getInputProps('name')}
+            />
+            <TextInput
+                mt="md"
+                mb="md"
+                withAsterisk
+                label="URL du fond de carte"
+                placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                description="Doit contenir {x}, {y} et {z} pour les coordonnées des tuiles"
+                type="url"
+                key={form.key('url')}
+                {...form.getInputProps('url')}
+            />
+
+            <SoloAccordion title="Paramètres avancés">
+                <Select
+                    allowDeselect={false}
+                    label="Status"
+                    withAsterisk
+                    mt="md"
+                    data={tileSetStatuses.map((status) => ({
+                        value: status,
+                        label: TILE_SET_STATUSES_NAMES_MAP[status],
+                    }))}
+                    key={form.key('tileSetStatus')}
+                    {...form.getInputProps('tileSetStatus')}
+                />
+                <Select
+                    allowDeselect={false}
+                    label="Scheme"
+                    withAsterisk
+                    mt="md"
+                    mb="md"
+                    data={tileSetSchemes.map((scheme) => ({
+                        value: scheme,
+                        label: scheme,
+                    }))}
+                    key={form.key('tileSetScheme')}
+                    {...form.getInputProps('tileSetScheme')}
+                />
+                <Select
+                    allowDeselect={false}
+                    label="Type"
+                    withAsterisk
+                    mt="md"
+                    mb="md"
+                    data={tileSetTypes.map((type) => ({
+                        value: type,
+                        label: TILE_SET_TYPES_NAMES_MAP[type],
+                    }))}
+                    key={form.key('tileSetType')}
+                    {...form.getInputProps('tileSetType')}
+                />
+                <Checkbox
+                    checked={form.values.monochrome}
+                    mt="md"
+                    label="Monochrome"
+                    key={form.key('monochrome')}
+                    {...form.getInputProps('monochrome')}
+                />
+                <NumberInput
+                    mt="md"
+                    label="Zoom minimum d'affichage"
+                    placeholder="15"
+                    min={0}
+                    key={form.key('minZoom')}
+                    {...form.getInputProps('minZoom')}
+                />
+                <NumberInput
+                    mt="md"
+                    label="Zoom maximum d'affichage"
+                    placeholder="19"
+                    min={0}
+                    key={form.key('maxZoom')}
+                    {...form.getInputProps('maxZoom')}
+                />
+            </SoloAccordion>
 
             {mapPreviewShowed ? (
                 <MapPreview {...mapPreviewProps} geometry={geometry} key={mapPreviewProps.scheme} />
@@ -402,8 +466,8 @@ const EMPTY_FORM_VALUES: FormValues = {
     tileSetScheme: 'xyz',
     tileSetType: 'BACKGROUND',
     monochrome: false,
-    minZoom: null,
-    maxZoom: null,
+    minZoom: 15,
+    maxZoom: 22,
     date: undefined,
     communesUuids: [],
     departmentsUuids: [],
