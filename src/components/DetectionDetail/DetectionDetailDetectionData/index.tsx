@@ -152,7 +152,8 @@ const Form: React.FC<FormProps> = ({
         },
     });
 
-    const submit = async () => {
+    const submit = async (field: any) => {
+        console.log({field});
         if (!uuid) {
             return;
         }
@@ -258,6 +259,7 @@ const Form: React.FC<FormProps> = ({
                     dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
                     valueFormat="DD/MM/YYYY"
                     placeholder="26/02/2023"
+                    minDate={new Date(1980, 1, 1)}
                     description="Optionel"
                     clearable
                     disabled={
