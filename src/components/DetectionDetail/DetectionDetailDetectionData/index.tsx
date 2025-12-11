@@ -34,6 +34,7 @@ import clsx from 'clsx';
 import { format, parse } from 'date-fns';
 import { Polygon } from 'geojson';
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
 interface FormValues {
@@ -43,6 +44,7 @@ interface FormValues {
     officialReportDate: Date | null;
     legitimateDate: Date | null;
     detectionValidationStatusChangeReason: DetectionValidationStatusChangeReason | null;
+    authorizationIds: string[] | null;
 }
 
 interface RequestData
@@ -150,7 +152,8 @@ const Form: React.FC<FormProps> = ({
         },
     });
 
-    const submit = async () => {
+    const submit = async (field: any) => {
+        console.log({field});
         if (!uuid) {
             return;
         }
@@ -184,6 +187,33 @@ const Form: React.FC<FormProps> = ({
                 </ErrorCard>
             ) : null}
 
+            {form.getValues().detectionValidationStatusChangeReason === 'SITADEL' ? (
+                <InfoCard title="Statut verrouillé" withCloseButton={false}>
+                    <p>
+                        Cette détection a été validée par la base de données{' '}
+                        <Link
+                            target="_blank"
+                            to="https://www.statistiques.developpement-durable.gouv.fr/traitement-des-donnees-relatives-aux-demandes-durbanisme-sitadel"
+                        >
+                            SITADEL
+                        </Link>{' '}
+                        et ne peut pas être modifiée manuellement.
+                    </p>
+                    {form.getValues().authorizationIds ? (
+                        <p>
+                            Numéros d&apos;autorisations de la parcelle :{' '}
+                            <ul>
+                                {form.getValues().authorizationIds?.map((authorizationId) => (
+                                    <li key={authorizationId}>
+                                        <b>{authorizationId}</b>
+                                    </li>
+                                ))}
+                            </ul>
+                        </p>
+                    ) : null}
+                </InfoCard>
+            ) : null}
+
             <Text mt="md" className="input-label">
                 Statut de validation{' '}
                 <InfoBubble>
@@ -204,7 +234,8 @@ const Form: React.FC<FormProps> = ({
             </Text>
             <div
                 className={clsx(classes['detection-validation-status-select-container'], {
-                    [classes.disabled]: disabled,
+                    [classes.disabled]:
+                        disabled || form.getValues().detectionValidationStatusChangeReason === 'SITADEL',
                 })}
             >
                 {detectionValidationStatuses
@@ -214,10 +245,7 @@ const Form: React.FC<FormProps> = ({
                             variant={form.getValues().detectionValidationStatus === status ? 'filled' : 'outline'}
                             color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
                             key={status}
-                            disabled={
-                                mutation.status === 'pending' ||
-                                form.getValues().detectionValidationStatusChangeReason === 'SITADEL'
-                            }
+                            disabled={mutation.status === 'pending'}
                             onClick={() => form.setFieldValue('detectionValidationStatus', status)}
                         >
                             {DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
@@ -231,6 +259,7 @@ const Form: React.FC<FormProps> = ({
                     dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
                     valueFormat="DD/MM/YYYY"
                     placeholder="26/02/2023"
+                    minDate={new Date(1980, 1, 1)}
                     description="Optionel"
                     clearable
                     disabled={
@@ -297,6 +326,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     officialReportDate: null,
     legitimateDate: null,
     detectionValidationStatusChangeReason: null,
+    authorizationIds: null,
 };
 
 interface ComponentProps {
@@ -405,6 +435,7 @@ const Component: React.FC<ComponentProps> = ({
                                       : null,
                                   detectionValidationStatusChangeReason:
                                       detectionSelected.detectionData.detectionValidationStatusChangeReason,
+                                  authorizationIds: detectionSelected.detectionData.authorizationIds,
                               }
                             : EMPTY_FORM_VALUES
                     }
