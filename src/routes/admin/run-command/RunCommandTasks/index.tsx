@@ -20,7 +20,7 @@ interface ArgumentsDisplayProps {
 
 const ArgumentsDisplay: React.FC<ArgumentsDisplayProps> = ({ arguments: args }) => {
     const hasKwargs = Object.keys(args.kwargs).length > 0;
-    const hasArgs = args.args.length > 0;
+    const hasArgs = (args.args || []).length > 0;
 
     if (!hasKwargs && !hasArgs) {
         return (
@@ -52,7 +52,7 @@ const ArgumentsDisplay: React.FC<ArgumentsDisplayProps> = ({ arguments: args }) 
                         Arguments positionnels:
                     </Text>
                     <ul>
-                        {args.args.map((arg, index) => (
+                        {(args.args || []).map((arg, index) => (
                             <li key={index}>{String(arg)}</li>
                         ))}
                     </ul>

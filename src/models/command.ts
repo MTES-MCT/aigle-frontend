@@ -23,7 +23,7 @@ type CommandRunArgmentsType = string | number | boolean;
 
 interface CommandRunArgments {
     kwargs: Record<string, CommandRunArgmentsType>;
-    args: CommandRunArgmentsType[];
+    args?: CommandRunArgmentsType[];
 }
 
 export interface CommandRun extends Uuided, Timestamped {

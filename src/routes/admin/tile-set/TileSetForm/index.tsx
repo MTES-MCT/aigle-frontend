@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { tileSetEndpoints } from '@/api/endpoints';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
@@ -25,7 +25,7 @@ import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
-import { Button, Card, Checkbox, NumberInput, Select, TextInput } from '@mantine/core';
+import { Button, Card, Checkbox, NumberInput, Select, TextInput, Tooltip } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconMapPlus } from '@tabler/icons-react';
@@ -145,6 +145,7 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geometry, userMe }) => {
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
+    const shouldNavigateRef = useRef(true);
     const [mapPreviewProps, setMapPreviewProps] = useState<MapPreviewProps>({
         uuid,
         url: initialValues.url,
@@ -269,7 +270,9 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
     const mutation: UseMutationResult<TileSet, AxiosError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
-            navigate(BACK_URL);
+            if (shouldNavigateRef.current) {
+                navigate(BACK_URL);
+            }
         },
         onError: (error) => {
             setError(error);
@@ -280,7 +283,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         },
     });
 
-    const handleSubmit = (values: FormValues) => {
+    const handleSubmit = (values: FormValues, shouldNavigate: boolean = true) => {
+        shouldNavigateRef.current = shouldNavigate;
         mutation.mutate(values);
     };
 
@@ -450,6 +454,22 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 >
                     Annuler
                 </Button>
+
+                {!uuid ? (
+                    <Tooltip label="Ajouter le fond de carte et ne pas ré-initialiser le forumlaire">
+                        <Button
+                            disabled={mutation.status === 'pending'}
+                            type="button"
+                            variant="outline"
+                            leftSection={<IconMapPlus />}
+                            onClick={() => {
+                                form.onSubmit((values) => handleSubmit(values, false))();
+                            }}
+                        >
+                            Ajouter et rester
+                        </Button>
+                    </Tooltip>
+                ) : null}
 
                 <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconMapPlus />}>
                     {label}
