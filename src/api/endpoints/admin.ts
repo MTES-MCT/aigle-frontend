@@ -20,6 +20,7 @@ export const objectTypeCategoryEndpoints = {
 export const tileSetEndpoints = {
     list: BASE_TILE_SET,
     create: BASE_TILE_SET,
+    bulkCreate: `${BASE_TILE_SET}bulk-create/`,
     detail: (uuid: string) => `${BASE_TILE_SET}${uuid}/`,
     lastFromCoordinates: `${BASE_TILE_SET}last-from-coordinates/`,
 };
