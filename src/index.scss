@@ -246,6 +246,13 @@ a.mantine-Button-root {
     --hover-tint: var(--button-hover, var(--mantine-primary-color-filled-hover)) !important;
 }
 
+.mantine-Button-root[data-loading] {
+    color: var(--mantine-color-gray-5);
+    background-color: var(--mantine-color-gray-1);
+    border-color: var(--mantine-color-gray-3);
+    pointer-events: none;
+}
+
 a.mantine-NavLink-root {
     --hover-tint: var(--mantine-color-gray-0) !important;
 }
