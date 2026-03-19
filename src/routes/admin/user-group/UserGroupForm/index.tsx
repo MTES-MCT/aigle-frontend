@@ -170,7 +170,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     Annuler
                 </Button>
 
-                <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconUserPlus />}>
+                <Button
+                    disabled={mutation.status === 'pending'}
+                    loading={mutation.status === 'pending'}
+                    type="submit"
+                    leftSection={<IconUserPlus />}
+                >
                     {label}
                 </Button>
             </div>

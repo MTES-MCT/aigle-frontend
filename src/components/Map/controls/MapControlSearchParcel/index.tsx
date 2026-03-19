@@ -261,7 +261,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
 
                 <Button
                     type="submit"
-                    leftSection={searchLoading ? <MantineLoader size="xs" /> : <IconSearch />}
+                    loading={searchLoading}
+                    leftSection={<IconSearch />}
                     disabled={searchLoading || !form.isValid()}
                 >
                     {CONTROL_LABEL}
@@ -286,7 +287,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
                     });
                     setSignalementPdfLoading(true);
                 }}
-                leftSection={signalementPdfLoading ? <MantineLoader size="xs" /> : <IconDownload size={24} />}
+                loading={signalementPdfLoading}
+                leftSection={<IconDownload size={24} />}
             >
                 Fiche de signalement
             </Button>

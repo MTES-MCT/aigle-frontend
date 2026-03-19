@@ -99,7 +99,11 @@ const Component: React.FC = () => {
                     {...form.getInputProps('email')}
                 />
                 <div className="form-actions">
-                    <Button disabled={mutation.status === 'pending'} type="submit">
+                    <Button
+                        disabled={mutation.status === 'pending'}
+                        loading={mutation.status === 'pending'}
+                        type="submit"
+                    >
                         Réinitialiser le mot de passe
                     </Button>
                 </div>

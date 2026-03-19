@@ -166,7 +166,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geom
                     Annuler
                 </Button>
 
-                <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconWorldPlus />}>
+                <Button
+                    disabled={mutation.status === 'pending'}
+                    loading={mutation.status === 'pending'}
+                    type="submit"
+                    leftSection={<IconWorldPlus />}
+                >
                     Modifier {COLLECTIVITY_TYPES_NAMES_MAP[collectivityType]}
                 </Button>
             </div>

@@ -106,7 +106,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
                     Annuler
                 </Button>
 
-                <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconHexagonalPrismPlus />}>
+                <Button
+                    disabled={mutation.status === 'pending'}
+                    loading={mutation.status === 'pending'}
+                    type="submit"
+                    leftSection={<IconHexagonalPrismPlus />}
+                >
                     {label}
                 </Button>
             </div>

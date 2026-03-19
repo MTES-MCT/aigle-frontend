@@ -153,7 +153,7 @@ const Form: React.FC<FormProps> = ({
     });
 
     const submit = async (field: any) => {
-        console.log({field});
+        console.log({ field });
         if (!uuid) {
             return;
         }

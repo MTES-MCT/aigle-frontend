@@ -123,7 +123,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                     Annuler
                 </Button>
 
-                <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconCubePlus />}>
+                <Button
+                    disabled={mutation.status === 'pending'}
+                    loading={mutation.status === 'pending'}
+                    type="submit"
+                    leftSection={<IconCubePlus />}
+                >
                     {label}
                 </Button>
             </div>

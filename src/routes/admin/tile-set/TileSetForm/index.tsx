@@ -527,6 +527,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     <Tooltip label="Ajouter le fond de carte et ne pas ré-initialiser le forumlaire">
                         <Button
                             disabled={mutation.status === 'pending'}
+                            loading={mutation.status === 'pending'}
                             type="button"
                             variant="outline"
                             leftSection={<IconMapPlus />}
@@ -539,7 +540,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     </Tooltip>
                 ) : null}
 
-                <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconMapPlus />}>
+                <Button
+                    disabled={mutation.status === 'pending'}
+                    loading={mutation.status === 'pending'}
+                    type="submit"
+                    leftSection={<IconMapPlus />}
+                >
                     {label}
                 </Button>
             </div>
