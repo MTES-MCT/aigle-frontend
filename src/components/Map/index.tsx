@@ -19,6 +19,7 @@ import { DetectionObjectDetail } from '@/models/detection-object';
 import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
 import { useMap } from '@/store/slices/map';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
@@ -241,7 +242,6 @@ const Component: React.FC<ComponentProps> = ({
 
     const {
         eventEmitter,
-        objectsFilter,
         getTileSetsUuids,
         setTileSetsVisibility,
         backgroundLayerYears,
@@ -252,6 +252,7 @@ const Component: React.FC<ComponentProps> = ({
         otherObjectTypesUuids,
         isDetailFetching,
     } = useMap();
+    const { objectsFilter } = useObjectsFilter();
 
     const [cursor, setCursor] = useState<string>();
     const [mapRef, setMapRef] = useState<mapboxgl.Map>();

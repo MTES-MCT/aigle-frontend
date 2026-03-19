@@ -21,7 +21,7 @@ import {
 } from '@/models/tile-set';
 import { User } from '@/models/user';
 import { useAuth } from '@/store/slices/auth';
-import { useMap } from '@/store/slices/map';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
@@ -565,7 +565,7 @@ const EMPTY_FORM_VALUES: FormValues = {
 
 const ComponentInner: React.FC = () => {
     const { uuid } = useParams();
-    const { updateObjectsFilter } = useMap();
+    const { updateObjectsFilter } = useObjectsFilter();
     const { userMe } = useAuth();
 
     useEffect(() => {

@@ -1,8 +1,8 @@
-import { ObjectsFilter } from '@/models/detection-filter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { getCommonMapSettingsData, getInitialStatisticsLayers } from '@/store/utils';
 import { create } from 'zustand';
 
@@ -15,7 +15,6 @@ interface ZonesFilter {
 
 interface StatisticsState {
     layers?: MapTileSetLayer[];
-    objectsFilter?: ObjectsFilter;
     allObjectTypes?: ObjectType[];
     geoCustomZones?: GeoCustomZone[];
     zonesFilter?: ZonesFilter;
@@ -23,7 +22,6 @@ interface StatisticsState {
     customZoneLayers?: MapGeoCustomZoneLayer[];
 
     setMapSettings: (settings: MapSettings) => void;
-    updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
     updateZonesFilter: (zonesFilter: ZonesFilter) => void;
 }
 
@@ -33,11 +31,12 @@ const useStatistics = create<StatisticsState>()((set) => ({
         const { allObjectTypes, otherObjectTypesUuids, initialMapGeoCustomZoneLayers, objectsFilter } =
             getCommonMapSettingsData(settings);
 
+        useObjectsFilter.getState().updateObjectsFilter(objectsFilter);
+
         set(() => ({
             layers,
             allObjectTypes,
             geoCustomZones: settings.geoCustomZonesUncategorized,
-            objectsFilter: objectsFilter,
             zonesFilter: {
                 tileSetsUuids: [],
                 communesUuids: [],
@@ -47,14 +46,6 @@ const useStatistics = create<StatisticsState>()((set) => ({
             userLastPosition: settings.userLastPosition,
             otherObjectTypesUuids: otherObjectTypesUuids,
             customZoneLayers: initialMapGeoCustomZoneLayers,
-        }));
-    },
-    updateObjectsFilter: (objectsFilter: ObjectsFilter) => {
-        set((state) => ({
-            objectsFilter: {
-                ...state.objectsFilter,
-                ...objectsFilter,
-            },
         }));
     },
     updateZonesFilter: (zonesFilter: ZonesFilter) => {

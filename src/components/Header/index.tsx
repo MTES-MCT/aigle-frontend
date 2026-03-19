@@ -47,37 +47,49 @@ interface AvatarState {
     color?: string;
 }
 
+const getSearchParams = () => window.location.search;
+
 const NavMenu: React.FC = () => {
     const { userMe, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleNavigate = (path: string) => (e: React.MouseEvent) => {
+        e.preventDefault();
+        navigate(`${path}${getSearchParams()}`);
+    };
 
     return (
         <>
             <ul className="fr-btns-group">
                 <li>
-                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/map">
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/map" onClick={handleNavigate('/map')}>
                         <IconMap className={classes['link-icon']} size={16} />
                         Carte
                     </a>
                 </li>
                 <li>
-                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/statistics">
+                    <a
+                        className="fr-btn fr-btn--tertiary-no-outline"
+                        href="/statistics"
+                        onClick={handleNavigate('/statistics')}
+                    >
                         <IconReportAnalytics className={classes['link-icon']} size={16} />
                         Stats
                     </a>
                 </li>
                 <li>
-                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/table">
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/table" onClick={handleNavigate('/table')}>
                         <IconTable className={classes['link-icon']} size={16} />
                         Tableau
                     </a>
                 </li>
                 <li>
-                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/about">
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/about" onClick={handleNavigate('/about')}>
                         <IconInfoCircle className={classes['link-icon']} size={16} />A propos
                     </a>
                 </li>
                 <li>
-                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/help">
+                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/help" onClick={handleNavigate('/help')}>
                         <IconHelp className={classes['link-icon']} size={16} />
                         Besoin d&apos;aide
                     </a>
@@ -87,7 +99,11 @@ const NavMenu: React.FC = () => {
             <ul className="fr-btns-group">
                 {userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole) ? (
                     <li>
-                        <a className="fr-btn fr-btn--tertiary-no-outline" href="/admin">
+                        <a
+                            className="fr-btn fr-btn--tertiary-no-outline"
+                            href="/admin"
+                            onClick={handleNavigate('/admin')}
+                        >
                             <IconAdjustments className={classes['link-icon']} size={16} />
                             Admin
                         </a>
@@ -126,17 +142,14 @@ const Component: React.FC = () => {
     );
 
     const onTabChange = (tab: TabValue) => {
-        if (tab === 'map') {
-            navigate('/map');
-        } else if (tab === 'statistics') {
-            navigate('/statistics');
-        } else if (tab === 'about') {
-            navigate('/about');
-        } else if (tab === 'help') {
-            navigate('/help');
-        } else {
-            navigate('/admin');
-        }
+        const routes: Record<TabValue, string> = {
+            map: '/map',
+            statistics: '/statistics',
+            about: '/about',
+            help: '/help',
+            admin: '/admin',
+        };
+        navigate(`${routes[tab]}${getSearchParams()}`);
     };
 
     return (

@@ -2,7 +2,7 @@ import React from 'react';
 
 import { DownloadOutputFormat, detectionEndpoints } from '@/api/endpoints';
 import { ObjectsFilter } from '@/models/detection-filter';
-import { useStatistics } from '@/store/slices/statistics';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { Button, Loader as MantineLoader } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
@@ -54,7 +54,7 @@ const Component: React.FC<ComponentProps> = ({
     regionsUuids,
     ordering,
 }: ComponentProps) => {
-    const { objectsFilter } = useStatistics();
+    const { objectsFilter } = useObjectsFilter();
 
     const mutation: UseMutationResult<void, AxiosError, DownloadOutputFormat> = useMutation({
         mutationFn: (outputFormat: DownloadOutputFormat) =>

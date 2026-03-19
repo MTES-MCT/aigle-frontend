@@ -6,6 +6,7 @@ import InfoBubble from '@/components/ui/InfoBubble';
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { ParcelOverview } from '@/models/parcel';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
 import { GREEN, RED } from '@/utils/colors';
@@ -179,7 +180,8 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ communesUuids, departmentsUuids, regionsUuids }) => {
-    const { objectsFilter, otherObjectTypesUuids } = useStatistics();
+    const { otherObjectTypesUuids } = useStatistics();
+    const { objectsFilter } = useObjectsFilter();
 
     if (!objectsFilter || !otherObjectTypesUuids) {
         return <Loader />;

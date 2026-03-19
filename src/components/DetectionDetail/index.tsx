@@ -12,6 +12,7 @@ import { useDetectionAddress, useDetectionObjectDetail, usePriorLetterDownload }
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
 import { getDetectionObjectLink } from '@/utils/link';
@@ -58,7 +59,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     setDetectionUnhidden,
     onClose,
 }) => {
-    const { eventEmitter, objectsFilter, updateObjectsFilter } = useMap();
+    const { eventEmitter } = useMap();
+    const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
     const [signalementPdfGenerating, setSignalementPdfGenerating] = useState<SignalementPDFType | undefined>();
     const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
