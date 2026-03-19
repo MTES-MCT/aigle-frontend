@@ -767,18 +767,38 @@ const Component: React.FC<ComponentProps> = ({
             return;
         }
 
+        const { features, target, lngLat } = event;
+
+        // clicked on a displayed square => handle immediately, no timeout needed
+        if (features && features.length) {
+            if (clickTimerRef.current) {
+                clearTimeout(clickTimerRef.current);
+                clickTimerRef.current = null;
+            }
+
+            const clickedFeature = features[0];
+            const detectionProperties = clickedFeature.properties as DetectionProperties;
+            setDetectionDetailsShowed({
+                detectionObjectUuid: detectionProperties.detectionObjectUuid,
+                detectionUuid: detectionProperties.uuid,
+            });
+
+            target.setPadding(MAP_PADDINGS.detailSectionShowed);
+            target.flyTo({
+                center: getCoord(centroid(clickedFeature.geometry as Polygon)) as [number, number],
+            });
+
+            return;
+        }
+
         if (clickTimerRef.current) {
             clearTimeout(clickTimerRef.current);
         }
 
         clickTimerRef.current = setTimeout(async () => {
-            const { features, target, lngLat } = event;
             const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
-            if (
-                (!features || !features.length) &&
-                ![DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)
-            ) {
+            if (![DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)) {
                 const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
 
                 closeDetectionDetail();
@@ -840,25 +860,7 @@ const Component: React.FC<ComponentProps> = ({
                 target.flyTo({
                     center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
                 });
-
-                return;
             }
-
-            if (!features || !features.length) {
-                return;
-            }
-
-            const clickedFeature = features[0];
-            const detectionProperties = clickedFeature.properties as DetectionProperties;
-            setDetectionDetailsShowed({
-                detectionObjectUuid: detectionProperties.detectionObjectUuid,
-                detectionUuid: detectionProperties.uuid,
-            });
-
-            target.setPadding(MAP_PADDINGS.detailSectionShowed);
-            target.flyTo({
-                center: getCoord(centroid(clickedFeature.geometry as Polygon)) as [number, number],
-            });
         }, 300);
     };
 
