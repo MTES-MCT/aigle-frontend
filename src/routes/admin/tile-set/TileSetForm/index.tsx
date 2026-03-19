@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { tileSetEndpoints } from '@/api/endpoints';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
@@ -25,12 +25,12 @@ import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
-import { Button, Card, Checkbox, NumberInput, Select, TextInput } from '@mantine/core';
+import { Button, Card, Checkbox, NumberInput, Select, TextInput, Tooltip } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconMapPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosError } from 'axios';
 import { formatISO, parse } from 'date-fns';
 import { Geometry } from 'geojson';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -120,17 +120,21 @@ interface FormValues {
     departmentsUuids: string[];
     regionsUuids: string[];
     date?: Date;
+    years?: string;
 }
 
-const postForm = async (values: FormValues, uuid?: string) => {
-    let response: AxiosResponse<TileSet>;
-
+const postForm = async (values: FormValues, uuid?: string, multipleYearMode?: boolean) => {
     if (uuid) {
-        response = await api.patch(tileSetEndpoints.detail(uuid), values);
-    } else {
-        response = await api.post(tileSetEndpoints.create, values);
+        const response = await api.patch<TileSet>(tileSetEndpoints.detail(uuid), values);
+        return response.data;
     }
 
+    if (multipleYearMode) {
+        const response = await api.post<TileSet[]>(tileSetEndpoints.bulkCreate, values);
+        return response.data;
+    }
+
+    const response = await api.post<TileSet>(tileSetEndpoints.create, values);
     return response.data;
 };
 
@@ -145,6 +149,7 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geometry, userMe }) => {
     const [error, setError] = useState<AxiosError>();
     const navigate = useNavigate();
+    const shouldNavigateRef = useRef(true);
     const [mapPreviewProps, setMapPreviewProps] = useState<MapPreviewProps>({
         uuid,
         url: initialValues.url,
@@ -154,11 +159,20 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         monochrome: initialValues.monochrome,
     });
     const [mapPreviewShowed, setMapPreviewShowed] = useState(false);
+    const [multipleYearMode, setMultipleYearMode] = useState(!uuid);
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
         validate: {
-            name: isNotEmpty('Le nom du type est requis'),
+            name: (value) => {
+                if (!value) {
+                    return 'Le nom du type est requis';
+                }
+                if (multipleYearMode && !value.includes('{year}')) {
+                    return 'Le nom doit contenir {year} (ex: "Mon TileSet {year}")';
+                }
+                return null;
+            },
             url: (value) => {
                 try {
                     new URL(value);
@@ -168,6 +182,10 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                         !value.includes('{bbox-epsg-3857}')
                     ) {
                         return "L'url doit contenir {x}, {y} et {z} si c'est un raster xyz OU {bbox-epsg-3857} pour un WMS";
+                    }
+
+                    if (multipleYearMode && !value.includes('{year}')) {
+                        return "L'URL doit contenir {year} (ex: 'https://tiles.example.com/{year}/{z}/{x}/{y}.png')";
                     }
 
                     return null;
@@ -193,6 +211,27 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     return 'Le niveau de zoom max doit être supérieur au niveau de zoom min';
                 }
 
+                return null;
+            },
+            years: (value) => {
+                if (!multipleYearMode) {
+                    return null;
+                }
+                if (!value) {
+                    return 'Les années sont requises';
+                }
+                if (!/^\d{4}(,\d{4})*$/.test(value)) {
+                    return "Le format doit être 'yyyy1,yyyy2,yyyy3' (ex: '2023,2024,2025')";
+                }
+                return null;
+            },
+            date: (value) => {
+                if (multipleYearMode) {
+                    return null;
+                }
+                if (!value) {
+                    return 'La date du fond de carte est requise';
+                }
                 return null;
             },
             minZoom: (value) => {
@@ -266,10 +305,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         })),
     );
 
-    const mutation: UseMutationResult<TileSet, AxiosError, FormValues> = useMutation({
-        mutationFn: (values: FormValues) => postForm(values, uuid),
+    const mutation: UseMutationResult<TileSet | TileSet[], AxiosError, FormValues> = useMutation({
+        mutationFn: (values: FormValues) => postForm(values, uuid, multipleYearMode),
         onSuccess: () => {
-            navigate(BACK_URL);
+            if (shouldNavigateRef.current) {
+                navigate(BACK_URL);
+            }
         },
         onError: (error) => {
             setError(error);
@@ -280,7 +321,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         },
     });
 
-    const handleSubmit = (values: FormValues) => {
+    const handleSubmit = (values: FormValues, shouldNavigate: boolean = true) => {
+        shouldNavigateRef.current = shouldNavigate;
         mutation.mutate(values);
     };
 
@@ -294,17 +336,38 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     <p>Voir les indications ci-dessous pour plus d&apos;info</p>
                 </ErrorCard>
             ) : null}
-            <DateInput
-                mt="md"
-                withAsterisk
-                label="Date du fond de carte"
-                dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
-                valueFormat="DD/MM/YYYY"
-                placeholder="26/02/2023"
-                description="La date est utilisée pour l'ordre d'affichage sur la carte"
-                key={form.key('date')}
-                {...form.getInputProps('date')}
-            />
+
+            {!uuid && (
+                <Checkbox
+                    checked={multipleYearMode}
+                    onChange={(event) => setMultipleYearMode(event.currentTarget.checked)}
+                    mt="md"
+                    label="Ajouter plusieurs années"
+                />
+            )}
+
+            {multipleYearMode ? (
+                <TextInput
+                    mt="md"
+                    withAsterisk
+                    label="Années (séparées par des virgules)"
+                    placeholder="2018,2021,2024"
+                    key={form.key('years')}
+                    {...form.getInputProps('years')}
+                />
+            ) : (
+                <DateInput
+                    mt="md"
+                    withAsterisk
+                    label="Date du fond de carte"
+                    dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
+                    valueFormat="DD/MM/YYYY"
+                    placeholder="26/02/2023"
+                    description="La date est utilisée pour l'ordre d'affichage sur la carte"
+                    key={form.key('date')}
+                    {...form.getInputProps('date')}
+                />
+            )}
 
             {userMe.userRole === 'SUPER_ADMIN' ? (
                 <Card withBorder mt="md">
@@ -352,7 +415,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 mt="md"
                 withAsterisk
                 label="Nom du fond de carte"
-                placeholder="Mon fond de carte"
+                placeholder={multipleYearMode ? 'Mon fond de carte {year}' : 'Mon fond de carte'}
+                description={multipleYearMode ? 'Doit contenir {year} pour différencier les noms' : undefined}
                 key={form.key('name')}
                 {...form.getInputProps('name')}
             />
@@ -361,8 +425,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 mb="md"
                 withAsterisk
                 label="URL du fond de carte"
-                placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                description="Doit contenir {x}, {y} et {z} pour les coordonnées des tuiles"
+                placeholder={
+                    multipleYearMode
+                        ? 'https://tile.example.com/{year}/{z}/{x}/{y}.png'
+                        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+                }
+                description={
+                    multipleYearMode
+                        ? 'Doit contenir {year} et {x}, {y}, {z} pour les coordonnées des tuiles'
+                        : 'Doit contenir {x}, {y} et {z} pour les coordonnées des tuiles'
+                }
                 type="url"
                 key={form.key('url')}
                 {...form.getInputProps('url')}
@@ -451,6 +523,22 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     Annuler
                 </Button>
 
+                {!uuid ? (
+                    <Tooltip label="Ajouter le fond de carte et ne pas ré-initialiser le forumlaire">
+                        <Button
+                            disabled={mutation.status === 'pending'}
+                            type="button"
+                            variant="outline"
+                            leftSection={<IconMapPlus />}
+                            onClick={() => {
+                                form.onSubmit((values) => handleSubmit(values, false))();
+                            }}
+                        >
+                            Ajouter et rester
+                        </Button>
+                    </Tooltip>
+                ) : null}
+
                 <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconMapPlus />}>
                     {label}
                 </Button>
@@ -469,6 +557,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     minZoom: 15,
     maxZoom: 22,
     date: undefined,
+    years: '',
     communesUuids: [],
     departmentsUuids: [],
     regionsUuids: [],
