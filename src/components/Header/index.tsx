@@ -175,7 +175,14 @@ const Component: React.FC = () => {
                                 </div>
                             </div>
                             <div className="fr-header__service">
-                                <a href="/" title="Accueil - Aigle - Ministère de la transition écologique">
+                                <a
+                                    href="/"
+                                    title="Accueil - Aigle - Ministère de la transition écologique"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        navigate(`/${getSearchParams()}`);
+                                    }}
+                                >
                                     <p className="fr-header__service-title">
                                         Aigle <span className="fr-badge fr-badge--green-menthe">BETA</span>
                                         {ENVIRONMENT === 'preprod' ? (
