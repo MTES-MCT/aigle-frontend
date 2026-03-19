@@ -748,11 +748,16 @@ const Component: React.FC<ComponentProps> = ({
     }, [mapRef]);
 
     const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const clickAbortRef = useRef<AbortController | null>(null);
 
     const onMapDblClick = useCallback(() => {
         if (clickTimerRef.current) {
             clearTimeout(clickTimerRef.current);
             clickTimerRef.current = null;
+        }
+        if (clickAbortRef.current) {
+            clickAbortRef.current.abort();
+            clickAbortRef.current = null;
         }
     }, []);
 
@@ -785,6 +790,12 @@ const Component: React.FC<ComponentProps> = ({
 
                 const { lng, lat } = lngLat;
 
+                if (clickAbortRef.current) {
+                    clickAbortRef.current.abort();
+                }
+                const abortController = new AbortController();
+                clickAbortRef.current = abortController;
+
                 setObjectFromCoordinates(() => ({
                     fetchStatus: 'LOADING',
                     objectFromCoordinates: undefined,
@@ -795,6 +806,7 @@ const Component: React.FC<ComponentProps> = ({
                         lat,
                         lng,
                     },
+                    signal: abortController.signal,
                 });
                 const objectFromCoordinates = res.data;
 
