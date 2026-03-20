@@ -87,21 +87,9 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
     const label = uuid ? 'Modifier un groupe utilisateurs' : 'Ajouter un groupe utilisateurs';
 
-    // geo data
-
-    const { communesUuids, departmentsUuids, regionsUuids, objectTypeCategoriesUuids } = form.getValues();
-    const collectivitiesUuids = [...communesUuids, ...departmentsUuids, ...regionsUuids];
-
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
             <h1>{label}</h1>
-
-            {uuid && (!collectivitiesUuids.length || !objectTypeCategoriesUuids.length) ? (
-                <WarningCard title="Accès aux données" className={classes['warning-card']}>
-                    <p>Ce groupe n&apos;a pas de collectivités ou de thématiques associées.</p>
-                    <p>Les utilisateurs du groupe ne pourront accéder à aucune donnée.</p>
-                </WarningCard>
-            ) : null}
 
             {error ? (
                 <ErrorCard>
@@ -170,7 +158,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     Annuler
                 </Button>
 
-                <Button disabled={mutation.status === 'pending'} type="submit" leftSection={<IconUserPlus />}>
+                <Button
+                    disabled={mutation.status === 'pending'}
+                    loading={mutation.status === 'pending'}
+                    type="submit"
+                    leftSection={<IconUserPlus />}
+                >
                     {label}
                 </Button>
             </div>

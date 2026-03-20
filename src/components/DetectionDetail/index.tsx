@@ -12,6 +12,7 @@ import { useDetectionAddress, useDetectionObjectDetail, usePriorLetterDownload }
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { formatCommune, formatGeoCustomZonesWithSubZones, formatParcel } from '@/utils/format';
 import { getDetectionObjectLink } from '@/utils/link';
@@ -58,7 +59,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     setDetectionUnhidden,
     onClose,
 }) => {
-    const { eventEmitter, objectsFilter, updateObjectsFilter } = useMap();
+    const { eventEmitter } = useMap();
+    const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
     const [signalementPdfGenerating, setSignalementPdfGenerating] = useState<SignalementPDFType | undefined>();
     const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
@@ -122,13 +124,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     });
                                     setSignalementPdfGenerating('detectionObject');
                                 }}
-                                leftSection={
-                                    signalementPdfGenerating === 'detectionObject' ? (
-                                        <MantineLoader size="xs" />
-                                    ) : (
-                                        <IconDownload size={20} />
-                                    )
-                                }
+                                loading={signalementPdfGenerating === 'detectionObject'}
+                                leftSection={<IconDownload size={20} />}
                             >
                                 A l&apos;objet
                             </Button>
@@ -146,13 +143,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     });
                                     setSignalementPdfGenerating('parcel');
                                 }}
-                                leftSection={
-                                    signalementPdfGenerating === 'parcel' ? (
-                                        <MantineLoader size="xs" />
-                                    ) : (
-                                        <IconMapDown size={20} />
-                                    )
-                                }
+                                loading={signalementPdfGenerating === 'parcel'}
+                                leftSection={<IconMapDown size={20} />}
                             >
                                 A la parcelle
                             </Button>
@@ -194,7 +186,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             await downloadPriorLetter(detectionObject.uuid);
                             eventEmitter.emit('UPDATE_DETECTION_DETAIL');
                         }}
-                        leftSection={isDownloading ? <MantineLoader size="xs" /> : <IconMailDown size={20} />}
+                        loading={isDownloading}
+                        leftSection={<IconMailDown size={20} />}
                     >
                         Courrier préalable à la parcelle
                     </Button>

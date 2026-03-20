@@ -21,6 +21,7 @@ import TableDownloadButton from '@/routes/Table/TableDownloadButton';
 import TableHeader from '@/routes/Table/TableHeader';
 import { FormValues } from '@/routes/Table/utils';
 import { useAuth } from '@/store/slices/auth';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import { formatParcel } from '@/utils/format';
 import { geoZoneToGeoOption } from '@/utils/geojson';
@@ -224,10 +225,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 };
 
 const Component: React.FC = () => {
-    const { objectsFilter, allObjectTypes, customZoneLayers, updateObjectsFilter, otherObjectTypesUuids } =
-        useStatistics();
+    const { allObjectTypes, customZoneLayers, otherObjectTypesUuids } = useStatistics();
+    const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
 
-    if (!objectsFilter || !allObjectTypes || !customZoneLayers || !updateObjectsFilter || !otherObjectTypesUuids) {
+    if (!objectsFilter || !allObjectTypes || !customZoneLayers || !otherObjectTypesUuids) {
         return (
             <LayoutBase title="Tableau">
                 <Loader />

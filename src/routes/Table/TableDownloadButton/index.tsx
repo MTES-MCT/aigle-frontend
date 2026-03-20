@@ -2,9 +2,9 @@ import React from 'react';
 
 import { DownloadOutputFormat, detectionEndpoints } from '@/api/endpoints';
 import { ObjectsFilter } from '@/models/detection-filter';
-import { useStatistics } from '@/store/slices/statistics';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
-import { Button, Loader as MantineLoader } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
@@ -54,7 +54,7 @@ const Component: React.FC<ComponentProps> = ({
     regionsUuids,
     ordering,
 }: ComponentProps) => {
-    const { objectsFilter } = useStatistics();
+    const { objectsFilter } = useObjectsFilter();
 
     const mutation: UseMutationResult<void, AxiosError, DownloadOutputFormat> = useMutation({
         mutationFn: (outputFormat: DownloadOutputFormat) =>
@@ -75,7 +75,8 @@ const Component: React.FC<ComponentProps> = ({
         <Button.Group>
             <Button
                 fullWidth
-                rightSection={mutation.isPending ? <MantineLoader size="xs" /> : <IconDownload size={14} />}
+                loading={mutation.isPending}
+                rightSection={<IconDownload size={14} />}
                 mb="md"
                 variant="outline"
                 disabled={!objectsFilter || mutation.isPending}
@@ -85,7 +86,8 @@ const Component: React.FC<ComponentProps> = ({
             </Button>
             <Button
                 fullWidth
-                rightSection={mutation.isPending ? <MantineLoader size="xs" /> : <IconDownload size={14} />}
+                loading={mutation.isPending}
+                rightSection={<IconDownload size={14} />}
                 mb="md"
                 variant="outline"
                 disabled={!objectsFilter || mutation.isPending}

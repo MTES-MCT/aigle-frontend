@@ -209,6 +209,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
                 <Button
                     disabled={mutation.status === 'pending' || cannotEdit}
+                    loading={mutation.status === 'pending'}
                     type="submit"
                     leftSection={<IconHexagonPlus2 />}
                 >

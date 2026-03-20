@@ -3,6 +3,7 @@ import React from 'react';
 import FilterObjects from '@/components/FilterObjects';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { useMap } from '@/store/slices/map';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { IconFilter } from '@tabler/icons-react';
 import classes from './index.module.scss';
 
@@ -14,7 +15,8 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
-    const { objectTypes, customZoneLayers, objectsFilter, updateObjectsFilter, otherObjectTypesUuids } = useMap();
+    const { objectTypes, customZoneLayers, otherObjectTypesUuids } = useMap();
+    const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
 
     if (!objectTypes || !objectsFilter || !customZoneLayers || !otherObjectTypesUuids) {
         return null;

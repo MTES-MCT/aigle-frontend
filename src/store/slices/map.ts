@@ -1,10 +1,9 @@
-import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 import { TileSet, TileSetStatus, TileSetType } from '@/models/tile-set';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { getCommonMapSettingsData, getInitialMapLayers } from '@/store/utils';
-import { setObjectFilters } from '@/utils/objects-filter';
 import { format } from 'date-fns';
 import EventEmitter from 'eventemitter3';
 import { isEqual } from 'lodash';
@@ -23,7 +22,6 @@ interface MapState {
     backgroundLayerYears?: string[];
     customZoneLayers?: MapGeoCustomZoneLayer[];
     objectTypes?: ObjectType[];
-    objectsFilter?: ObjectsFilter;
     settings?: MapSettings;
     userLastPosition?: GeoJSON.Position | null;
     annotationLayerVisible?: boolean;
@@ -34,7 +32,6 @@ interface MapState {
 
     setMapSettings: (settings: MapSettings) => void;
     resetLayers: () => void;
-    updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
     getDisplayedTileSetUrls: () => string[];
     setBackgroundTileSetYearDisplayed: (year: string) => void;
     setTileSetVisibility: (uuid: string, visible: boolean) => void;
@@ -72,7 +69,7 @@ const useMap = create<MapState>()((set, get) => ({
             initialDetectionObjectUuid: detectionObjectUuid,
             userLastPosition: settings.userLastPosition,
         }));
-        get().updateObjectsFilter(objectsFilter);
+        useObjectsFilter.getState().updateObjectsFilter(objectsFilter);
 
         document.documentElement.style.setProperty('--nbr-background-layers', backgroundLayerYears.length.toString());
     },
@@ -99,19 +96,6 @@ const useMap = create<MapState>()((set, get) => ({
             state.eventEmitter.emit('LAYERS_UPDATED');
             return {
                 layers,
-            };
-        });
-    },
-    updateObjectsFilter: (objectsFilter: ObjectsFilter) => {
-        set((state) => {
-            const objectsFilterUpdated = {
-                ...state.objectsFilter,
-                ...objectsFilter,
-            };
-            setObjectFilters(objectsFilterUpdated);
-
-            return {
-                objectsFilter: objectsFilterUpdated,
             };
         });
     },

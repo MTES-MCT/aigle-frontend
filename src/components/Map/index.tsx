@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { GeolocateControl, Layer, Source, ViewStateChangeEvent } from 'react-map-gl';
 
 import { detectionEndpoints, detectionObjectEndpoints, utilsEndpoints } from '@/api/endpoints';
@@ -19,6 +19,7 @@ import { DetectionObjectDetail } from '@/models/detection-object';
 import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
 import { useMap } from '@/store/slices/map';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
@@ -241,7 +242,6 @@ const Component: React.FC<ComponentProps> = ({
 
     const {
         eventEmitter,
-        objectsFilter,
         getTileSetsUuids,
         setTileSetsVisibility,
         backgroundLayerYears,
@@ -252,6 +252,7 @@ const Component: React.FC<ComponentProps> = ({
         otherObjectTypesUuids,
         isDetailFetching,
     } = useMap();
+    const { objectsFilter } = useObjectsFilter();
 
     const [cursor, setCursor] = useState<string>();
     const [mapRef, setMapRef] = useState<mapboxgl.Map>();
@@ -747,91 +748,120 @@ const Component: React.FC<ComponentProps> = ({
         });
     }, [mapRef]);
 
-    const onMapClick = async (event: mapboxgl.MapLayerMouseEvent | mapboxgl.MapLayerTouchEvent) => {
+    const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const clickAbortRef = useRef<AbortController | null>(null);
+
+    const onMapDblClick = useCallback(() => {
+        if (clickTimerRef.current) {
+            clearTimeout(clickTimerRef.current);
+            clickTimerRef.current = null;
+        }
+        if (clickAbortRef.current) {
+            clickAbortRef.current.abort();
+            clickAbortRef.current = null;
+        }
+    }, []);
+
+    const onMapClick = (event: mapboxgl.MapLayerMouseEvent | mapboxgl.MapLayerTouchEvent) => {
         if (isDragging) {
             return;
         }
 
         const { features, target, lngLat } = event;
-        const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
-        if (
-            (!features || !features.length) &&
-            ![DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)
-        ) {
-            const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
-
-            closeDetectionDetail();
-
-            // if section was open, we just close it
-            if (!noSectionOpen) {
-                return;
-            }
-            // else use clicked when no section was open => we look for a detection
-
-            const { lng, lat } = lngLat;
-
-            setObjectFromCoordinates(() => ({
-                fetchStatus: 'LOADING',
-                objectFromCoordinates: undefined,
-            }));
-
-            const res = await api.get<ObjectFromCoordinates>(detectionObjectEndpoints.fromCoordinates, {
-                params: {
-                    lat,
-                    lng,
-                },
-            });
-            const objectFromCoordinates = res.data;
-
-            if (!objectFromCoordinates) {
-                setObjectFromCoordinates(() => ({
-                    fetchStatus: 'IDLE',
-                    objectFromCoordinates: undefined,
-                }));
-                notifications.show({
-                    title: 'Aucun objet détecté ici',
-                    message: "Aucun objet, même non-visible n'a été détecté ici",
-                });
-                return;
+        // clicked on a displayed square => handle immediately, no timeout needed
+        if (features && features.length) {
+            if (clickTimerRef.current) {
+                clearTimeout(clickTimerRef.current);
+                clickTimerRef.current = null;
             }
 
-            notifications.show({
-                title: 'Un objet masqué par les filtres actuels a été détecté ici',
-                message: 'Vous pouvez le rendre visible dans le panneau latéral',
-            });
+            const clickedFeature = features[0];
+            const detectionProperties = clickedFeature.properties as DetectionProperties;
             setDetectionDetailsShowed({
-                detectionObjectUuid: objectFromCoordinates.uuid,
-                detectionHidden: true,
+                detectionObjectUuid: detectionProperties.detectionObjectUuid,
+                detectionUuid: detectionProperties.uuid,
             });
-            setObjectFromCoordinates(() => ({
-                fetchStatus: 'IDLE',
-                objectFromCoordinates,
-            }));
 
             target.setPadding(MAP_PADDINGS.detailSectionShowed);
             target.flyTo({
-                center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
+                center: getCoord(centroid(clickedFeature.geometry as Polygon)) as [number, number],
             });
 
             return;
         }
 
-        if (!features || !features.length) {
-            return;
+        if (clickTimerRef.current) {
+            clearTimeout(clickTimerRef.current);
         }
 
-        const clickedFeature = features[0];
-        const detectionProperties = clickedFeature.properties as DetectionProperties;
-        setDetectionDetailsShowed({
-            detectionObjectUuid: detectionProperties.detectionObjectUuid,
-            detectionUuid: detectionProperties.uuid,
-        });
+        clickTimerRef.current = setTimeout(async () => {
+            const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
 
-        target.setPadding(MAP_PADDINGS.detailSectionShowed);
-        target.flyTo({
-            center: getCoord(centroid(clickedFeature.geometry as Polygon)) as [number, number],
-        });
+            if (![DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)) {
+                const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
+
+                closeDetectionDetail();
+
+                // if section was open, we just close it
+                if (!noSectionOpen) {
+                    return;
+                }
+                // else use clicked when no section was open => we look for a detection
+
+                const { lng, lat } = lngLat;
+
+                if (clickAbortRef.current) {
+                    clickAbortRef.current.abort();
+                }
+                const abortController = new AbortController();
+                clickAbortRef.current = abortController;
+
+                setObjectFromCoordinates(() => ({
+                    fetchStatus: 'LOADING',
+                    objectFromCoordinates: undefined,
+                }));
+
+                const res = await api.get<ObjectFromCoordinates>(detectionObjectEndpoints.fromCoordinates, {
+                    params: {
+                        lat,
+                        lng,
+                    },
+                    signal: abortController.signal,
+                });
+                const objectFromCoordinates = res.data;
+
+                if (!objectFromCoordinates) {
+                    setObjectFromCoordinates(() => ({
+                        fetchStatus: 'IDLE',
+                        objectFromCoordinates: undefined,
+                    }));
+                    notifications.show({
+                        title: 'Aucun objet détecté ici',
+                        message: "Aucun objet, même non-visible n'a été détecté ici",
+                    });
+                    return;
+                }
+
+                notifications.show({
+                    title: 'Un objet masqué par les filtres actuels a été détecté ici',
+                    message: 'Vous pouvez le rendre visible dans le panneau latéral',
+                });
+                setDetectionDetailsShowed({
+                    detectionObjectUuid: objectFromCoordinates.uuid,
+                    detectionHidden: true,
+                });
+                setObjectFromCoordinates(() => ({
+                    fetchStatus: 'IDLE',
+                    objectFromCoordinates,
+                }));
+
+                target.setPadding(MAP_PADDINGS.detailSectionShowed);
+                target.flyTo({
+                    center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
+                });
+            }
+        }, 300);
     };
 
     const onPolygonMouseEnter = useCallback(() => setCursor('pointer'), []);
@@ -886,6 +916,7 @@ const Component: React.FC<ComponentProps> = ({
                 onMoveEnd={loadDataFromBounds}
                 interactiveLayerIds={[GEOJSON_DETECTIONS_LAYER_ID]}
                 onClick={onMapClick}
+                onDblClick={onMapDblClick}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleMove}
                 onTouchEnd={handleTouchEnd}

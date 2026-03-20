@@ -6,6 +6,7 @@ import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import { MultiSelect } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -36,7 +37,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     allObjectTypes,
     customZoneLayers,
 }: ComponentInnerProps) => {
-    const { updateObjectsFilter } = useStatistics();
+    const { updateObjectsFilter } = useObjectsFilter();
     const tileSets = useMemo(() => (layers || []).map((layer) => layer.tileSet), [layers]);
 
     const tileSetsValues = useMemo(() => tileSets.map(({ name, uuid }) => ({ value: uuid, label: name })), [tileSets]);
@@ -111,7 +112,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 };
 
 const Component: React.FC = () => {
-    const { layers, objectsFilter, otherObjectTypesUuids, allObjectTypes, customZoneLayers } = useStatistics();
+    const { layers, otherObjectTypesUuids, allObjectTypes, customZoneLayers } = useStatistics();
+    const { objectsFilter } = useObjectsFilter();
 
     if (!layers || !objectsFilter || !otherObjectTypesUuids || !allObjectTypes || !customZoneLayers) {
         return <Loader />;

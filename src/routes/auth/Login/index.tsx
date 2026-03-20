@@ -111,7 +111,11 @@ const Component: React.FC = () => {
                     </Link>
                 </div>
                 <div className="form-actions">
-                    <Button type="submit" disabled={mutation.status === 'pending'}>
+                    <Button
+                        type="submit"
+                        disabled={mutation.status === 'pending'}
+                        loading={mutation.status === 'pending'}
+                    >
                         Connexion
                     </Button>
                 </div>
