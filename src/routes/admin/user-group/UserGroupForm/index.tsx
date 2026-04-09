@@ -6,7 +6,6 @@ import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
-import WarningCard from '@/components/ui/WarningCard';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ObjectTypeCategory } from '@/models/object-type-category';
@@ -20,7 +19,6 @@ import { IconUserPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
 import { AxiosError, AxiosResponse } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import classes from './index.module.scss';
 
 const BACK_URL = '/admin/user-groups';
 
