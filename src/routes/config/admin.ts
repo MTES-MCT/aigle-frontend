@@ -11,6 +11,7 @@ import ObjectTypeList from '@/routes/admin/object-type/ObjectTypeList';
 import RunCommand from '@/routes/admin/run-command';
 import TileSetForm from '@/routes/admin/tile-set/TileSetForm';
 import TileSetList from '@/routes/admin/tile-set/TileSetList';
+import UserActionLogList from '@/routes/admin/user-action-log/UserActionLogList';
 import UserGroupForm from '@/routes/admin/user-group/UserGroupForm';
 import UserGroupList from '@/routes/admin/user-group/UserGroupList';
 import UserForm from '@/routes/admin/user/UserForm';
@@ -178,6 +179,14 @@ export const adminRoutes: RouteGroup = {
         {
             path: '/admin/run-command',
             component: RunCommand,
+            roles: ['SUPER_ADMIN'],
+            requiresAuth: true,
+        },
+
+        // User Action Log - Super Admin Only
+        {
+            path: '/admin/user-action-logs',
+            component: UserActionLogList,
             roles: ['SUPER_ADMIN'],
             requiresAuth: true,
         },

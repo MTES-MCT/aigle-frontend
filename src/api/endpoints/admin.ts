@@ -4,6 +4,7 @@ const BASE_OBJECT_TYPE = `${BASE_API}object-type/`;
 const BASE_OBJECT_TYPE_CATEGORY = `${BASE_API}object-type-category/`;
 const BASE_TILE_SET = `${BASE_API}tile-set/`;
 const BASE_RUN_COMMAND = `${BASE_API}run-command/`;
+const BASE_USER_ACTION_LOG = `${BASE_API}user-action-log/`;
 
 export const objectTypeEndpoints = {
     list: BASE_OBJECT_TYPE,
@@ -30,4 +31,9 @@ export const runCommandEndpoints = {
     run: `${BASE_RUN_COMMAND}run/`,
     tasks: `${BASE_RUN_COMMAND}tasks/`,
     cancel: (taskId: string) => `${BASE_RUN_COMMAND}${taskId}/cancel/`,
+};
+
+export const userActionLogEndpoints = {
+    list: BASE_USER_ACTION_LOG,
+    detail: (uuid: string) => `${BASE_USER_ACTION_LOG}${uuid}/`,
 };

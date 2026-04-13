@@ -11,6 +11,7 @@ import {
     IconCube,
     IconDatabaseImport,
     IconHexagon,
+    IconHistory,
     IconMap,
     IconTerminal,
     IconUser,
@@ -116,6 +117,15 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                         href="/admin/imports"
                         active={pathname.includes('/admin/imports')}
                         leftSection={<IconDatabaseImport size={ICON_SIZE} />}
+                    />
+                ) : null}
+
+                {userMe?.userRole === 'SUPER_ADMIN' ? (
+                    <NavLink
+                        label="Journal des actions"
+                        href="/admin/user-action-logs"
+                        active={pathname.includes('/admin/user-action-logs')}
+                        leftSection={<IconHistory size={ICON_SIZE} />}
                     />
                 ) : null}
             </AppShell.Navbar>
