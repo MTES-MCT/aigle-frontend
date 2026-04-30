@@ -6,7 +6,7 @@ import SelectItem from '@/components/ui/SelectItem';
 import { ObjectType } from '@/models/object-type';
 import { TileSet } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { getAddressFromPolygon } from '@/utils/geojson';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -14,7 +14,6 @@ import { notifications } from '@mantine/notifications';
 import { IconShape } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
 import { area, centroid } from '@turf/turf';
-import { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { Feature, Point, Polygon } from 'geojson';
@@ -25,23 +24,24 @@ interface FormValues {
     objectTypeUuid: string;
 }
 
-const fetchTileSet = async (centroid: Feature<Point>) => {
-    const res = await api.get<TileSet>(tileSetEndpoints.lastFromCoordinates, {
+const fetchTileSet = (centroid: Feature<Point>) =>
+    api<TileSet>(tileSetEndpoints.lastFromCoordinates, {
         params: {
             lat: centroid.geometry.coordinates[1],
             lng: centroid.geometry.coordinates[0],
         },
     });
-    return res.data;
-};
 const postForm = async (values: FormValues, tileSetUuid: string, polygon: Polygon, address: string | null) => {
-    await api.post(`${detectionEndpoints.create}`, {
-        detectionObject: {
-            objectTypeUuid: values.objectTypeUuid,
-            address,
+    await api(detectionEndpoints.create, {
+        method: 'POST',
+        body: {
+            detectionObject: {
+                objectTypeUuid: values.objectTypeUuid,
+                address,
+            },
+            tileSetUuid,
+            geometry: polygon,
         },
-        tileSetUuid,
-        geometry: polygon,
     });
 };
 
@@ -75,7 +75,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide }) => {
         enabled: !!polygonCentroid,
     });
 
-    const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, tileSet?.uuid || '', polygon, address || null),
         onSuccess: () => {
             eventEmitter.emit('UPDATE_DETECTIONS');
@@ -86,13 +86,13 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide }) => {
             hide();
         },
         onError: (error) => {
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
                 notifications.show({
                     color: 'red',
                     title: 'Une erreur est survenue lors de la création de la détection',
-                    message: ((error.response?.data as Record<string, string>)?.detail as string) || '',
+                    message: ((error.body as Record<string, string>)?.detail as string) || '',
                 });
             }
         },

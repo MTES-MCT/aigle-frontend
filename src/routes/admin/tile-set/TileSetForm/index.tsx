@@ -22,7 +22,7 @@ import {
 import { User } from '@/models/user';
 import { useAuth } from '@/store/slices/auth';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 import { Button, Card, Checkbox, NumberInput, Select, TextInput, Tooltip } from '@mantine/core';
@@ -30,7 +30,6 @@ import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconMapPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { formatISO, parse } from 'date-fns';
 import { Geometry } from 'geojson';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -123,19 +122,16 @@ interface FormValues {
     years?: string;
 }
 
-const postForm = async (values: FormValues, uuid?: string, multipleYearMode?: boolean) => {
+const postForm = (values: FormValues, uuid?: string, multipleYearMode?: boolean) => {
     if (uuid) {
-        const response = await api.patch<TileSet>(tileSetEndpoints.detail(uuid), values);
-        return response.data;
+        return api<TileSet>(tileSetEndpoints.detail(uuid), { method: 'PATCH', body: values });
     }
 
     if (multipleYearMode) {
-        const response = await api.post<TileSet[]>(tileSetEndpoints.bulkCreate, values);
-        return response.data;
+        return api<TileSet[]>(tileSetEndpoints.bulkCreate, { method: 'POST', body: values });
     }
 
-    const response = await api.post<TileSet>(tileSetEndpoints.create, values);
-    return response.data;
+    return api<TileSet>(tileSetEndpoints.create, { method: 'POST', body: values });
 };
 
 interface FormProps {
@@ -147,7 +143,7 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geometry, userMe }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const navigate = useNavigate();
     const shouldNavigateRef = useRef(true);
     const [mapPreviewProps, setMapPreviewProps] = useState<MapPreviewProps>({
@@ -305,7 +301,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         })),
     );
 
-    const mutation: UseMutationResult<TileSet | TileSet[], AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<TileSet | TileSet[], ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid, multipleYearMode),
         onSuccess: () => {
             if (shouldNavigateRef.current) {
@@ -314,9 +310,9 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
             }
         },
     });
@@ -591,21 +587,21 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<TileSetDetailWithGeometry>(tileSetEndpoints.detail(uuid));
+        const data = await api<TileSetDetailWithGeometry>(tileSetEndpoints.detail(uuid));
         const initialValues: FormValues = {
-            ...res.data,
-            date: new Date(res.data.date),
-            communesUuids: res.data.communes.map((commune) => commune.uuid),
-            departmentsUuids: res.data.departments.map((department) => department.uuid),
-            regionsUuids: res.data.regions.map((region) => region.uuid),
+            ...data,
+            date: new Date(data.date),
+            communesUuids: data.communes.map((commune) => commune.uuid),
+            departmentsUuids: data.departments.map((department) => department.uuid),
+            regionsUuids: data.regions.map((region) => region.uuid),
         };
         const initialGeoSelectedValues: GeoValues = {
-            region: res.data.regions.map((region) => geoZoneToGeoOption(region)),
-            department: res.data.departments.map((department) => geoZoneToGeoOption(department)),
-            commune: res.data.communes.map((commune) => geoZoneToGeoOption(commune)),
+            region: data.regions.map((region) => geoZoneToGeoOption(region)),
+            department: data.departments.map((department) => geoZoneToGeoOption(department)),
+            commune: data.communes.map((commune) => geoZoneToGeoOption(commune)),
         };
 
-        return { initialValues, initialGeoSelectedValues, geometry: res.data.geometry };
+        return { initialValues, initialGeoSelectedValues, geometry: data.geometry };
     };
 
     const { isLoading, error, data } = useQuery({

@@ -10,10 +10,7 @@ import React, { useMemo, useState } from 'react';
 import classes from './index.module.scss';
 import RunCommandModal from './RunCommandModal';
 
-const fetchCommands = async (): Promise<CommandWithParameters[]> => {
-    const res = await api.get<CommandWithParameters[]>(runCommandEndpoints.list);
-    return res.data;
-};
+const fetchCommands = (): Promise<CommandWithParameters[]> => api<CommandWithParameters[]>(runCommandEndpoints.list);
 
 const CommandParameters: React.FC<{ parameters: CommandWithParameters['parameters'] }> = ({ parameters }) => {
     const defaultValueColDisplayed = useMemo(() => parameters.some((param) => param.default), [parameters]);

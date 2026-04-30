@@ -64,15 +64,12 @@ const fetchData = async (
         params.prescripted = objectsFilter.prescripted;
     }
 
-    const res = await api.get<ValidationStatusObjectTypesGlobal[]>(
-        statisticsEndpoints.validationStatusObjectTypesGlobal,
-        {
-            params,
-            signal,
-        },
-    );
+    const data = await api<ValidationStatusObjectTypesGlobal[]>(statisticsEndpoints.validationStatusObjectTypesGlobal, {
+        params,
+        signal,
+    });
 
-    return formatData(res.data);
+    return formatData(data);
 };
 
 const SERIES = detectionValidationStatuses.map((status) => ({

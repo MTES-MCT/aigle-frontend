@@ -521,16 +521,12 @@ const Component: React.FC<ComponentProps> = ({
                     message: 'Le téléchargement se lancera dans quelques instants',
                 });
 
-                const detectionObjectsDetailsRes = await api.get<DetectionObjectDetail[]>(
-                    detectionObjectEndpoints.list,
-                    {
-                        params: {
-                            detectionUuids: detectionUuids.join(','),
-                            detail: true,
-                        },
+                const detectionObjectsDetails = await api<DetectionObjectDetail[]>(detectionObjectEndpoints.list, {
+                    params: {
+                        detectionUuids: detectionUuids.join(','),
+                        detail: true,
                     },
-                );
-                const detectionObjectsDetails = detectionObjectsDetailsRes.data;
+                });
                 setDetectionObjectsToDownload(detectionObjectsDetails);
             }
 
@@ -574,7 +570,7 @@ const Component: React.FC<ComponentProps> = ({
             return null;
         }
 
-        const res = await api.get<DetectionGeojsonData>(DETECTION_ENDPOINT, {
+        const data = await api<DetectionGeojsonData>(DETECTION_ENDPOINT, {
             params: {
                 ...mapBounds,
                 ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
@@ -584,10 +580,10 @@ const Component: React.FC<ComponentProps> = ({
         });
 
         if (skipProcessDetections) {
-            return res.data;
+            return data;
         }
 
-        return processDetections(res.data, otherObjectTypesUuids || new Set());
+        return processDetections(data, otherObjectTypesUuids || new Set());
     };
 
     // annotation grid fetching
@@ -603,7 +599,7 @@ const Component: React.FC<ComponentProps> = ({
             return null;
         }
 
-        const res = await api.get<DetectionGeojsonData>(utilsEndpoints.annotationGrid, {
+        return api<DetectionGeojsonData>(utilsEndpoints.annotationGrid, {
             params: {
                 ...mapBounds,
                 ...annotationGridFilters,
@@ -611,8 +607,6 @@ const Component: React.FC<ComponentProps> = ({
             },
             signal,
         });
-
-        return res.data;
     };
     const { data: annotationGrid, refetch: refetchAnnotationGrid } = useQuery({
         queryKey: [
@@ -633,7 +627,7 @@ const Component: React.FC<ComponentProps> = ({
             return null;
         }
 
-        const res = await api.get<GeoCustomZoneResponse>(utilsEndpoints.customGeometry, {
+        return api<GeoCustomZoneResponse>(utilsEndpoints.customGeometry, {
             params: {
                 ...mapBounds,
                 uuids: customZoneLayersDisplayedUuids,
@@ -641,8 +635,6 @@ const Component: React.FC<ComponentProps> = ({
             },
             signal,
         });
-
-        return res.data;
     };
     const { data: customZonesData } = useQuery({
         queryKey: [
@@ -822,14 +814,16 @@ const Component: React.FC<ComponentProps> = ({
                     objectFromCoordinates: undefined,
                 }));
 
-                const res = await api.get<ObjectFromCoordinates>(detectionObjectEndpoints.fromCoordinates, {
-                    params: {
-                        lat,
-                        lng,
+                const objectFromCoordinates = await api<ObjectFromCoordinates>(
+                    detectionObjectEndpoints.fromCoordinates,
+                    {
+                        params: {
+                            lat,
+                            lng,
+                        },
+                        signal: abortController.signal,
                     },
-                    signal: abortController.signal,
-                });
-                const objectFromCoordinates = res.data;
+                );
 
                 if (!objectFromCoordinates) {
                     setObjectFromCoordinates(() => ({

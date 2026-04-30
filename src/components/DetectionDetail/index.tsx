@@ -233,7 +233,9 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 });
 
                                 setForceVisibleLoading(true);
-                                await api.patch(detectionEndpoints.forceVisible(detectionObject.detections[0].uuid));
+                                await api(detectionEndpoints.forceVisible(detectionObject.detections[0].uuid), {
+                                    method: 'PATCH',
+                                });
                                 setForceVisibleLoading(false);
                                 setDetectionUnhidden && setDetectionUnhidden();
                             }}

@@ -1,12 +1,11 @@
 import { Alert, Button, PasswordInput } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import { AxiosError } from 'axios';
 import React, { useState } from 'react';
 
 import { authEndpoints } from '@/api/endpoints';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { PASSWORD_MIN_LENGTH } from '@/utils/constants';
 import { IconCheck } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
@@ -40,15 +39,18 @@ interface FormValues {
 }
 
 const resetPasswordConfirm = async (form: FormValues, uid: string, token: string) => {
-    await api.post(authEndpoints.resetPasswordConfirm, {
-        newPassword: form.newPassword,
-        uid,
-        token,
+    await api(authEndpoints.resetPasswordConfirm, {
+        method: 'POST',
+        body: {
+            newPassword: form.newPassword,
+            uid,
+            token,
+        },
     });
 };
 
 const Component: React.FC = () => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const { uid, token } = useParams<{ uid: string; token: string }>();
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -75,13 +77,13 @@ const Component: React.FC = () => {
         },
     });
 
-    const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
         mutationFn: (form) => resetPasswordConfirm(form, String(uid), String(token)),
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
             }
         },
     });

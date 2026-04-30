@@ -5,13 +5,12 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { CommandRun, CommandRunStatus, commandRunStatuses } from '@/models/command';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { colors } from '@/utils/colors';
 import { ActionIcon, Badge, Checkbox, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCancel } from '@tabler/icons-react';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { isEqual } from 'lodash';
 
 interface ArgumentsDisplayProps {
@@ -90,11 +89,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     );
 };
 
-const cancelTask = async (taskId: string) => {
-    const response = await api.post(runCommandEndpoints.cancel(taskId));
-
-    return response.data;
-};
+const cancelTask = (taskId: string) => api<string>(runCommandEndpoints.cancel(taskId), { method: 'POST' });
 
 interface DataFilter {
     statuses: CommandRunStatus[];
@@ -105,7 +100,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 };
 
 const Component: React.FC = () => {
-    const mutation: UseMutationResult<string, AxiosError, string> = useMutation({
+    const mutation: UseMutationResult<string, ApiError, string> = useMutation({
         mutationFn: (taskId: string) => cancelTask(taskId),
         onSuccess: () => {
             notifications.show({
@@ -116,7 +111,7 @@ const Component: React.FC = () => {
         onError: (error) => {
             notifications.show({
                 title: "Erreur lors de l'annulation de la tâche",
-                message: String(error.response?.data) || "Une erreur est survenue lors de l'annulation de la tâche.",
+                message: String(error.body) || "Une erreur est survenue lors de l'annulation de la tâche.",
             });
         },
     });

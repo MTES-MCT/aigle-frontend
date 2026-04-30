@@ -22,7 +22,7 @@ import classes from './index.module.scss';
 const SEARCH_LIMIT = 10;
 
 const searchCommune = async (q: string, signal: AbortSignal): Promise<SelectOption[]> => {
-    const res = await api.get<Paginated<GeoCommune>>(getGeoListEndpoint('commune'), {
+    const res = await api<Paginated<GeoCommune>>(getGeoListEndpoint('commune'), {
         signal,
         params: {
             q,
@@ -31,7 +31,7 @@ const searchCommune = async (q: string, signal: AbortSignal): Promise<SelectOpti
         },
     });
 
-    return res.data.results.map((com) => geoZoneToGeoOption(com));
+    return res.results.map((com) => geoZoneToGeoOption(com));
 };
 
 const searchParcel = async (
@@ -63,16 +63,14 @@ const searchParcel = async (
         }
     }
 
-    const res = await api.get<string[]>(url, {
+    return api<string[]>(url, {
         signal,
         params,
     });
-
-    return res.data;
 };
 
 const fetchParcel = async (values: FormValues): Promise<Parcel | null> => {
-    const res = await api.get<Paginated<Parcel>>(parcelEndpoints.list, {
+    const res = await api<Paginated<Parcel>>(parcelEndpoints.list, {
         params: {
             communesUuids: [values.commune?.value],
             section: values.section,
@@ -82,11 +80,11 @@ const fetchParcel = async (values: FormValues): Promise<Parcel | null> => {
         },
     });
 
-    if (!res.data.results.length) {
+    if (!res.results.length) {
         return null;
     }
 
-    return res.data.results[0];
+    return res.results[0];
 };
 
 const CONTROL_LABEL = 'Rechercher une parcelle';

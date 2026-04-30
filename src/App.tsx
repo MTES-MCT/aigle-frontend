@@ -29,7 +29,7 @@ const App: React.FC = () => {
 
     const getUser = useCallback(async () => {
         try {
-            const { data: user } = await api.get<User>(usersEndpoints.me);
+            const user = await api<User>(usersEndpoints.me);
             setUser(user);
             setupMatomo(user);
         } catch (err) {
@@ -43,10 +43,10 @@ const App: React.FC = () => {
 
     const getMapSettings = useCallback(async () => {
         try {
-            const res = await api.get<MapSettings>(mapEndpoints.settings);
-            setMapSettings(res.data);
-            setStatisticsMapSettings(res.data);
-            return res.data;
+            const mapSettings = await api<MapSettings>(mapEndpoints.settings);
+            setMapSettings(mapSettings);
+            setStatisticsMapSettings(mapSettings);
+            return mapSettings;
         } catch (err) {
             console.error(err);
         }

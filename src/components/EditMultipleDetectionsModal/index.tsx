@@ -10,14 +10,13 @@ import {
 } from '@/models/detection';
 import { ObjectType } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { DETECTION_CONTROL_STATUSES_NAMES_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconSelectAll } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import clsx from 'clsx';
 import React, { useMemo } from 'react';
 import classes from './index.module.scss';
@@ -51,7 +50,7 @@ const postForm = async (values: FormValues, detectionsUuids: string[]) => {
         postValues.detectionValidationStatus = values.detectionValidationStatus;
     }
 
-    await api.post(detectionEndpoints.multiple, postValues);
+    await api(detectionEndpoints.multiple, { method: 'POST', body: postValues });
 };
 
 interface FormProps {
@@ -79,7 +78,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
         );
     }, [objectTypes]);
 
-    const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, detectionsUuids),
         onSuccess: () => {
             eventEmitter.emit('UPDATE_DETECTIONS');
@@ -90,13 +89,13 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
             hide(true);
         },
         onError: (error) => {
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
                 notifications.show({
                     color: 'red',
                     title: "Une erreur est survenue lors de l'édition multiple",
-                    message: ((error.response?.data as Record<string, string>)?.detail as string) || '',
+                    message: ((error.body as Record<string, string>)?.detail as string) || '',
                 });
             }
         },

@@ -12,13 +12,12 @@ import {
     ObjectTypeCategoryObjectTypeStatus,
     objectTypeCategoryObjectTypeStatuses,
 } from '@/models/object-type-category';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { OBJECT_TYPE_CATEGROY_OBJECT_TYPE_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { ActionIcon, Autocomplete, Button, Group, Select, Table, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconCubePlus, IconTrash } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError, AxiosResponse } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/object-type-categories';
@@ -33,16 +32,14 @@ interface FormValues {
     objectTypeCategoryObjectTypes: ObjectTypeCategoryObjectTypeInput[];
 }
 
-const postForm = async (values: FormValues, uuid?: string) => {
-    let response: AxiosResponse<ObjectTypeCategory>;
-
+const postForm = (values: FormValues, uuid?: string) => {
     if (uuid) {
-        response = await api.patch(objectTypeCategoryEndpoints.detail(uuid), values);
-    } else {
-        response = await api.post(objectTypeCategoryEndpoints.create, values);
+        return api<ObjectTypeCategory>(objectTypeCategoryEndpoints.detail(uuid), {
+            method: 'PATCH',
+            body: values,
+        });
     }
-
-    return response.data;
+    return api<ObjectTypeCategory>(objectTypeCategoryEndpoints.create, { method: 'POST', body: values });
 };
 
 interface FormProps {
@@ -52,7 +49,7 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, objectTypes }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const navigate = useNavigate();
 
     const [searchObjectTypeValue, setSearchObjectTypeValue] = useState('');
@@ -65,16 +62,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, objectTypes }) => {
         },
     });
 
-    const mutation: UseMutationResult<ObjectTypeCategory, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<ObjectTypeCategory, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
             navigate(BACK_URL);
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
             }
         },
     });
@@ -216,10 +213,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, objectTypes }) => {
     );
 };
 
-const fetchObjectTypes = async () => {
-    const res = await api.get<ObjectType[]>(objectTypeEndpoints.list);
-    return res.data;
-};
+const fetchObjectTypes = () => api<ObjectType[]>(objectTypeEndpoints.list);
 
 const EMPTY_FORM_VALUES: FormValues = {
     name: '',
@@ -234,10 +228,10 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<ObjectTypeCategoryDetail>(objectTypeCategoryEndpoints.detail(uuid));
+        const category = await api<ObjectTypeCategoryDetail>(objectTypeCategoryEndpoints.detail(uuid));
         const initialValues: FormValues = {
-            ...res.data,
-            objectTypeCategoryObjectTypes: res.data.objectTypeCategoryObjectTypes.map(
+            ...category,
+            objectTypeCategoryObjectTypes: category.objectTypeCategoryObjectTypes.map(
                 ({ objectType, objectTypeCategoryObjectTypeStatus }) => ({
                     objectTypeUuid: objectType.uuid,
                     objectTypeCategoryObjectTypeStatus,

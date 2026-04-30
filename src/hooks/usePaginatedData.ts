@@ -28,26 +28,26 @@ export const usePaginatedData = <TData = unknown, TFilter = Record<string, unkno
 
     const { data, isLoading, error, refetch } = useQuery({
         queryKey: [endpoint, pagination.page, pagination.limit, filter],
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const params = {
                 page: pagination.page,
                 page_size: pagination.limit,
                 ...filter,
             };
 
-            const response = await api.get<{
+            const response = await api<{
                 results: TData[];
                 count: number;
                 next: string | null;
                 previous: string | null;
-            }>(endpoint, { params });
+            }>(endpoint, { params, signal });
 
             setPagination((prev) => ({
                 ...prev,
-                total: response.data.count,
+                total: response.count,
             }));
 
-            return response.data;
+            return response;
         },
         enabled,
     });

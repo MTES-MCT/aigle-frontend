@@ -9,8 +9,9 @@ export const useDetectionAddress = (detectionObject: DetectionObjectDetail) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const updateAddress = async (detectionObjectUuid: string, newAddress: string) => {
-        return api.patch(detectionObjectEndpoints.detail(detectionObjectUuid), {
-            address: newAddress,
+        return api(detectionObjectEndpoints.detail(detectionObjectUuid), {
+            method: 'PATCH',
+            body: { address: newAddress },
         });
     };
 

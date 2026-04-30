@@ -8,10 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import classes from './index.module.scss';
 
-const fetchImportInfos = async (): Promise<ImportsInfos> => {
-    const res = await api.get<ImportsInfos>(utilsEndpoints.importsInfos);
-    return res.data;
-};
+const fetchImportInfos = (): Promise<ImportsInfos> => api<ImportsInfos>(utilsEndpoints.importsInfos);
 
 interface ImportsElementProps {
     items: string[];
