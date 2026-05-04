@@ -13,7 +13,7 @@ const Component: React.FC<PropsWithChildren<ComponentProps>> = ({ title, actions
         <LayoutAdmin title={title}>
             <div className={classes['top-section']}>
                 <h1>{title}</h1>
-                {actions}
+                <div className={classes.actions}>{actions}</div>
             </div>
             {children}
         </LayoutAdmin>

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 
 import { tileSetEndpoints } from '@/api/endpoints';
+import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import InfoCard from '@/components/ui/InfoCard';
 import { TileSetDetail, TileSetScheme, TileSetStatus, tileSetSchemes, tileSetStatuses } from '@/models/tile-set';
+import { tileSetBulkConfig } from '@/routes/admin/tile-set/TileSetList/bulkConfig';
 import { DEFAULT_DATETIME_FORMAT, TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
 import { Button, Checkbox, Input, Stack, Table, Tooltip } from '@mantine/core';
 import { IconLink, IconMapPlus, IconSearch, IconX } from '@tabler/icons-react';
@@ -35,6 +37,7 @@ const Component: React.FC = () => {
             title="Liste des fonds de carte"
             actions={
                 <>
+                    <BulkImportExportButtons config={tileSetBulkConfig} exportParams={filter} />
                     <Button leftSection={<IconMapPlus />} component={Link} to="/admin/tile-sets/form">
                         Ajouter un fond de carte
                     </Button>

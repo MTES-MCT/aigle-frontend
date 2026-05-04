@@ -13,6 +13,7 @@ export interface ApiFetchOptions {
     headers?: Record<string, string>;
     signal?: AbortSignal;
     responseType?: ApiResponseType;
+    auth?: boolean;
 }
 
 export class ApiError<TBody = unknown> extends Error {
@@ -33,21 +34,27 @@ const buildQuery = (params: Record<string, unknown> | undefined, pathHasQuery: b
     if (!params) {
         return '';
     }
+
     const parts: string[] = [];
+
     for (const key of Object.keys(params)) {
         const value = params[key];
+
         if (value === undefined || value === null) {
             continue;
         }
+
         if (Array.isArray(value)) {
-            parts.push(`${key}=${value.join(',')}`);
+            parts.push(`${encodeURIComponent(key)}=${value.map((v) => encodeURIComponent(String(v))).join(',')}`);
         } else {
-            parts.push(`${key}=${value}`);
+            parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
         }
     }
+
     if (!parts.length) {
         return '';
     }
+
     return `${pathHasQuery ? '&' : '?'}${parts.join('&')}`;
 };
 
@@ -55,6 +62,7 @@ const serializeBody = (body: unknown, headers: Record<string, string>): BodyInit
     if (body === undefined || body === null) {
         return undefined;
     }
+
     if (
         (typeof FormData !== 'undefined' && body instanceof FormData) ||
         (typeof Blob !== 'undefined' && body instanceof Blob) ||
@@ -64,19 +72,23 @@ const serializeBody = (body: unknown, headers: Record<string, string>): BodyInit
     ) {
         return body as BodyInit;
     }
+
     if (!headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
     }
+
     return JSON.stringify(body);
 };
 
 const doFetch = async (path: string, options: ApiFetchOptions): Promise<Response> => {
-    const { method = 'GET', body, params, headers: userHeaders = {}, signal } = options;
+    const { method = 'GET', body, params, headers: userHeaders = {}, signal, auth = true } = options;
+
     const url = `${BASE_URL}${path}${buildQuery(params, path.includes('?'))}`;
 
     const headers: Record<string, string> = { ...userHeaders };
+
     const token = useAuth.getState().accessToken;
-    if (token && !headers['Authorization']) {
+    if (auth && token && !headers['Authorization']) {
         headers['Authorization'] = `JWT ${token}`;
     }
 
@@ -96,6 +108,7 @@ let refreshPromise: Promise<string> | null = null;
 
 const doRefresh = async (): Promise<string> => {
     const refreshToken = useAuth.getState().refreshToken;
+
     if (!refreshToken) {
         throw new ApiError('No refresh token available', authEndpoints.refreshToken, 401);
     }
@@ -103,14 +116,23 @@ const doRefresh = async (): Promise<string> => {
     const response = await doFetch(authEndpoints.refreshToken, {
         method: 'POST',
         body: { token: refreshToken },
+        auth: false,
     });
 
     if (!response.ok) {
         throw new ApiError('Refresh token request failed', authEndpoints.refreshToken, response.status);
     }
 
-    const data = (await response.json()) as { access: string };
-    useAuth.setState({ accessToken: data.access });
+    const data = (await response.json()) as {
+        access: string;
+        refresh?: string;
+    };
+
+    useAuth.setState({
+        accessToken: data.access,
+        refreshToken: data.refresh ?? refreshToken,
+    });
+
     return data.access;
 };
 
@@ -120,6 +142,7 @@ const runRefresh = (): Promise<string> => {
             refreshPromise = null;
         });
     }
+
     return refreshPromise;
 };
 
@@ -129,6 +152,7 @@ const fetchWithAuth = async (path: string, options: ApiFetchOptions): Promise<Re
     if (response.status === 401 && path !== authEndpoints.refreshToken) {
         try {
             const newToken = await runRefresh();
+
             response = await doFetch(path, {
                 ...options,
                 headers: {
@@ -142,6 +166,7 @@ const fetchWithAuth = async (path: string, options: ApiFetchOptions): Promise<Re
                 refreshToken: undefined,
                 userMe: undefined,
             });
+
             throw refreshError;
         }
     }
@@ -151,10 +176,12 @@ const fetchWithAuth = async (path: string, options: ApiFetchOptions): Promise<Re
 
 const parseErrorBody = async (response: Response): Promise<unknown> => {
     const contentType = response.headers.get('content-type') ?? '';
+
     try {
         if (contentType.includes('application/json')) {
             return await response.json();
         }
+
         return await response.text();
     } catch {
         return undefined;
@@ -165,14 +192,18 @@ const parseBody = async <T>(response: Response, responseType: ApiResponseType): 
     if (responseType === 'blob') {
         return (await response.blob()) as T;
     }
+
     if (responseType === 'text') {
         return (await response.text()) as T;
     }
+
     // json — tolerate empty bodies (e.g. 204 No Content)
     const text = await response.text();
+
     if (!text) {
         return undefined as T;
     }
+
     try {
         return JSON.parse(text) as T;
     } catch {
@@ -182,8 +213,10 @@ const parseBody = async <T>(response: Response, responseType: ApiResponseType): 
 
 export const apiFetchRaw = async (path: string, options: ApiFetchOptions = {}): Promise<Response> => {
     const response = await fetchWithAuth(path, options);
+
     if (!response.ok) {
         const errorBody = await parseErrorBody(response);
+
         throw new ApiError(
             `${options.method ?? 'GET'} ${path} failed with status ${response.status}`,
             path,
@@ -191,6 +224,7 @@ export const apiFetchRaw = async (path: string, options: ApiFetchOptions = {}): 
             errorBody,
         );
     }
+
     return response;
 };
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import { userGroupEndpoints } from '@/api/endpoints';
+import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import PillsDataCell from '@/components/DataCells/PillsDataCell';
 import DataTable from '@/components/DataTable';
@@ -10,6 +11,7 @@ import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { GeoZone } from '@/models/geo/geo-zone';
 import { ObjectTypeCategory } from '@/models/object-type-category';
 import { UserGroupDetail } from '@/models/user-group';
+import { userGroupBulkConfig } from '@/routes/admin/user-group/UserGroupList/bulkConfig';
 import { USER_GROUP_TYPES_NAMES_MAP } from '@/utils/constants';
 import { Button, Input, Table } from '@mantine/core';
 import { IconSearch, IconUserPlus } from '@tabler/icons-react';
@@ -33,6 +35,7 @@ const Component: React.FC = () => {
             title="Liste des groupes d'utilisateurs"
             actions={
                 <>
+                    <BulkImportExportButtons config={userGroupBulkConfig} exportParams={filter} />
                     <Button leftSection={<IconUserPlus />} component={Link} to={'/admin/user-groups/form'}>
                         Ajouter un groupe
                     </Button>
