@@ -71,6 +71,9 @@ export const customZoneEndpoints = {
     list: BASE_GEO_CUSTOM_ZONE,
     create: BASE_GEO_CUSTOM_ZONE,
     detail: (uuid: string) => `${BASE_GEO_CUSTOM_ZONE}${uuid}/`,
+    export: `${BASE_GEO_CUSTOM_ZONE}export/`,
+    bulkImportPreview: `${BASE_GEO_CUSTOM_ZONE}bulk-import-preview/`,
+    bulkImport: `${BASE_GEO_CUSTOM_ZONE}bulk-import/`,
     category: {
         list: BASE_GEO_CUSTOM_ZONE_CATEGORY,
         create: BASE_GEO_CUSTOM_ZONE_CATEGORY,

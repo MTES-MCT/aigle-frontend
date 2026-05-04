@@ -21,7 +21,7 @@ const fetchGeoCollectivities = async <T extends GeoCollectivity>(
     signal: AbortSignal,
 ): Promise<T[]> => {
     const endpoint = getGeoListEndpoint(collectivityType);
-    const res = await api.get<Paginated<T>>(endpoint, {
+    const res = await api<Paginated<T>>(endpoint, {
         params: {
             q,
             limit: GEO_COLLECTIVITIES_LIMIT,
@@ -29,7 +29,7 @@ const fetchGeoCollectivities = async <T extends GeoCollectivity>(
         },
         signal,
     });
-    return res.data.results;
+    return res.results;
 };
 
 const getGeoSelectedUuids = (

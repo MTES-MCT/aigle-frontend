@@ -1,17 +1,12 @@
 import { utilsEndpoints } from '@/api/endpoints';
-import api from '@/utils/api';
+import { apiFetchRaw } from '@/utils/api';
 import { useMutation } from '@tanstack/react-query';
 
 const downloadPriorLetter = async (detectionObjectUuid: string) => {
-    const response = await api.get<Blob>(utilsEndpoints.generatePriorLetter(detectionObjectUuid), {
-        responseType: 'blob',
-    });
+    const response = await apiFetchRaw(utilsEndpoints.generatePriorLetter(detectionObjectUuid));
+    const blob = await response.blob();
 
-    const blob = new Blob([response.data], {
-        type: response.headers['content-type'],
-    });
-
-    const contentDisposition = response.headers['content-disposition'];
+    const contentDisposition = response.headers.get('content-disposition');
     let filename = 'Courrier préalable.odt'; // fallback filename
 
     if (contentDisposition) {

@@ -4,12 +4,11 @@ import { customZoneEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { Button, ColorInput, Select, TextInput } from '@mantine/core';
 import { isNotEmpty, useForm, UseFormReturnType } from '@mantine/form';
 import { IconHexagonPlus2 } from '@tabler/icons-react';
 import { useMutation, UseMutationResult, useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
@@ -42,19 +41,16 @@ interface FormValues {
     geoCustomZoneCategoryUuid?: string;
 }
 
-const postForm = async (values: FormValues, uuid?: string) => {
+const postForm = (values: FormValues, uuid?: string) => {
     const values_ = {
         ...values,
         color: values.color || null,
     };
 
     if (!uuid) {
-        const response = await api.post(customZoneEndpoints.create, values_);
-        return response.data;
-    } else {
-        const response = await api.patch(customZoneEndpoints.detail(uuid), values_);
-        return response.data;
+        return api<GeoCustomZoneDetail>(customZoneEndpoints.create, { method: 'POST', body: values_ });
     }
+    return api<GeoCustomZoneDetail>(customZoneEndpoints.detail(uuid), { method: 'PATCH', body: values_ });
 };
 
 interface FormProps {
@@ -65,7 +61,7 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geoCustomZoneCategories }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const navigate = useNavigate();
     const { userMe } = useAuth();
 
@@ -82,18 +78,15 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         },
     });
 
-    const mutation: UseMutationResult<GeoCustomZoneDetail, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<GeoCustomZoneDetail, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
             navigate(BACK_URL);
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
-                // Fixed TypeScript error
-                if (error.response?.data && typeof error.response.data === 'object') {
-                    form.setErrors(error.response.data as Record<string, string>);
-                }
+            if (error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -220,10 +213,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
     );
 };
 
-const fetchGeoCustomZoneCategories = async () => {
-    const response = await api.get<GeoCustomZoneCategory[]>(customZoneEndpoints.category.list);
-    return response.data;
-};
+const fetchGeoCustomZoneCategories = () => api<GeoCustomZoneCategory[]>(customZoneEndpoints.category.list);
 
 const getEmptyFormValues = (userRole: UserRole): FormValues => {
     const emptyFormValues: FormValues = {
@@ -257,26 +247,26 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             return;
         }
 
-        const res = await api.get<GeoCustomZoneWithCollectivities>(customZoneEndpoints.detail(uuid), {
+        const data = await api<GeoCustomZoneWithCollectivities>(customZoneEndpoints.detail(uuid), {
             params: {
                 with_collectivities: true,
             },
         });
         const initialValues: FormValues = {
-            name: res.data.name,
-            nameShort: res.data.nameShort,
-            color: res.data.color || '',
-            geoCustomZoneStatus: res.data.geoCustomZoneStatus,
-            geoCustomZoneType: res.data.geoCustomZoneType,
-            communesUuids: res.data.communes.map((commune) => commune.uuid),
-            departmentsUuids: res.data.departments.map((department) => department.uuid),
-            regionsUuids: res.data.regions.map((region) => region.uuid),
-            geoCustomZoneCategoryUuid: res.data.geoCustomZoneCategory?.uuid,
+            name: data.name,
+            nameShort: data.nameShort,
+            color: data.color || '',
+            geoCustomZoneStatus: data.geoCustomZoneStatus,
+            geoCustomZoneType: data.geoCustomZoneType,
+            communesUuids: data.communes.map((commune) => commune.uuid),
+            departmentsUuids: data.departments.map((department) => department.uuid),
+            regionsUuids: data.regions.map((region) => region.uuid),
+            geoCustomZoneCategoryUuid: data.geoCustomZoneCategory?.uuid,
         };
         const initialGeoSelectedValues: GeoValues = {
-            region: res.data.regions.map((region) => geoZoneToGeoOption(region)),
-            department: res.data.departments.map((department) => geoZoneToGeoOption(department)),
-            commune: res.data.communes.map((commune) => geoZoneToGeoOption(commune)),
+            region: data.regions.map((region) => geoZoneToGeoOption(region)),
+            department: data.departments.map((department) => geoZoneToGeoOption(department)),
+            commune: data.communes.map((commune) => geoZoneToGeoOption(commune)),
         };
 
         return { initialValues, initialGeoSelectedValues };

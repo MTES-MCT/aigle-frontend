@@ -73,12 +73,12 @@ const fetchData = async (
         params.prescripted = objectsFilter.prescripted;
     }
 
-    const res = await api.get<ValidationStatusEvolution[]>(statisticsEndpoints.validationStatusEvolution, {
+    const data = await api<ValidationStatusEvolution[]>(statisticsEndpoints.validationStatusEvolution, {
         params,
         signal,
     });
 
-    return formatData(res.data, tileSetsUuids, objectsFilter);
+    return formatData(data, tileSetsUuids, objectsFilter);
 };
 interface ComponentProps {
     objectsFilter: ObjectsFilter;

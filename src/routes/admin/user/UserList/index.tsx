@@ -4,11 +4,13 @@ import { usersEndpoints } from '@/api/endpoints';
 import PillsDataCell from '@/components/DataCells/PillsDataCell';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
+import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import UserGroupRightIcon from '@/components/icons/UserGroupRightIcon';
 import DateInfo from '@/components/ui/DateInfo';
 import { Uuided } from '@/models/data';
 import { User, UserRole, UserUserGroup, userRoles } from '@/models/user';
+import { userBulkConfig } from '@/routes/admin/user/UserList/bulkConfig';
 import { useAuth } from '@/store/slices/auth';
 import { ROLES_NAMES_MAP, USER_GROUP_RIGHTS_ORDERED } from '@/utils/constants';
 import { Button, Checkbox, Input, Stack, Table } from '@mantine/core';
@@ -40,6 +42,7 @@ const Component: React.FC = () => {
             title="Liste des utilisateurs"
             actions={
                 <>
+                    <BulkImportExportButtons config={userBulkConfig} exportParams={filter} />
                     <Button leftSection={<IconUserPlus />} component={Link} to={'/admin/users/form'}>
                         Ajouter un utilisateur
                     </Button>

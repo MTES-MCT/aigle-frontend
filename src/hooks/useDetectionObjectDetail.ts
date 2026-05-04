@@ -18,10 +18,11 @@ export const useDetectionObjectDetail = (
     const { eventEmitter, setIsDetailFetching } = useMap();
     const { onSuccess, jumpToDetection = true } = options;
 
-    const fetchDetectionObject = useCallback(async () => {
-        const res = await api.get<DetectionObjectDetail>(detectionObjectEndpoints.detail(detectionObjectUuid));
-        return res.data;
-    }, [detectionObjectUuid]);
+    const fetchDetectionObject = useCallback(
+        (signal?: AbortSignal) =>
+            api<DetectionObjectDetail>(detectionObjectEndpoints.detail(detectionObjectUuid), { signal }),
+        [detectionObjectUuid],
+    );
 
     const {
         data: detectionObject,
@@ -32,8 +33,8 @@ export const useDetectionObjectDetail = (
         error,
     } = useQuery({
         queryKey: [detectionObjectEndpoints.detail(detectionObjectUuid)],
-        queryFn: async () => {
-            const detectionObject = await fetchDetectionObject();
+        queryFn: async ({ signal }) => {
+            const detectionObject = await fetchDetectionObject(signal);
 
             if (jumpToDetection) {
                 eventEmitter.emit('JUMP_TO', getCoord(centroid(detectionObject.detections[0].geometry)));

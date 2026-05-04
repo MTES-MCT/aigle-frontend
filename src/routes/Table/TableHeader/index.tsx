@@ -41,7 +41,7 @@ const fetchData = async (
     regionsUuids: string[],
     otherObjectTypesUuids: Set<string>,
 ): Promise<ParcelOverviewWithPercentage> => {
-    const res = await api.get<ParcelOverview>(parcelEndpoints.overview, {
+    const data = await api<ParcelOverview>(parcelEndpoints.overview, {
         signal,
         params: {
             ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
@@ -52,47 +52,47 @@ const fetchData = async (
     });
 
     // if there is not `notVerified` field, it means we are dealing with control statuses instead of detection statuses
-    if (!res.data.notVerified) {
+    if (!data.notVerified) {
         return {
             items: [
                 {
-                    count: res.data.controlled,
-                    percentage: calculatePercentage(res.data.controlled, res.data.total),
+                    count: data.controlled,
+                    percentage: calculatePercentage(data.controlled, data.total),
                     label: 'Contrôlées',
                     color: GREEN,
                     tooltip:
                         'Statut de contrôle modifié par un agent (contrôlé terrain, courrier préalable envoyé, PV dressé, astreinte administrative, rapport de constatations rédigé, remis en état).',
                 },
                 {
-                    count: res.data.notControlled,
-                    percentage: calculatePercentage(res.data.notControlled, res.data.total),
+                    count: data.notControlled,
+                    percentage: calculatePercentage(data.notControlled, data.total),
                     label: 'Non-contrôlées',
                     color: RED,
                     tooltip: 'Statut de contrôle encore "Non contrôlé", sans action d\'un agent.',
                 },
             ],
-            total: res.data.total,
+            total: data.total,
         };
     }
 
     return {
         items: [
             {
-                count: res.data.verified,
-                percentage: calculatePercentage(res.data.verified, res.data.total),
+                count: data.verified,
+                percentage: calculatePercentage(data.verified, data.total),
                 label: 'Vérifiées',
                 color: GREEN,
                 tooltip: 'Statut de validation modifié par un agent (suspect, légal ou invalidé).',
             },
             {
-                count: res.data.notVerified,
-                percentage: calculatePercentage(res.data.notVerified, res.data.total),
+                count: data.notVerified,
+                percentage: calculatePercentage(data.notVerified, data.total),
                 label: 'Non-vérifiées',
                 color: RED,
                 tooltip: 'Statut de validation encore "Non vérifié", sans action d\'un agent.',
             },
         ],
-        total: res.data.total,
+        total: data.total,
     };
 };
 

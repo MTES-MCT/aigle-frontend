@@ -10,14 +10,13 @@ import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ObjectTypeCategory } from '@/models/object-type-category';
 import { UserGroupDetail, UserGroupType, userGroupTypes } from '@/models/user-group';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { USER_GROUP_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 import { Button, MultiSelect, Select, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconUserPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError, AxiosResponse } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/user-groups';
@@ -32,16 +31,11 @@ interface FormValues {
     geoCustomZonesUuids: string[];
 }
 
-const postForm = async (values: FormValues, uuid?: string) => {
-    let response: AxiosResponse<ObjectType>;
-
+const postForm = (values: FormValues, uuid?: string) => {
     if (uuid) {
-        response = await api.patch(userGroupEndpoints.detail(uuid), values);
-    } else {
-        response = await api.post(userGroupEndpoints.create, values);
+        return api<ObjectType>(userGroupEndpoints.detail(uuid), { method: 'PATCH', body: values });
     }
-
-    return response.data;
+    return api<ObjectType>(userGroupEndpoints.create, { method: 'POST', body: values });
 };
 
 interface FormProps {
@@ -53,7 +47,7 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, categories, geoCustomZones }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const navigate = useNavigate();
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -63,18 +57,15 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         },
     });
 
-    const mutation: UseMutationResult<ObjectType, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<ObjectType, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
             navigate(BACK_URL);
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
-                // Fixed TypeScript error
-                if (error.response?.data && typeof error.response.data === 'object') {
-                    form.setErrors(error.response.data as Record<string, string>);
-                }
+            if (error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -189,21 +180,21 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<UserGroupDetail>(userGroupEndpoints.detail(uuid));
+        const userGroup = await api<UserGroupDetail>(userGroupEndpoints.detail(uuid));
         const initialValues = {
-            ...res.data,
-            communesUuids: res.data.communes.map((commune) => commune.uuid),
-            departmentsUuids: res.data.departments.map((department) => department.uuid),
-            regionsUuids: res.data.regions.map((region) => region.uuid),
-            objectTypeCategoriesUuids: res.data.objectTypeCategories.map(
+            ...userGroup,
+            communesUuids: userGroup.communes.map((commune) => commune.uuid),
+            departmentsUuids: userGroup.departments.map((department) => department.uuid),
+            regionsUuids: userGroup.regions.map((region) => region.uuid),
+            objectTypeCategoriesUuids: userGroup.objectTypeCategories.map(
                 (objectTypeCategory) => objectTypeCategory.uuid,
             ),
-            geoCustomZonesUuids: res.data.geoCustomZones.map((geoCustomZone) => geoCustomZone.uuid),
+            geoCustomZonesUuids: userGroup.geoCustomZones.map((geoCustomZone) => geoCustomZone.uuid),
         };
         const initialGeoSelectedValues: GeoValues = {
-            region: res.data.regions.map((region) => geoZoneToGeoOption(region)),
-            department: res.data.departments.map((department) => geoZoneToGeoOption(department)),
-            commune: res.data.communes.map((commune) => geoZoneToGeoOption(commune)),
+            region: userGroup.regions.map((region) => geoZoneToGeoOption(region)),
+            department: userGroup.departments.map((department) => geoZoneToGeoOption(department)),
+            commune: userGroup.communes.map((commune) => geoZoneToGeoOption(commune)),
         };
 
         return { initialValues, initialGeoSelectedValues };
@@ -217,20 +208,14 @@ const ComponentInner: React.FC = () => {
 
     // additional data
 
-    const fetchObjectTypeCategories = async () => {
-        const res = await api.get<ObjectTypeCategory[]>(objectTypeCategoryEndpoints.list);
-        return res.data;
-    };
+    const fetchObjectTypeCategories = () => api<ObjectTypeCategory[]>(objectTypeCategoryEndpoints.list);
 
     const { data: categories } = useQuery({
         queryKey: [objectTypeCategoryEndpoints.list],
         queryFn: () => fetchObjectTypeCategories(),
     });
 
-    const fetchGeoCustomZones = async () => {
-        const res = await api.get<GeoCustomZone[]>(customZoneEndpoints.list);
-        return res.data;
-    };
+    const fetchGeoCustomZones = () => api<GeoCustomZone[]>(customZoneEndpoints.list);
 
     const { data: geoCustomZones } = useQuery({
         queryKey: [customZoneEndpoints.list],

@@ -57,10 +57,7 @@ const Component: React.FC = () => {
     const navigate = useNavigate();
     const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
 
-    const fetchObjectTypes = async () => {
-        const res = await api.get<ObjectType[]>(objectTypeEndpoints.list);
-        return res.data;
-    };
+    const fetchObjectTypes = () => api<ObjectType[]>(objectTypeEndpoints.list);
 
     const { data: objectTypes } = useQuery({
         queryKey: [objectTypeEndpoints.list],

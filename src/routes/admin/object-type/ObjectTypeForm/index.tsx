@@ -5,12 +5,11 @@ import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import { ObjectType, ObjectTypeDetail } from '@/models/object-type';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { Button, ColorInput, NumberInput, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconCubePlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError, AxiosResponse } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/object-types';
@@ -21,20 +20,16 @@ interface FormValues {
     prescriptionDurationYears: number | null;
 }
 
-const postForm = async (values: FormValues, uuid?: string) => {
-    let response: AxiosResponse<ObjectType>;
+const postForm = (values: FormValues, uuid?: string) => {
     const values_ = {
         ...values,
         prescriptionDurationYears: values.prescriptionDurationYears ? Number(values.prescriptionDurationYears) : null,
     };
 
     if (uuid) {
-        response = await api.patch(objectTypeEndpoints.detail(uuid), values_);
-    } else {
-        response = await api.post(objectTypeEndpoints.create, values_);
+        return api<ObjectType>(objectTypeEndpoints.detail(uuid), { method: 'PATCH', body: values_ });
     }
-
-    return response.data;
+    return api<ObjectType>(objectTypeEndpoints.create, { method: 'POST', body: values_ });
 };
 
 interface FormProps {
@@ -43,7 +38,7 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const navigate = useNavigate();
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -55,18 +50,15 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
         },
     });
 
-    const mutation: UseMutationResult<ObjectType, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<ObjectType, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
             navigate(BACK_URL);
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
-                // Fixed TypeScript error
-                if (error.response?.data && typeof error.response.data === 'object') {
-                    form.setErrors(error.response.data as Record<string, string>);
-                }
+            if (error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -145,14 +137,11 @@ const EMPTY_FORM_VALUES: FormValues = {
 const ComponentInner: React.FC = () => {
     const { uuid } = useParams();
 
-    const fetchData = async () => {
+    const fetchData = () => {
         if (!uuid) {
-            return;
+            return Promise.resolve(undefined);
         }
-
-        const res = await api.get<ObjectTypeDetail>(objectTypeEndpoints.detail(uuid));
-
-        return res.data;
+        return api<ObjectTypeDetail>(objectTypeEndpoints.detail(uuid));
     };
 
     const {

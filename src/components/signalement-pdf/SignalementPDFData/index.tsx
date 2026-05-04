@@ -19,15 +19,10 @@ import { format } from 'date-fns';
 import { Polygon } from 'geojson';
 import classes from './index.module.scss';
 
-const fetchParcelDetail = async (uuid: string, detectionObjectUuid?: string) => {
-    const res = await api.get<ParcelDetail>(parcelEndpoints.downloadInfos(uuid), {
-        params: {
-            detectionObjectUuid,
-        },
+const fetchParcelDetail = (uuid: string, detectionObjectUuid?: string) =>
+    api<ParcelDetail>(parcelEndpoints.downloadInfos(uuid), {
+        params: { detectionObjectUuid },
     });
-
-    return res.data;
-};
 
 const getSignalementPDFDocumentName = (parcel?: ParcelDetail) => {
     let name = 'signalement ';

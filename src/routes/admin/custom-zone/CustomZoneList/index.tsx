@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 
+import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import { Section } from '@/models/ui/section';
 import CustomZoneCategoryDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneCategoryDataTable';
 import CustomZoneDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneDataTable';
+import { customZoneBulkConfig } from '@/routes/admin/custom-zone/CustomZoneList/bulkConfig';
 import { Button } from '@mantine/core';
 import { IconHexagonPlus2, IconHexagonalPrismPlus } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
+import classes from './index.module.scss';
 
 const SECTIONS_DISPLAYED: Section[] = [
     {
@@ -28,7 +31,10 @@ const Component: React.FC = () => {
         <LayoutAdminBase
             title={sectionSelected.title}
             actions={
-                <div>
+                <div className={classes.actions}>
+                    {sectionSelected.id === 'CUSTOM_ZONES' ? (
+                        <BulkImportExportButtons config={customZoneBulkConfig} />
+                    ) : null}
                     <Button
                         leftSection={<IconHexagonalPrismPlus />}
                         variant="outline"

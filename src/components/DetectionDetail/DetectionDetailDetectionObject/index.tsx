@@ -3,13 +3,12 @@ import SelectItem from '@/components/ui/SelectItem';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { ObjectType } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { Button, Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconMessage } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import React, { useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
 
@@ -19,7 +18,7 @@ interface FormValues {
 }
 
 const postForm = async (detectionUuid: string, values: FormValues) => {
-    await api.patch(detectionObjectEndpoints.detail(detectionUuid), values);
+    await api(detectionObjectEndpoints.detail(detectionUuid), { method: 'PATCH', body: values });
 };
 
 interface ComponentProps {
@@ -64,7 +63,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
 
     const queryClient = useQueryClient();
 
-    const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(detectionObject.uuid, values),
         onSuccess: () => {
             queryClient.setQueryData(
@@ -91,9 +90,9 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
             });
         },
         onError: (error) => {
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
                 notifications.show({
                     color: 'red',
                     title: 'Erreur',

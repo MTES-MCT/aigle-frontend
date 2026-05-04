@@ -4,12 +4,11 @@ import { customZoneEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { Button, ColorInput, TextInput } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconHexagonalPrismPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
@@ -22,14 +21,17 @@ interface FormValues {
     color: string;
 }
 
-const postForm = async (values: FormValues, uuid?: string) => {
+const postForm = (values: FormValues, uuid?: string) => {
     if (!uuid) {
-        const response = await api.post(customZoneEndpoints.category.create, values);
-        return response.data;
-    } else {
-        const response = await api.patch(customZoneEndpoints.category.detail(uuid), values);
-        return response.data;
+        return api<GeoCustomZoneCategory>(customZoneEndpoints.category.create, {
+            method: 'POST',
+            body: values,
+        });
     }
+    return api<GeoCustomZoneCategory>(customZoneEndpoints.category.detail(uuid), {
+        method: 'PATCH',
+        body: values,
+    });
 };
 
 interface FormProps {
@@ -38,22 +40,22 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const navigate = useNavigate();
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
     });
 
-    const mutation: UseMutationResult<void, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<GeoCustomZoneCategory, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
             navigate(BACK_URL);
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
             }
         },
     });
@@ -135,11 +137,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             return;
         }
 
-        const res = await api.get<GeoCustomZoneCategory>(customZoneEndpoints.category.detail(uuid));
+        const data = await api<GeoCustomZoneCategory>(customZoneEndpoints.category.detail(uuid));
         const initialValues: FormValues = {
-            name: res.data.name,
-            nameShort: res.data.nameShort,
-            color: res.data.color,
+            name: data.name,
+            nameShort: data.nameShort,
+            color: data.color,
         };
 
         return initialValues;

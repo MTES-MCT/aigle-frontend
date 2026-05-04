@@ -10,7 +10,7 @@ import { SelectOption } from '@/models/ui/select-option';
 import { User, UserRole, UserUserGroupInput, userGroupRights, userRoles } from '@/models/user';
 import { UserGroup, UserGroupDetail } from '@/models/user-group';
 import { useAuth } from '@/store/slices/auth';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { PASSWORD_MIN_LENGTH, ROLES_NAMES_MAP, USER_GROUP_RIGHTS_NAMES_MAP } from '@/utils/constants';
 import {
     ActionIcon,
@@ -26,7 +26,6 @@ import {
 import { UseFormReturnType, isEmail, isNotEmpty, useForm } from '@mantine/form';
 import { IconTrash, IconUserPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError, AxiosResponse } from 'axios';
 import omit from 'lodash/omit';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
@@ -46,24 +45,12 @@ interface FormValues {
     userUserGroups: UserUserGroupInput[];
 }
 
-const postForm = async (values: FormValues, uuid?: string) => {
-    let response: AxiosResponse<ObjectType>;
-
+const postForm = (values: FormValues, uuid?: string) => {
     if (uuid) {
-        let values_: object;
-
-        if (values.password.length === 0) {
-            values_ = omit(values, 'password');
-        } else {
-            values_ = values;
-        }
-
-        response = await api.patch(usersEndpoints.detail(uuid), values_);
-    } else {
-        response = await api.post(usersEndpoints.create, values);
+        const values_ = values.password.length === 0 ? omit(values, 'password') : values;
+        return api<ObjectType>(usersEndpoints.detail(uuid), { method: 'PATCH', body: values_ });
     }
-
-    return response.data;
+    return api<ObjectType>(usersEndpoints.create, { method: 'POST', body: values });
 };
 
 interface FormProps {
@@ -73,7 +60,7 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const navigate = useNavigate();
     const { userMe } = useAuth();
 
@@ -108,15 +95,15 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
         },
     });
 
-    const mutation: UseMutationResult<ObjectType, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<ObjectType, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
             navigate(BACK_URL);
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data && typeof error.response.data === 'object') {
-                form.setErrors(error.response.data as Record<string, string>);
+            if (error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -298,17 +285,15 @@ const ComponentInner: React.FC = () => {
             return;
         }
 
-        const res = await api.get<User>(usersEndpoints.detail(uuid));
-        const initialValues = {
-            ...res.data,
+        const user = await api<User>(usersEndpoints.detail(uuid));
+        return {
+            ...user,
             password: '',
-            userUserGroups: res.data.userUserGroups.map((userUserGroup) => ({
+            userUserGroups: user.userUserGroups.map((userUserGroup) => ({
                 userGroupUuid: userUserGroup.userGroup.uuid,
                 userGroupRights: userUserGroup.userGroupRights,
             })),
         };
-
-        return initialValues;
     };
 
     const {
@@ -321,10 +306,7 @@ const ComponentInner: React.FC = () => {
         queryFn: () => fetchData(),
     });
 
-    const fetchUserGroups = async () => {
-        const res = await api.get<UserGroupDetail[]>(userGroupEndpoints.list);
-        return res.data;
-    };
+    const fetchUserGroups = () => api<UserGroupDetail[]>(userGroupEndpoints.list);
 
     const { data: userGroups, isLoading: userGroupsIsLoading } = useQuery({
         queryKey: [userGroupEndpoints.list],

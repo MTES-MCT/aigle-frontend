@@ -1,11 +1,10 @@
 import { runCommandEndpoints } from '@/api/endpoints';
 import ErrorCard from '@/components/ui/ErrorCard';
 import { CommandParameter, CommandWithParameters } from '@/models/command';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { Button, Checkbox, Modal, NumberInput, SegmentedControl, Textarea, TextInput } from '@mantine/core';
 import { IconPlayerPlay } from '@tabler/icons-react';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import classes from './index.module.scss';
 
@@ -60,9 +59,12 @@ const CommandParam = ({ parameter, value, setValue }: CommandParamProps) => {
 type ParamsValues = Record<string, CommandParameterType>;
 
 const postForm = async (command: string, values: ParamsValues) => {
-    await api.post(runCommandEndpoints.run, {
-        command,
-        args: values,
+    await api(runCommandEndpoints.run, {
+        method: 'POST',
+        body: {
+            command,
+            args: values,
+        },
     });
 };
 
@@ -137,7 +139,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, hide, command }: Compon
         });
     }, [paramsValues, command, formMode, isValidJson]);
 
-    const mutation: UseMutationResult<void, AxiosError, ParamsValues> = useMutation({
+    const mutation: UseMutationResult<void, ApiError, ParamsValues> = useMutation({
         mutationFn: (values: ParamsValues) => postForm(String(command?.name), values),
     });
 

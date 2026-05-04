@@ -1,6 +1,5 @@
 import { Button, PasswordInput, TextInput } from '@mantine/core';
 import { isEmail, useForm, UseFormReturnType } from '@mantine/form';
-import { AxiosError } from 'axios';
 import React, { useState } from 'react';
 
 import { authEndpoints } from '@/api/endpoints';
@@ -8,7 +7,7 @@ import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
 import WarningCard from '@/components/ui/WarningCard';
 import { useAuth } from '@/store/slices/auth';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { ENVIRONMENT } from '@/utils/constants';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -28,14 +27,11 @@ interface ErrorBody {
     detail?: string;
 }
 
-const login = async (user: FormValues) => {
-    const response = await api.post<JwtAuthResponse>(authEndpoints.login, user);
-    return response.data;
-};
+const login = (user: FormValues) => api<JwtAuthResponse>(authEndpoints.login, { method: 'POST', body: user });
 
 const Component: React.FC = () => {
     const { setAccessToken, setRefreshToken } = useAuth();
-    const [error, setError] = useState<AxiosError<ErrorBody>>();
+    const [error, setError] = useState<ApiError<ErrorBody>>();
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
@@ -48,7 +44,7 @@ const Component: React.FC = () => {
         },
     });
 
-    const mutation: UseMutationResult<JwtAuthResponse, AxiosError<ErrorBody>, FormValues> = useMutation({
+    const mutation: UseMutationResult<JwtAuthResponse, ApiError<ErrorBody>, FormValues> = useMutation({
         mutationFn: login,
         onSuccess: (data) => {
             setAccessToken(data.access);
@@ -56,8 +52,8 @@ const Component: React.FC = () => {
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data && typeof error.response.data === 'object') {
-                form.setErrors(error.response.data as Record<string, string>);
+            if (error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -83,7 +79,7 @@ const Component: React.FC = () => {
             <form className={classes.form} onSubmit={form.onSubmit(handleSubmit)}>
                 {error ? (
                     <ErrorCard className={classes['error-card']}>
-                        {error.response?.data?.detail ? error.response.data.detail : 'Identifiants invalides'}
+                        {error.body?.detail ? error.body.detail : 'Identifiants invalides'}
                     </ErrorCard>
                 ) : null}
                 <TextInput

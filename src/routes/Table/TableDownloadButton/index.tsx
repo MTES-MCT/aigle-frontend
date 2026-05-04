@@ -3,11 +3,10 @@ import React from 'react';
 import { DownloadOutputFormat, detectionEndpoints } from '@/api/endpoints';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { Button } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { format } from 'date-fns';
 
 const getFileName = (outputFormat: DownloadOutputFormat) =>
@@ -25,7 +24,7 @@ const download = async (
         throw new Error('No objects filter provided');
     }
 
-    const res = await api.get(detectionEndpoints.download(outputFormat), {
+    return api<Blob>(detectionEndpoints.download(outputFormat), {
         params: {
             ...objectsFilter,
             communesUuids: communesUuids.join(','),
@@ -39,7 +38,6 @@ const download = async (
         },
         responseType: 'blob',
     });
-    return res.data;
 };
 
 interface ComponentProps {
@@ -56,7 +54,7 @@ const Component: React.FC<ComponentProps> = ({
 }: ComponentProps) => {
     const { objectsFilter } = useObjectsFilter();
 
-    const mutation: UseMutationResult<void, AxiosError, DownloadOutputFormat> = useMutation({
+    const mutation: UseMutationResult<void, ApiError, DownloadOutputFormat> = useMutation({
         mutationFn: (outputFormat: DownloadOutputFormat) =>
             download(outputFormat, communesUuids, departmentsUuids, regionsUuids, objectsFilter, ordering),
         onSuccess: (data, outputFormat) => {

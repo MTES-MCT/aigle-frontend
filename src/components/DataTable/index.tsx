@@ -87,7 +87,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
 
     const fetchData = async (signal: AbortSignal, pagination: PaginationOffsetLimit) => {
         if (paginated) {
-            const res = await api.get<Paginated<T_DATA>>(endpoint, {
+            const res = await api<Paginated<T_DATA>>(endpoint, {
                 params: {
                     ...pagination,
                     ...filter,
@@ -96,17 +96,16 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
             });
             setPagination((pagination) => ({
                 ...pagination,
-                total: res.data.count,
+                total: res.count,
             }));
-            return res.data.results;
+            return res.results;
         } else {
-            const res = await api.get<T_DATA[]>(endpoint, {
+            return api<T_DATA[]>(endpoint, {
                 params: {
                     ...filter,
                 },
                 signal,
             });
-            return res.data;
         }
     };
 

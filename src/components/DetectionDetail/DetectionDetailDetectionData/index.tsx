@@ -17,7 +17,7 @@ import {
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import {
     DEFAULT_DATE_FORMAT,
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
@@ -29,7 +29,6 @@ import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
 import { bbox } from '@turf/turf';
-import { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { format, parse } from 'date-fns';
 import { Polygon } from 'geojson';
@@ -78,8 +77,10 @@ const postForm = async (
     }
 
     if (uuid) {
-        const response = await api.patch<DetectionData>(detectionDataEndpoints.detail(uuid), values_);
-        resValue = response.data;
+        resValue = await api<DetectionData>(detectionDataEndpoints.detail(uuid), {
+            method: 'PATCH',
+            body: values_,
+        });
     } else {
         const body = {
             detectionObjectUuid,
@@ -87,8 +88,8 @@ const postForm = async (
             geometry,
             detectionData: values_,
         };
-        const response = await api.post<DetectionDetail>(detectionEndpoints.create, body);
-        resValue = response.data.detectionData;
+        const response = await api<DetectionDetail>(detectionEndpoints.create, { method: 'POST', body });
+        resValue = response.detectionData;
     }
 
     return {
@@ -117,7 +118,7 @@ const Form: React.FC<FormProps> = ({
     initialValues,
     disabled,
 }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const { eventEmitter } = useMap();
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -136,7 +137,7 @@ const Form: React.FC<FormProps> = ({
         initialValues.legitimateDate,
     ]);
 
-    const mutation: UseMutationResult<FormValues, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<FormValues, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, geometry, tileSetUuid, detectionObjectUuid, uuid),
         onSuccess: () => {
             eventEmitter.emit('UPDATE_DETECTIONS');
@@ -145,9 +146,9 @@ const Form: React.FC<FormProps> = ({
         onError: (error) => {
             console.error(error);
             setError(error);
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
             }
         },
     });

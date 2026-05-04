@@ -7,13 +7,12 @@ import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import { CollectivityType, GeoCollectivity, GeoCollectivityDetail, collectivityTypes } from '@/models/geo/_common';
 import { MapTileSetLayer } from '@/models/map-layer';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { COLLECTIVITY_TYPES_NAMES_MAP, TILES_URL_FALLBACK } from '@/utils/constants';
 import { Button, Card, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconWorldPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { formatISO } from 'date-fns';
 import { Geometry } from 'geojson';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -74,13 +73,11 @@ interface FormValues {
     code: string;
 }
 
-const postForm = async (values: FormValues, collectivityType: CollectivityType, uuid: string) => {
-    const values_ = {
-        name: values.name,
-    };
-    const response = await api.patch(getGeoDetailEndpoint(collectivityType, uuid), values_);
-    return response.data;
-};
+const postForm = (values: FormValues, collectivityType: CollectivityType, uuid: string) =>
+    api<GeoCollectivity>(getGeoDetailEndpoint(collectivityType, uuid), {
+        method: 'PATCH',
+        body: { name: values.name },
+    });
 
 interface FormProps {
     uuid: string;
@@ -91,7 +88,7 @@ interface FormProps {
 }
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geometry, backUrl }) => {
-    const [error, setError] = useState<AxiosError>();
+    const [error, setError] = useState<ApiError>();
     const [mapPreviewShowed, setMapPreviewShowed] = useState(false);
     const navigate = useNavigate();
 
@@ -103,16 +100,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geom
         },
     });
 
-    const mutation: UseMutationResult<GeoCollectivity, AxiosError, FormValues> = useMutation({
+    const mutation: UseMutationResult<GeoCollectivity, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, collectivityType, uuid),
         onSuccess: () => {
             navigate(backUrl);
         },
         onError: (error) => {
             setError(error);
-            if (error.response?.data) {
+            if (error.body) {
                 // @ts-expect-error types do not match
-                form.setErrors(error.response?.data);
+                form.setErrors(error.body);
             }
         },
     });
@@ -186,11 +183,7 @@ interface ComponentInnerProps {
 }
 
 const ComponentInner: React.FC<ComponentInnerProps> = ({ collectivityType, uuid, backUrl }) => {
-    const fetchData = async () => {
-        const res = await api.get<GeoCollectivityDetail>(getGeoDetailEndpoint(collectivityType, uuid));
-
-        return res.data;
-    };
+    const fetchData = () => api<GeoCollectivityDetail>(getGeoDetailEndpoint(collectivityType, uuid));
 
     const {
         isLoading,

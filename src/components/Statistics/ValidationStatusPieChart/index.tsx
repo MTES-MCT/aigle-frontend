@@ -47,12 +47,12 @@ const fetchData = async (
         params.prescripted = objectsFilter.prescripted;
     }
 
-    const res = await api.get<ValidationStatusGlobal[]>(statisticsEndpoints.validationStatusGlobal, {
+    const data = await api<ValidationStatusGlobal[]>(statisticsEndpoints.validationStatusGlobal, {
         params,
         signal,
     });
 
-    return formatData(res.data);
+    return formatData(data);
 };
 
 const Legend = () => {

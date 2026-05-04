@@ -24,6 +24,9 @@ export const tileSetEndpoints = {
     bulkCreate: `${BASE_TILE_SET}bulk-create/`,
     detail: (uuid: string) => `${BASE_TILE_SET}${uuid}/`,
     lastFromCoordinates: `${BASE_TILE_SET}last-from-coordinates/`,
+    export: `${BASE_TILE_SET}export/`,
+    bulkImportPreview: `${BASE_TILE_SET}bulk-import-preview/`,
+    bulkImport: `${BASE_TILE_SET}bulk-import/`,
 };
 
 export const runCommandEndpoints = {
