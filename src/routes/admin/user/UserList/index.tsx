@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { usersEndpoints } from '@/api/endpoints';
+import { userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import PillsDataCell from '@/components/DataCells/PillsDataCell';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
@@ -10,22 +10,27 @@ import UserGroupRightIcon from '@/components/icons/UserGroupRightIcon';
 import DateInfo from '@/components/ui/DateInfo';
 import { Uuided } from '@/models/data';
 import { User, UserRole, UserUserGroup, userRoles } from '@/models/user';
+import { UserGroup } from '@/models/user-group';
 import { userBulkConfig } from '@/routes/admin/user/UserList/bulkConfig';
 import { useAuth } from '@/store/slices/auth';
+import api from '@/utils/api';
 import { ROLES_NAMES_MAP, USER_GROUP_RIGHTS_ORDERED } from '@/utils/constants';
-import { Button, Checkbox, Input, Stack, Table } from '@mantine/core';
+import { Button, Checkbox, Input, MultiSelect, Stack, Table } from '@mantine/core';
 import { IconSearch, IconUserPlus } from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface DataFilter {
     email: string;
     roles: UserRole[];
+    user_group_uuids: string[];
 }
 
 const DATA_FILTER_INITIAL_VALUE: DataFilter = {
     email: '',
     roles: [...userRoles].sort(),
+    user_group_uuids: [],
 };
 
 interface UuidedUserUserGroup extends Uuided {
@@ -36,6 +41,11 @@ const Component: React.FC = () => {
     const { userMe } = useAuth();
     const navigate = useNavigate();
     const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+
+    const { data: userGroups } = useQuery({
+        queryKey: [userGroupEndpoints.list],
+        queryFn: () => api<UserGroup[]>(userGroupEndpoints.list),
+    });
 
     return (
         <LayoutAdminBase
@@ -83,6 +93,25 @@ const Component: React.FC = () => {
                                 ))}
                             </Stack>
                         </Checkbox.Group>
+
+                        <MultiSelect
+                            label="Groupes"
+                            placeholder="Filtrer par groupe"
+                            data={(userGroups ?? []).map((ug) => ({
+                                value: ug.uuid,
+                                label: ug.name,
+                            }))}
+                            value={filter.user_group_uuids}
+                            onChange={(user_group_uuids) => {
+                                setFilter((filter) => ({
+                                    ...filter,
+                                    user_group_uuids,
+                                }));
+                            }}
+                            searchable
+                            clearable
+                            hidePickedOptions
+                        />
                     </SoloAccordion>
                 }
                 tableHeader={[
