@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { tileSetEndpoints } from '@/api/endpoints';
 import BulkImportExportButtons from '@/components/admin/BulkImportExport';
@@ -7,6 +7,7 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import InfoCard from '@/components/ui/InfoCard';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { TileSetDetail, TileSetScheme, TileSetStatus, tileSetSchemes, tileSetStatuses } from '@/models/tile-set';
 import { tileSetBulkConfig } from '@/routes/admin/tile-set/TileSetList/bulkConfig';
 import { DEFAULT_DATETIME_FORMAT, TILE_SET_STATUSES_NAMES_MAP, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
@@ -30,7 +31,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 
 const Component: React.FC = () => {
     const navigate = useNavigate();
-    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+    const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     return (
         <LayoutAdminBase
@@ -38,7 +39,11 @@ const Component: React.FC = () => {
             actions={
                 <>
                     <BulkImportExportButtons config={tileSetBulkConfig} exportParams={filter} />
-                    <Button leftSection={<IconMapPlus />} component={Link} to="/admin/tile-sets/form">
+                    <Button
+                        leftSection={<IconMapPlus />}
+                        component={Link}
+                        to={`/admin/tile-sets/form${window.location.search}`}
+                    >
                         Ajouter un fond de carte
                     </Button>
                 </>
@@ -163,7 +168,7 @@ const Component: React.FC = () => {
                         }
                     },
                 ]}
-                onItemClick={({ uuid }) => navigate(`/admin/tile-sets/form/${uuid}`)}
+                onItemClick={({ uuid }) => navigate(`/admin/tile-sets/form/${uuid}${window.location.search}`)}
             />
         </LayoutAdminBase>
     );

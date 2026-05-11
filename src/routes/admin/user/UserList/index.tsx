@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import PillsDataCell from '@/components/DataCells/PillsDataCell';
@@ -8,6 +8,7 @@ import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import UserGroupRightIcon from '@/components/icons/UserGroupRightIcon';
 import DateInfo from '@/components/ui/DateInfo';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { Uuided } from '@/models/data';
 import { User, UserRole, UserUserGroup, userRoles } from '@/models/user';
 import { UserGroup } from '@/models/user-group';
@@ -40,7 +41,7 @@ interface UuidedUserUserGroup extends Uuided {
 const Component: React.FC = () => {
     const { userMe } = useAuth();
     const navigate = useNavigate();
-    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+    const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     const { data: userGroups } = useQuery({
         queryKey: [userGroupEndpoints.list],
@@ -53,7 +54,11 @@ const Component: React.FC = () => {
             actions={
                 <>
                     <BulkImportExportButtons config={userBulkConfig} exportParams={filter} />
-                    <Button leftSection={<IconUserPlus />} component={Link} to={'/admin/users/form'}>
+                    <Button
+                        leftSection={<IconUserPlus />}
+                        component={Link}
+                        to={`/admin/users/form${window.location.search}`}
+                    >
                         Ajouter un utilisateur
                     </Button>
                 </>
@@ -146,7 +151,7 @@ const Component: React.FC = () => {
                         />
                     ),
                 ]}
-                onItemClick={({ uuid }) => navigate(`/admin/users/form/${uuid}`)}
+                onItemClick={({ uuid }) => navigate(`/admin/users/form/${uuid}${window.location.search}`)}
             />
         </LayoutAdminBase>
     );

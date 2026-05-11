@@ -47,7 +47,12 @@ interface AvatarState {
     color?: string;
 }
 
-const getSearchParams = () => window.location.search;
+const getSearchParamsForPath = (path: string) => {
+    if (path.startsWith('/admin')) {
+        return '';
+    }
+    return window.location.search;
+};
 
 const NavMenu: React.FC = () => {
     const { userMe, logout } = useAuth();
@@ -55,7 +60,7 @@ const NavMenu: React.FC = () => {
 
     const handleNavigate = (path: string) => (e: React.MouseEvent) => {
         e.preventDefault();
-        navigate(`${path}${getSearchParams()}`);
+        navigate(`${path}${getSearchParamsForPath(path)}`);
     };
 
     return (
@@ -149,7 +154,8 @@ const Component: React.FC = () => {
             help: '/help',
             admin: '/admin',
         };
-        navigate(`${routes[tab]}${getSearchParams()}`);
+        const path = routes[tab];
+        navigate(`${path}${getSearchParamsForPath(path)}`);
     };
 
     return (
@@ -180,7 +186,7 @@ const Component: React.FC = () => {
                                     title="Accueil - Aigle - Ministère de la transition écologique"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        navigate(`/${getSearchParams()}`);
+                                        navigate(`/${getSearchParamsForPath('/')}`);
                                     }}
                                 >
                                     <p className="fr-header__service-title">

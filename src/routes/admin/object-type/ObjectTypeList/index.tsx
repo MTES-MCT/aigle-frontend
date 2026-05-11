@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { objectTypeCategoryEndpoints, objectTypeEndpoints } from '@/api/endpoints';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
@@ -7,6 +7,7 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import SelectItem from '@/components/ui/SelectItem';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { ObjectType, ObjectTypeDetail } from '@/models/object-type';
 import { ObjectTypeCategory } from '@/models/object-type-category';
 import api from '@/utils/api';
@@ -28,7 +29,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 
 const Component: React.FC = () => {
     const navigate = useNavigate();
-    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+    const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     const fetchObjectTypeCategories = () => api<ObjectType[]>(objectTypeCategoryEndpoints.list);
 
@@ -42,7 +43,11 @@ const Component: React.FC = () => {
             title="Liste des types d'objets"
             actions={
                 <>
-                    <Button leftSection={<IconCubePlus />} component={Link} to="/admin/object-types/form">
+                    <Button
+                        leftSection={<IconCubePlus />}
+                        component={Link}
+                        to={`/admin/object-types/form${window.location.search}`}
+                    >
                         Ajouter un type d&apos;objet
                     </Button>
                 </>
@@ -111,7 +116,7 @@ const Component: React.FC = () => {
                         />
                     ),
                 ]}
-                onItemClick={({ uuid }) => navigate(`/admin/object-types/form/${uuid}`)}
+                onItemClick={({ uuid }) => navigate(`/admin/object-types/form/${uuid}${window.location.search}`)}
             />
         </LayoutAdminBase>
     );
