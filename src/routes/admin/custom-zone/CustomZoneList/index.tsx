@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import { Section } from '@/models/ui/section';
+import { customZoneBulkConfig } from '@/routes/admin/custom-zone/CustomZoneList/bulkConfig';
 import CustomZoneCategoryDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneCategoryDataTable';
 import CustomZoneDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneDataTable';
-import { customZoneBulkConfig } from '@/routes/admin/custom-zone/CustomZoneList/bulkConfig';
 import { Button } from '@mantine/core';
 import { IconHexagonPlus2, IconHexagonalPrismPlus } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
+import { CUSTOM_ZONE_DATA_FILTER_INITIAL_VALUE, CustomZoneDataFilter } from './types';
 
 const SECTIONS_DISPLAYED: Section[] = [
     {
@@ -26,6 +27,7 @@ const SECTIONS_DISPLAYED: Section[] = [
 
 const Component: React.FC = () => {
     const [sectionSelected, setSectionSelected] = useState<Section>(SECTIONS_DISPLAYED[0]);
+    const [filter, setFilter] = useState<CustomZoneDataFilter>(CUSTOM_ZONE_DATA_FILTER_INITIAL_VALUE);
 
     return (
         <LayoutAdminBase
@@ -33,7 +35,7 @@ const Component: React.FC = () => {
             actions={
                 <div className={classes.actions}>
                     {sectionSelected.id === 'CUSTOM_ZONES' ? (
-                        <BulkImportExportButtons config={customZoneBulkConfig} />
+                        <BulkImportExportButtons config={customZoneBulkConfig} exportParams={filter} />
                     ) : null}
                     <Button
                         leftSection={<IconHexagonalPrismPlus />}
@@ -63,7 +65,9 @@ const Component: React.FC = () => {
                 ))}
             </Button.Group>
 
-            {sectionSelected.id === 'CUSTOM_ZONES' ? <CustomZoneDataTable /> : null}
+            {sectionSelected.id === 'CUSTOM_ZONES' ? (
+                <CustomZoneDataTable filter={filter} onFilterChange={setFilter} />
+            ) : null}
             {sectionSelected.id === 'CUSTOM_ZONE_CATEGORIES' ? <CustomZoneCategoryDataTable /> : null}
         </LayoutAdminBase>
     );

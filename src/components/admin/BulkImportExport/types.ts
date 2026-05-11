@@ -7,10 +7,15 @@ export interface ColumnSpec {
     example?: string;
 }
 
+export interface BulkError {
+    line: number | null;
+    message: string;
+}
+
 export interface BulkImportPreviewResponse {
     rowsCount: number;
     preview: Record<string, string>[];
-    errors: string[];
+    errors: BulkError[];
 }
 
 export interface BulkImportResponse {

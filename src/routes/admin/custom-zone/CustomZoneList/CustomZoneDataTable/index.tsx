@@ -9,36 +9,34 @@ import { GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { ColorSwatch, Input, Table } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { isEqual } from 'lodash';
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface DataFilter {
-    q: string;
+import { CUSTOM_ZONE_DATA_FILTER_INITIAL_VALUE, CustomZoneDataFilter } from '../types';
+
+interface Props {
+    filter: CustomZoneDataFilter;
+    onFilterChange: React.Dispatch<React.SetStateAction<CustomZoneDataFilter>>;
 }
 
-const DATA_FILTER_INITIAL_VALUE: DataFilter = {
-    q: '',
-};
-
-const Component: React.FC = () => {
+const Component: React.FC<Props> = ({ filter, onFilterChange }) => {
     const navigate = useNavigate();
-    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
     const { userMe } = useAuth();
 
     return (
-        <DataTable<GeoCustomZone, DataFilter>
+        <DataTable<GeoCustomZone, CustomZoneDataFilter>
             endpoint={customZoneEndpoints.list}
             filter={filter}
             SoloAccordion={
-                <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                <SoloAccordion indicatorShown={!isEqual(filter, CUSTOM_ZONE_DATA_FILTER_INITIAL_VALUE)}>
                     <Input
                         placeholder="Rechercher une zone"
                         leftSection={<IconSearch size={16} />}
                         value={filter.q}
                         onChange={(event) => {
                             const value = event.currentTarget.value;
-                            setFilter((filter) => ({
-                                ...filter,
+                            onFilterChange((prev) => ({
+                                ...prev,
                                 q: value,
                             }));
                         }}
