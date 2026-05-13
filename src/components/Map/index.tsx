@@ -22,6 +22,7 @@ import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
+import { formatDateOnly } from '@/utils/format';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -31,7 +32,6 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
-import { format } from 'date-fns';
 import { FeatureCollection, Polygon } from 'geojson';
 import mapboxgl from 'mapbox-gl';
 import DrawRectangle, { DrawStyles } from 'mapbox-gl-draw-rectangle-restrict-area';
@@ -419,7 +419,7 @@ const Component: React.FC<ComponentProps> = ({
                     .filter(
                         (layer) =>
                             layer.tileSet.tileSetType === 'BACKGROUND' &&
-                            format(layer.tileSet.date, 'yyyy') === mostRecentBackgroundLayerYear,
+                            formatDateOnly(layer.tileSet.date, 'yyyy') === mostRecentBackgroundLayerYear,
                     )
                     .map((layer) => layer.tileSet.uuid);
 

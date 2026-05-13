@@ -19,11 +19,11 @@ import { TileSet } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
 import api, { ApiError } from '@/utils/api';
 import {
-    DEFAULT_DATE_FORMAT,
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
+import { formatDateOnly } from '@/utils/format';
 import { Button, Checkbox, LoadingOverlay, Loader as MantineLoader, Select, Text } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -380,7 +380,7 @@ const Component: React.FC<ComponentProps> = ({
                 label="Source d'image"
                 data={detectionObject.tileSets.map(({ tileSet }) => ({
                     value: tileSet.uuid,
-                    label: `${tileSet.name} - ${format(tileSet.date, DEFAULT_DATE_FORMAT)}`,
+                    label: `${tileSet.name} - ${formatDateOnly(tileSet.date)}`,
                 }))}
                 value={tileSetSelected.uuid}
                 onChange={(tileSetUuid) => selectTileSet(String(tileSetUuid))}

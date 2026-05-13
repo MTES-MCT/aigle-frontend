@@ -10,12 +10,11 @@ import { ParcelDetail, ParcelDetectionObject } from '@/models/parcel';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { PARCEL_COLOR } from '@/utils/constants';
-import { formatParcel } from '@/utils/format';
+import { formatDateOnly, formatParcel } from '@/utils/format';
 import { extendBbox } from '@/utils/geojson';
 import { Document, usePDF } from '@react-pdf/renderer';
 import { useQuery } from '@tanstack/react-query';
 import { bbox, centroid } from '@turf/turf';
-import { format } from 'date-fns';
 import { Polygon } from 'geojson';
 import classes from './index.module.scss';
 
@@ -78,7 +77,7 @@ const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinis
 };
 
 const PLAN_URL_TILESET: TileSet = {
-    date: '2024-07-08T16:00:31Z',
+    date: '2024-07-08',
     name: 'Plan',
     // GEOGRAPHICAL.GRIDSYSTEMS.MAPS.SCAN25.GRAPHE-MOSAIQUAGE:graphe_scan25
     url: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM_0_19&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
@@ -218,7 +217,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
                         id={previewId}
                         displayName={false}
                         onFullyLoaded={() =>
-                            getPreviewImage(tileSet.uuid, previewId, format(tileSet.date, 'yyyy'), index)
+                            getPreviewImage(tileSet.uuid, previewId, formatDateOnly(tileSet.date, 'yyyy'), index)
                         }
                         fitBoundsOptions={{ padding: 10 }}
                     />

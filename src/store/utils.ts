@@ -1,8 +1,8 @@
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
+import { formatDateOnly } from '@/utils/format';
 import { getInitialObjectFilters } from '@/utils/objects-filter';
-import { format } from 'date-fns';
 
 interface ObjectTypesInitialState {
     allObjectTypes: ObjectType[];
@@ -62,7 +62,7 @@ export const getInitialMapLayers = (settings: MapSettings) => {
         if (tileSet.tileSetType !== 'BACKGROUND') {
             displayed = tileSet.tileSetStatus === 'VISIBLE';
         } else {
-            const layerYear = format(tileSet.date, 'yyyy');
+            const layerYear = formatDateOnly(tileSet.date, 'yyyy');
             backgroundLayerYears.add(layerYear);
             if (layerYearDisplayed) {
                 displayed = layerYear === layerYearDisplayed;

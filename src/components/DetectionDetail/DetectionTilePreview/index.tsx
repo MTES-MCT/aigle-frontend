@@ -1,11 +1,11 @@
 import { TileSet } from '@/models/tile-set';
 import { MAPBOX_TOKEN } from '@/utils/constants';
+import { formatDateOnly } from '@/utils/format';
 import { extendBbox } from '@/utils/geojson';
 import { ActionIcon, Overlay, Tooltip } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
 import { IconPencil, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import clsx from 'clsx';
-import { format } from 'date-fns';
 import { Polygon, Position } from 'geojson';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Map, { Layer, MapRef, MapSourceDataEvent, Source } from 'react-map-gl';
@@ -273,7 +273,7 @@ const Component: React.FC<ComponentProps> = ({
             </div>
 
             {displayName ? (
-                <p className={classes['detection-tile-preview-date']}>{format(tileSet.date, 'yyyy')}</p>
+                <p className={classes['detection-tile-preview-date']}>{formatDateOnly(tileSet.date, 'yyyy')}</p>
             ) : null}
         </div>
     );

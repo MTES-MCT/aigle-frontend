@@ -30,7 +30,7 @@ import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconMapPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { formatISO, parse } from 'date-fns';
+import { format, formatISO, parse } from 'date-fns';
 import { Geometry } from 'geojson';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import classes from './index.module.scss';
@@ -48,13 +48,14 @@ interface MapPreviewProps {
 }
 
 const MapPreview: React.FC<MapPreviewProps> = ({ url, scheme, name, type, monochrome, geometry, uuid }) => {
-    const fakeDate = formatISO(new Date());
+    const fakeDateTime = formatISO(new Date());
+    const fakeDate = format(new Date(), 'yyyy-MM-dd');
     const layers: MapTileSetLayer[] = [
         {
             displayed: true,
             tileSet: {
-                createdAt: fakeDate,
-                updatedAt: fakeDate,
+                createdAt: fakeDateTime,
+                updatedAt: fakeDateTime,
                 uuid: uuid || 'fake-uuid',
                 minZoom: null,
                 maxZoom: null,
@@ -123,15 +124,20 @@ interface FormValues {
 }
 
 const postForm = (values: FormValues, uuid?: string, multipleYearMode?: boolean) => {
+    const body = {
+        ...values,
+        date: values.date ? format(values.date, 'yyyy-MM-dd') : undefined,
+    };
+
     if (uuid) {
-        return api<TileSet>(tileSetEndpoints.detail(uuid), { method: 'PATCH', body: values });
+        return api<TileSet>(tileSetEndpoints.detail(uuid), { method: 'PATCH', body });
     }
 
     if (multipleYearMode) {
-        return api<TileSet[]>(tileSetEndpoints.bulkCreate, { method: 'POST', body: values });
+        return api<TileSet[]>(tileSetEndpoints.bulkCreate, { method: 'POST', body });
     }
 
-    return api<TileSet>(tileSetEndpoints.create, { method: 'POST', body: values });
+    return api<TileSet>(tileSetEndpoints.create, { method: 'POST', body });
 };
 
 interface FormProps {
@@ -590,7 +596,7 @@ const ComponentInner: React.FC = () => {
         const data = await api<TileSetDetailWithGeometry>(tileSetEndpoints.detail(uuid));
         const initialValues: FormValues = {
             ...data,
-            date: new Date(data.date),
+            date: parse(data.date, 'yyyy-MM-dd', new Date()),
             communesUuids: data.communes.map((commune) => commune.uuid),
             departmentsUuids: data.departments.map((department) => department.uuid),
             regionsUuids: data.regions.map((region) => region.uuid),
