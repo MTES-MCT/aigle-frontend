@@ -179,7 +179,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <Button
                         fullWidth
                         variant="outline"
-                        disabled={isDownloading}
+                        disabled={!detectionObject.parcel?.uuid || isDownloading}
                         size="xs"
                         onClick={async () => {
                             setSignalementPdfGenerating('parcel');

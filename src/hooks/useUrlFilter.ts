@@ -38,7 +38,6 @@ export const useUrlFilter = <T extends { [K in keyof T]: FilterValue }>(
 
     useEffect(() => {
         setSearchParams(serializeFilter(filter), { replace: true });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const setFilter: React.Dispatch<React.SetStateAction<T>> = useCallback(

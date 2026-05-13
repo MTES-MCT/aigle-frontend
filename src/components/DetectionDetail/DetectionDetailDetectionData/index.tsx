@@ -125,8 +125,6 @@ const Form: React.FC<FormProps> = ({
         initialValues,
     });
 
-    console.log(initialValues);
-
     useEffect(() => {
         form.setValues(initialValues);
     }, [
@@ -153,8 +151,7 @@ const Form: React.FC<FormProps> = ({
         },
     });
 
-    const submit = async (field: any) => {
-        console.log({ field });
+    const submit = async () => {
         if (!uuid) {
             return;
         }
@@ -374,8 +371,6 @@ const Component: React.FC<ComponentProps> = ({
 
         setDetectionSelected(detection);
     };
-
-    console.log('SELECTED', detectionSelected?.detectionData);
 
     return (
         <div className={classes.container}>

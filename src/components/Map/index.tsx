@@ -277,7 +277,7 @@ const Component: React.FC<ComponentProps> = ({
                         ['VISIBLE', 'HIDDEN'].includes(layer.tileSet.tileSetStatus),
                 )
                 .map((layer) => layer.tileSet.uuid),
-        [],
+        [layers],
     );
 
     const {
@@ -661,7 +661,7 @@ const Component: React.FC<ComponentProps> = ({
         return () => {
             eventEmitter.off('UPDATE_DETECTIONS', updateDetections);
         };
-    }, []);
+    }, [refetch, refetchAnnotationGrid, eventEmitter]);
     useEffect(() => {
         if (!mapRef) {
             return;
@@ -696,7 +696,7 @@ const Component: React.FC<ComponentProps> = ({
     }, [mapRef]);
     useEffect(() => {
         refetch();
-    }, [objectsFilter]);
+    }, [objectsFilter, refetch]);
 
     // bounds
 
