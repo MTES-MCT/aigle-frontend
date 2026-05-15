@@ -1,6 +1,7 @@
 import { GeoCommune } from '@/models/geo/geo-commune';
 import { GeoCustomZoneWithSubZones } from '@/models/geo/geo-custom-zone';
 import { ParcelMinimal } from '@/models/parcel';
+import { DEFAULT_DATE_FORMAT } from '@/utils/constants';
 
 export const formatParcel = (parcel: ParcelMinimal, withCommuneCode: boolean = true) => {
     let res = '';
@@ -32,6 +33,11 @@ const INT_FORMATTER = new Intl.NumberFormat('fr-FR');
 
 export const formatBigInt = (bigInt: number) => {
     return INT_FORMATTER.format(bigInt);
+};
+
+export const formatDateOnly = (isoDate: string, displayFormat: string = DEFAULT_DATE_FORMAT): string => {
+    const [year, month, day] = isoDate.substring(0, 10).split('-');
+    return displayFormat.replace('yyyy', year).replace('MM', month).replace('dd', day);
 };
 
 export const formatGeoCustomZonesWithSubZones = (geoCustomZones: GeoCustomZoneWithSubZones[]) => {

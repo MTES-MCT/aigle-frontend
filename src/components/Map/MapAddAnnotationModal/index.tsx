@@ -7,6 +7,7 @@ import { ObjectType } from '@/models/object-type';
 import { TileSet } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
 import api, { ApiError } from '@/utils/api';
+import { formatDateOnly } from '@/utils/format';
 import { getAddressFromPolygon } from '@/utils/geojson';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -15,7 +16,6 @@ import { IconShape } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
 import { area, centroid } from '@turf/turf';
 import clsx from 'clsx';
-import { format } from 'date-fns';
 import { Feature, Point, Polygon } from 'geojson';
 import React, { useEffect, useMemo, useState } from 'react';
 import classes from './index.module.scss';
@@ -129,7 +129,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide }) => {
                     Fond de carte associé :{' '}
                     <b>
                         {!tileSetIsLoading && tileSet
-                            ? `${tileSet.name} (${format(tileSet.date, 'yyyy')})`
+                            ? `${tileSet.name} (${formatDateOnly(tileSet.date, 'yyyy')})`
                             : 'Chargement...'}
                     </b>
                 </p>

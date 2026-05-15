@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { userActionLogEndpoints } from '@/api/endpoints';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import DateInfo from '@/components/ui/DateInfo';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { UserActionLog, UserActionLogAction, userActionLogActions } from '@/models/user-action-log';
 import { Badge, Checkbox, Code, Input, Stack, Table } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
@@ -48,7 +49,7 @@ const formatData = (data: unknown): string => {
 };
 
 const Component: React.FC = () => {
-    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+    const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     return (
         <LayoutAdminBase title="Journal des actions">

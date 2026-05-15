@@ -4,10 +4,13 @@ import api, { ApiError } from '@/utils/api';
 import { Alert, Button, Group, Loader, Modal, Stack, Stepper, Table, Text } from '@mantine/core';
 import { Dropzone, MIME_TYPES } from '@mantine/dropzone';
 import { notifications } from '@mantine/notifications';
-import { IconAlertCircle, IconCheck, IconUpload, IconX } from '@tabler/icons-react';
+import { IconAlertCircle, IconCheck, IconDownload, IconUpload, IconX } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { BulkConfig, BulkImportPreviewResponse, BulkImportResponse } from './types';
+import { BulkConfig, BulkError, BulkImportPreviewResponse, BulkImportResponse } from './types';
+
+const CSV_SEP = ';';
+const BOM = '﻿';
 
 interface Props {
     config: BulkConfig;
@@ -56,7 +59,7 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
             setPreviewData(data);
             setStep('preview');
         } catch (err) {
-            const apiErr = err as ApiError<{ errors?: string[] }>;
+            const apiErr = err as ApiError<{ errors?: BulkError[] }>;
             const errs = apiErr?.body?.errors;
             if (errs && errs.length) {
                 setPreviewData({ rowsCount: 0, preview: [], errors: errs });
@@ -89,11 +92,30 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
             });
             queryClient.invalidateQueries({ queryKey: [config.listEndpoint] });
         } catch (err) {
-            const apiErr = err as ApiError<{ errors?: string[] }>;
+            const apiErr = err as ApiError<{ errors?: BulkError[] }>;
             const errs = apiErr?.body?.errors;
-            setErrorMessage(errs?.join('\n') || apiErr?.message || "Erreur lors de l'import");
+            if (errs && errs.length) {
+                setPreviewData({ rowsCount: 0, preview: [], errors: errs });
+            } else {
+                setErrorMessage(apiErr?.message || "Erreur lors de l'import");
+            }
             setStep('preview');
         }
+    };
+
+    const downloadTemplate = () => {
+        const headers = config.columns.map((col) => col.name).join(CSV_SEP);
+        const examples = config.columns.map((col) => col.example ?? '').join(CSV_SEP);
+        const content = BOM + headers + '\n' + examples + '\n';
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${config.fileBaseName}-template.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
     };
 
     const stepIndex = step === 'upload' ? 0 : step === 'preview' ? 1 : 2;
@@ -127,6 +149,15 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
                                 ))}
                             </Table.Tbody>
                         </Table>
+
+                        <Button
+                            variant="subtle"
+                            leftSection={<IconDownload size={16} />}
+                            onClick={downloadTemplate}
+                            size="compact-sm"
+                        >
+                            Télécharger un template vide
+                        </Button>
 
                         {errorMessage ? (
                             <Alert color="red" icon={<IconAlertCircle size={16} />}>
@@ -169,15 +200,27 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
                     <Stack mt="md">
                         {previewHasErrors ? (
                             <>
-                                <Alert color="red" icon={<IconAlertCircle size={16} />} title="Erreurs détectées">
-                                    <Stack gap={4}>
+                                <Alert
+                                    color="red"
+                                    icon={<IconAlertCircle size={16} />}
+                                    title={`${previewData!.errors.length} erreur${previewData!.errors.length > 1 ? 's' : ''} détectée${previewData!.errors.length > 1 ? 's' : ''}`}
+                                />
+                                <Table withTableBorder withColumnBorders striped>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th style={{ width: 80 }}>Ligne</Table.Th>
+                                            <Table.Th>Erreur</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
                                         {previewData!.errors.map((err, i) => (
-                                            <Text key={i} size="sm">
-                                                {err}
-                                            </Text>
+                                            <Table.Tr key={i}>
+                                                <Table.Td>{err.line ?? '-'}</Table.Td>
+                                                <Table.Td>{err.message}</Table.Td>
+                                            </Table.Tr>
                                         ))}
-                                    </Stack>
-                                </Alert>
+                                    </Table.Tbody>
+                                </Table>
                                 <Group justify="flex-end">
                                     <Button variant="default" onClick={reset}>
                                         Réimporter un fichier

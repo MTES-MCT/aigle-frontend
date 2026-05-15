@@ -4,7 +4,7 @@ import { ObjectType } from '@/models/object-type';
 import { TileSet, TileSetStatus, TileSetType } from '@/models/tile-set';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { getCommonMapSettingsData, getInitialMapLayers } from '@/store/utils';
-import { format } from 'date-fns';
+import { formatDateOnly } from '@/utils/format';
 import EventEmitter from 'eventemitter3';
 import { isEqual } from 'lodash';
 import { create } from 'zustand';
@@ -113,7 +113,7 @@ const useMap = create<MapState>()((set, get) => ({
                     return;
                 }
 
-                layer.displayed = format(layer.tileSet.date, 'yyyy') === year;
+                layer.displayed = formatDateOnly(layer.tileSet.date, 'yyyy') === year;
             });
 
             state.eventEmitter.emit('LAYERS_UPDATED');
@@ -134,7 +134,7 @@ const useMap = create<MapState>()((set, get) => ({
             state.layers.forEach((layer, index) => {
                 if (uuids.includes(layer.tileSet.uuid)) {
                     if (layer.tileSet.tileSetType === 'BACKGROUND') {
-                        const layerYear = format(layer.tileSet.date, 'yyyy');
+                        const layerYear = formatDateOnly(layer.tileSet.date, 'yyyy');
 
                         if (backgroundYearSet && backgroundYearSet !== layerYear) {
                             throw new Error('Cannot set multiple background layers with different years');
@@ -220,7 +220,7 @@ const useMap = create<MapState>()((set, get) => ({
             return;
         }
 
-        return format(firstBackgroundLayer.tileSet.date, 'yyyy');
+        return formatDateOnly(firstBackgroundLayer.tileSet.date, 'yyyy');
     },
     getTileSets: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => {
         return (get().layers || [])

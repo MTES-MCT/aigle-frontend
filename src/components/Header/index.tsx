@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 
 import logoSmallImg from '@/assets/logo_small.png';
 import marianneImg from '@/assets/marianne.svg';
+import UserGroupSelector from '@/components/UserGroupSelector';
 import { useAuth } from '@/store/slices/auth';
 import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
 import { getColorFromString, getEmailInitials } from '@/utils/string';
@@ -47,20 +48,34 @@ interface AvatarState {
     color?: string;
 }
 
-const getSearchParams = () => window.location.search;
+const getSearchParamsForPath = (path: string) => {
+    if (path.startsWith('/admin')) {
+        return '';
+    }
+    return window.location.search;
+};
 
-const NavMenu: React.FC = () => {
+interface NavMenuProps {
+    onGroupChange: () => void;
+}
+
+const NavMenu: React.FC<NavMenuProps> = ({ onGroupChange }) => {
     const { userMe, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleNavigate = (path: string) => (e: React.MouseEvent) => {
         e.preventDefault();
-        navigate(`${path}${getSearchParams()}`);
+        navigate(`${path}${getSearchParamsForPath(path)}`);
     };
 
     return (
         <>
             <ul className="fr-btns-group">
+                {userMe?.userRole === 'SUPER_ADMIN' ? (
+                    <li className={classes['group-selector-li']}>
+                        <UserGroupSelector onGroupChange={onGroupChange} />
+                    </li>
+                ) : null}
                 <li>
                     <a className="fr-btn fr-btn--tertiary-no-outline" href="/map" onClick={handleNavigate('/map')}>
                         <IconMap className={classes['link-icon']} size={16} />
@@ -123,7 +138,11 @@ const NavMenu: React.FC = () => {
     );
 };
 
-const Component: React.FC = () => {
+interface ComponentProps {
+    onGroupChange: () => void;
+}
+
+const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
     const { userMe, logout } = useAuth();
     const { pathname } = useLocation();
     const navigate = useNavigate();
@@ -149,7 +168,8 @@ const Component: React.FC = () => {
             help: '/help',
             admin: '/admin',
         };
-        navigate(`${routes[tab]}${getSearchParams()}`);
+        const path = routes[tab];
+        navigate(`${path}${getSearchParamsForPath(path)}`);
     };
 
     return (
@@ -180,7 +200,7 @@ const Component: React.FC = () => {
                                     title="Accueil - Aigle - Ministère de la transition écologique"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        navigate(`/${getSearchParams()}`);
+                                        navigate(`/${getSearchParamsForPath('/')}`);
                                     }}
                                 >
                                     <p className="fr-header__service-title">
@@ -209,7 +229,7 @@ const Component: React.FC = () => {
 
                         <div className="fr-header__tools">
                             <div className="fr-header__tools-links">
-                                <NavMenu />
+                                <NavMenu onGroupChange={onGroupChange} />
                             </div>
                         </div>
                     </div>
@@ -218,7 +238,7 @@ const Component: React.FC = () => {
 
             {burgerOpened ? (
                 <div className={classes['mobile-menu']}>
-                    <NavMenu />
+                    <NavMenu onGroupChange={onGroupChange} />
                 </div>
             ) : null}
         </header>

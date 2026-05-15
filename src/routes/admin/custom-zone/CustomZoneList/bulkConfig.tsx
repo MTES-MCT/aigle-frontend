@@ -12,7 +12,7 @@ export const customZoneBulkConfig: BulkConfig = {
         {
             name: 'catégorie',
             label: 'Catégorie',
-            description: 'Nom exact de la catégorie de zone (obligatoire)',
+            description: 'Nom exact de la catégorie (optionnel si couleur renseignée)',
             example: 'Zones à fort enjeu environnemental',
         },
         {
@@ -24,16 +24,32 @@ export const customZoneBulkConfig: BulkConfig = {
         {
             name: 'nom court de la zone',
             label: 'Nom court',
-            description: 'fort enjeu environnemental toulouse',
+            description: 'Nom court unique (optionnel)',
             example: 'UA',
         },
-        { name: 'régions', label: 'Régions', description: 'Liste de noms de régions', example: 'Occitanie' },
         {
-            name: 'départements',
-            label: 'Départements',
-            description: 'Liste de noms de départements',
-            example: 'Hérault',
+            name: 'couleur',
+            label: 'Couleur',
+            description: 'Code couleur hex (requis si pas de catégorie)',
+            example: '#FF5733',
         },
-        { name: 'communes', label: 'Communes', description: 'Liste de noms de communes', example: 'Montpellier' },
+        {
+            name: 'régions (code INSEE)',
+            label: 'Régions',
+            description: 'Liste de codes INSEE de régions',
+            example: '76',
+        },
+        {
+            name: 'départements (code INSEE)',
+            label: 'Départements',
+            description: 'Liste de codes INSEE de départements',
+            example: '34',
+        },
+        {
+            name: 'communes (code ISO)',
+            label: 'Communes',
+            description: 'Liste de codes ISO de communes',
+            example: '34172',
+        },
     ],
 };

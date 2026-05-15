@@ -3,23 +3,23 @@ import { OTHER_OBJECT_TYPE } from '@/utils/constants';
 import { centroid, circle, distance } from '@turf/turf';
 
 export const processDetections = (detectionGeojsonData: DetectionGeojsonData, otherObjectTypesUuids: Set<string>) => {
-    detectionGeojsonData.features = detectionGeojsonData.features.map((feature) => {
-        if (otherObjectTypesUuids.has(feature.properties.objectTypeUuid)) {
-            feature.properties.objectTypeColor = OTHER_OBJECT_TYPE.color;
-        }
+    const features = detectionGeojsonData.features.map((feature) => {
+        const properties = otherObjectTypesUuids.has(feature.properties.objectTypeUuid)
+            ? { ...feature.properties, objectTypeColor: OTHER_OBJECT_TYPE.color }
+            : feature.properties;
 
-        if (feature.properties.tileSetType !== 'PARTIAL') {
-            return feature;
+        if (properties.tileSetType !== 'PARTIAL') {
+            return { ...feature, properties };
         }
 
         return circle(
             centroid(feature.geometry),
             distance(centroid(feature.geometry), feature.geometry.coordinates[0][0]),
             {
-                properties: feature.properties,
+                properties,
             },
         );
     });
 
-    return detectionGeojsonData;
+    return { ...detectionGeojsonData, features };
 };

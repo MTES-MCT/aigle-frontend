@@ -21,7 +21,7 @@ declare global {
 }
 
 const App: React.FC = () => {
-    const { isAuthenticated, setUser, logout } = useAuth();
+    const { isAuthenticated, setUser, logout, setSelectedUserGroupUuid } = useAuth();
     const { setMapSettings } = useMap();
     const { setMapSettings: setStatisticsMapSettings } = useStatistics();
 
@@ -48,14 +48,31 @@ const App: React.FC = () => {
             setStatisticsMapSettings(mapSettings);
             return mapSettings;
         } catch (err) {
-            console.error(err);
+            if (useAuth.getState().selectedUserGroupUuid) {
+                setSelectedUserGroupUuid(undefined);
+                try {
+                    const mapSettings = await api<MapSettings>(mapEndpoints.settings);
+                    setMapSettings(mapSettings);
+                    setStatisticsMapSettings(mapSettings);
+                    return mapSettings;
+                } catch (retryErr) {
+                    console.error(retryErr);
+                }
+            } else {
+                console.error(err);
+            }
         }
     }, [setMapSettings]);
 
     useEffect(() => {
         if (isAuthenticated_) {
             getUser();
-            getMapSettings();
+
+            const { userMe: persistedUser } = useAuth.getState();
+
+            if (persistedUser?.userRole !== 'SUPER_ADMIN') {
+                getMapSettings();
+            }
         }
     }, [isAuthenticated_, getUser]);
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { userGroupEndpoints } from '@/api/endpoints';
 import BulkImportExportButtons from '@/components/admin/BulkImportExport';
@@ -7,6 +7,7 @@ import PillsDataCell from '@/components/DataCells/PillsDataCell';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { GeoZone } from '@/models/geo/geo-zone';
 import { ObjectTypeCategory } from '@/models/object-type-category';
@@ -28,7 +29,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 
 const Component: React.FC = () => {
     const navigate = useNavigate();
-    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+    const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     return (
         <LayoutAdminBase
@@ -36,7 +37,11 @@ const Component: React.FC = () => {
             actions={
                 <>
                     <BulkImportExportButtons config={userGroupBulkConfig} exportParams={filter} />
-                    <Button leftSection={<IconUserPlus />} component={Link} to={'/admin/user-groups/form'}>
+                    <Button
+                        leftSection={<IconUserPlus />}
+                        component={Link}
+                        to={`/admin/user-groups/form${window.location.search}`}
+                    >
                         Ajouter un groupe
                     </Button>
                 </>
@@ -90,7 +95,7 @@ const Component: React.FC = () => {
                         <PillsDataCell<GeoCustomZone> items={item.geoCustomZones} getLabel={(geo) => geo.name} />
                     ),
                 ]}
-                onItemClick={({ uuid }) => navigate(`/admin/user-groups/form/${uuid}`)}
+                onItemClick={({ uuid }) => navigate(`/admin/user-groups/form/${uuid}${window.location.search}`)}
             />
         </LayoutAdminBase>
     );

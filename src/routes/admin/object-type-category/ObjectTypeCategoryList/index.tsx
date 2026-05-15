@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { objectTypeCategoryEndpoints, objectTypeEndpoints } from '@/api/endpoints';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
@@ -7,6 +7,7 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import SelectItem from '@/components/ui/SelectItem';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { Uuided } from '@/models/data';
 import { ObjectType } from '@/models/object-type';
 import {
@@ -55,7 +56,7 @@ const ObjectTypeCategoryIcon: React.FC<ObjectTypeCategoryIconProps> = ({ objectT
 
 const Component: React.FC = () => {
     const navigate = useNavigate();
-    const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
+    const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     const fetchObjectTypes = () => api<ObjectType[]>(objectTypeEndpoints.list);
 
@@ -77,7 +78,11 @@ const Component: React.FC = () => {
             title="Liste des thématiques"
             actions={
                 <>
-                    <Button leftSection={<IconCategoryPlus />} component={Link} to="/admin/object-type-categories/form">
+                    <Button
+                        leftSection={<IconCategoryPlus />}
+                        component={Link}
+                        to={`/admin/object-type-categories/form${window.location.search}`}
+                    >
                         Ajouter une thématique
                     </Button>
                 </>
@@ -150,7 +155,9 @@ const Component: React.FC = () => {
                         />
                     ),
                 ]}
-                onItemClick={({ uuid }) => navigate(`/admin/object-type-categories/form/${uuid}`)}
+                onItemClick={({ uuid }) =>
+                    navigate(`/admin/object-type-categories/form/${uuid}${window.location.search}`)
+                }
             />
         </LayoutAdminBase>
     );
