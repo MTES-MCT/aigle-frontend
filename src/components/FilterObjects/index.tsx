@@ -254,30 +254,33 @@ const Component: React.FC<ComponentProps> = ({
 
                     {form.getValues().objectTypesUuids.length ? (
                         <Group gap="xs" mt="sm">
-                            {form.getValues().objectTypesUuids.map((uuid) => (
-                                <Badge
-                                    autoContrast
-                                    rightSection={
-                                        <ActionIcon
-                                            variant="transparent"
-                                            size={16}
-                                            onClick={() => {
-                                                form.setFieldValue('objectTypesUuids', (prev) =>
-                                                    prev.filter((typeUuid) => typeUuid !== uuid),
-                                                );
-                                            }}
-                                            aria-label={`Retirer ${objectTypesMap[uuid].name} des filtres`}
-                                        >
-                                            <IconX size={16} color="white" />
-                                        </ActionIcon>
-                                    }
-                                    radius={100}
-                                    key={uuid}
-                                    color={objectTypesMap[uuid].color}
-                                >
-                                    {objectTypesMap[uuid].name}
-                                </Badge>
-                            ))}
+                            {form
+                                .getValues()
+                                .objectTypesUuids.filter((uuid) => objectTypesMap[uuid])
+                                .map((uuid) => (
+                                    <Badge
+                                        autoContrast
+                                        rightSection={
+                                            <ActionIcon
+                                                variant="transparent"
+                                                size={16}
+                                                onClick={() => {
+                                                    form.setFieldValue('objectTypesUuids', (prev) =>
+                                                        prev.filter((typeUuid) => typeUuid !== uuid),
+                                                    );
+                                                }}
+                                                aria-label={`Retirer ${objectTypesMap[uuid].name} des filtres`}
+                                            >
+                                                <IconX size={16} color="white" />
+                                            </ActionIcon>
+                                        }
+                                        radius={100}
+                                        key={uuid}
+                                        color={objectTypesMap[uuid].color}
+                                    >
+                                        {objectTypesMap[uuid].name}
+                                    </Badge>
+                                ))}
                         </Group>
                     ) : (
                         <p className={classes['empty-filter-text']}>Aucun filtre sur les types n&apos;est appliqué</p>

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 
 import logoSmallImg from '@/assets/logo_small.png';
 import marianneImg from '@/assets/marianne.svg';
+import UserGroupSelector from '@/components/UserGroupSelector';
 import { useAuth } from '@/store/slices/auth';
 import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
 import { getColorFromString, getEmailInitials } from '@/utils/string';
@@ -54,7 +55,11 @@ const getSearchParamsForPath = (path: string) => {
     return window.location.search;
 };
 
-const NavMenu: React.FC = () => {
+interface NavMenuProps {
+    onGroupChange: () => void;
+}
+
+const NavMenu: React.FC<NavMenuProps> = ({ onGroupChange }) => {
     const { userMe, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -66,6 +71,11 @@ const NavMenu: React.FC = () => {
     return (
         <>
             <ul className="fr-btns-group">
+                {userMe?.userRole === 'SUPER_ADMIN' ? (
+                    <li className={classes['group-selector-li']}>
+                        <UserGroupSelector onGroupChange={onGroupChange} />
+                    </li>
+                ) : null}
                 <li>
                     <a className="fr-btn fr-btn--tertiary-no-outline" href="/map" onClick={handleNavigate('/map')}>
                         <IconMap className={classes['link-icon']} size={16} />
@@ -128,7 +138,11 @@ const NavMenu: React.FC = () => {
     );
 };
 
-const Component: React.FC = () => {
+interface ComponentProps {
+    onGroupChange: () => void;
+}
+
+const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
     const { userMe, logout } = useAuth();
     const { pathname } = useLocation();
     const navigate = useNavigate();
@@ -215,7 +229,7 @@ const Component: React.FC = () => {
 
                         <div className="fr-header__tools">
                             <div className="fr-header__tools-links">
-                                <NavMenu />
+                                <NavMenu onGroupChange={onGroupChange} />
                             </div>
                         </div>
                     </div>
@@ -224,7 +238,7 @@ const Component: React.FC = () => {
 
             {burgerOpened ? (
                 <div className={classes['mobile-menu']}>
-                    <NavMenu />
+                    <NavMenu onGroupChange={onGroupChange} />
                 </div>
             ) : null}
         </header>

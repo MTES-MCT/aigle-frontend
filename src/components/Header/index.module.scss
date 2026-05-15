@@ -33,6 +33,11 @@
     margin-right: var(--mantine-spacing-xs);
 }
 
+.group-selector-li {
+    display: flex;
+    align-items: center;
+}
+
 .tabs,
 .tabs-list,
 .tab {

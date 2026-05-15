@@ -87,9 +87,14 @@ const doFetch = async (path: string, options: ApiFetchOptions): Promise<Response
 
     const headers: Record<string, string> = { ...userHeaders };
 
-    const token = useAuth.getState().accessToken;
+    const authState = useAuth.getState();
+    const token = authState.accessToken;
     if (auth && token && !headers['Authorization']) {
         headers['Authorization'] = `JWT ${token}`;
+    }
+
+    if (auth && authState.selectedUserGroupUuid && !headers['X-User-Group-Uuid']) {
+        headers['X-User-Group-Uuid'] = authState.selectedUserGroupUuid;
     }
 
     const fetchBody = serializeBody(body, headers);

@@ -8,10 +8,12 @@ interface AuthState {
     accessToken?: string;
     refreshToken?: string;
     userMe?: User;
+    selectedUserGroupUuid?: string;
 
     setAccessToken: (accessToken?: string) => void;
     setRefreshToken: (refreshToken: string) => void;
     setUser: (userMe?: User) => void;
+    setSelectedUserGroupUuid: (uuid?: string) => void;
     logout: () => void;
     getUserGroupType: () => UserGroupType;
     getAccessibleGeozones: (geoZoneType?: GeoZoneType) => GeoZone[];
@@ -37,11 +39,17 @@ const useAuth = create<AuthState>()(
                     userMe,
                 }));
             },
+            setSelectedUserGroupUuid: (uuid?: string) => {
+                set(() => ({
+                    selectedUserGroupUuid: uuid,
+                }));
+            },
             logout: () => {
                 set(() => ({
                     refreshToken: undefined,
                     accessToken: undefined,
                     userMe: undefined,
+                    selectedUserGroupUuid: undefined,
                 }));
                 window.location.reload();
             },
