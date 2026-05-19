@@ -15,6 +15,7 @@ import { extendBbox } from '@/utils/geojson';
 import { Document, usePDF } from '@react-pdf/renderer';
 import { useQuery } from '@tanstack/react-query';
 import { bbox, centroid } from '@turf/turf';
+import { format } from 'date-fns';
 import { Polygon } from 'geojson';
 import classes from './index.module.scss';
 

@@ -70,6 +70,7 @@ const useMap = create<MapState>()((set, get) => ({
             userLastPosition: settings.userLastPosition,
         }));
         useObjectsFilter.getState().updateObjectsFilter(objectsFilter);
+        get().eventEmitter.emit('LAYERS_UPDATED');
 
         document.documentElement.style.setProperty('--nbr-background-layers', backgroundLayerYears.length.toString());
     },
