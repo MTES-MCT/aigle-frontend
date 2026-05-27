@@ -3,12 +3,14 @@ import { MapSettings } from '@/models/map-settings';
 import { useMap } from '@/store/slices/map';
 import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { bbox } from '@turf/turf';
 import { useCallback } from 'react';
 
 export const useGroupChange = () => {
     const { setMapSettings, eventEmitter } = useMap();
     const { setMapSettings: setStatisticsMapSettings } = useStatistics();
+    const queryClient = useQueryClient();
 
     return useCallback(async () => {
         try {
@@ -22,6 +24,7 @@ export const useGroupChange = () => {
             setMapSettings(mapSettings);
             setStatisticsMapSettings(mapSettings);
 
+            queryClient.invalidateQueries();
             eventEmitter.emit('UPDATE_DETECTIONS');
 
             if (mapSettings.userLastPosition) {
@@ -33,5 +36,5 @@ export const useGroupChange = () => {
         } catch (err) {
             console.error(err);
         }
-    }, [setMapSettings, setStatisticsMapSettings, eventEmitter]);
+    }, [setMapSettings, setStatisticsMapSettings, eventEmitter, queryClient]);
 };

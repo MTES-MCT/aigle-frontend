@@ -6,6 +6,7 @@ import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
+import { useAuth } from '@/store/slices/auth';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import { MultiSelect } from '@mantine/core';
@@ -114,6 +115,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 const Component: React.FC = () => {
     const { layers, otherObjectTypesUuids, allObjectTypes, customZoneLayers } = useStatistics();
     const { objectsFilter } = useObjectsFilter();
+    const { selectedUserGroupUuid } = useAuth();
 
     if (!layers || !objectsFilter || !otherObjectTypesUuids || !allObjectTypes || !customZoneLayers) {
         return <Loader />;
@@ -121,6 +123,7 @@ const Component: React.FC = () => {
 
     return (
         <ComponentInner
+            key={selectedUserGroupUuid}
             layers={layers}
             objectsFilter={objectsFilter}
             otherObjectTypesUuids={otherObjectTypesUuids}

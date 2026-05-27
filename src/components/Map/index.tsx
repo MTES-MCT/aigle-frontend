@@ -1202,9 +1202,9 @@ const Component: React.FC<ComponentProps> = ({
                                   minzoom: layer.tileSet.minZoom,
                               }
                             : {})}
-                        {...(boundLayers && settings && (layer.tileSet.geometryBbox || settings.globalGeometryBbox)
+                        {...(boundLayers && layer.tileSet.geometryBbox
                             ? {
-                                  bounds: bbox(layer.tileSet.geometryBbox || settings.globalGeometryBbox),
+                                  bounds: bbox(layer.tileSet.geometryBbox),
                               }
                             : {})}
                     >
