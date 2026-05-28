@@ -18,11 +18,13 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
+import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
+import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -39,7 +41,19 @@ import classes from './index.module.scss';
 
 const ZOOM_LIMIT_TO_DISPLAY_DETECTIONS = 9;
 const ZOOM_LIMIT_TO_DISPLAY_ANNOTATION_GRID = 13;
-const getMapInitialViewState = (initialPosition?: GeoJSON.Position | null, initialDetectionObjectUuid?: string) => ({
+
+// Corsica departments 2A/2B map to postcode prefix "20"; overseas (97x) use 3-digit prefixes.
+const getDepartmentPostcodePrefix = (code: string): string => {
+    if (code.startsWith('97')) return code.substring(0, 3);
+    if (code.startsWith('2A') || code.startsWith('2B')) return '20';
+    return code.substring(0, 2);
+};
+
+const getMapInitialViewState = (
+    initialPosition?: GeoJSON.Position | null,
+    initialDetectionObjectUuid?: string,
+    urlViewState?: { latitude: number; longitude: number; zoom: number } | null,
+) => ({
     longitude: 3.95657,
     latitude: 43.61951,
     zoom: 16,
@@ -49,7 +63,15 @@ const getMapInitialViewState = (initialPosition?: GeoJSON.Position | null, initi
               padding: MAP_PADDINGS.detailSectionShowed,
           }
         : {}),
-    ...(initialPosition ? { longitude: initialPosition[0], latitude: initialPosition[1] } : {}),
+    ...(urlViewState
+        ? {
+              longitude: urlViewState.longitude,
+              latitude: urlViewState.latitude,
+              zoom: urlViewState.zoom,
+          }
+        : initialPosition
+          ? { longitude: initialPosition[0], latitude: initialPosition[1] }
+          : {}),
 });
 
 const DRAW_MODE_ADD_DETECTION = 'draw_rectangle'; // draw new detection
@@ -70,11 +92,12 @@ const MAPBOX_DRAW_CONTROL = new MapboxDraw({
 });
 const MAPBOX_GEOCODER = new MapboxGeocoder({
     accessToken: MAPBOX_TOKEN,
-    mapboxgl: mapboxgl,
+    mapboxgl,
     placeholder: 'Rechercher par adresse',
+    countries: 'fr',
 });
 const MAP_CONTROLS: {
-    control: mapboxgl.Control | mapboxgl.IControl;
+    control: mapboxgl.IControl;
     position: 'top-left' | 'bottom-right' | 'top-right' | 'bottom-left';
     hideWhenNoDetection?: boolean;
     needsWritePermission?: boolean;
@@ -203,6 +226,7 @@ interface ComponentProps {
     boundLayers?: boolean;
     initialPosition?: GeoJSON.Position | null;
     initialDetectionObjectUuid?: string;
+    syncViewStateToUrl?: boolean;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -216,6 +240,7 @@ const Component: React.FC<ComponentProps> = ({
     skipProcessDetections = false,
     displayLayersSelection = true,
     initialPosition,
+    syncViewStateToUrl = false,
 }) => {
     const [mapBounds, setMapBounds] = useState<MapBounds>();
     const [detectionDetailsShowed, setDetectionDetailsShowed] = useState<DetectionDetailsShowedState | null>(
@@ -253,6 +278,7 @@ const Component: React.FC<ComponentProps> = ({
         isDetailFetching,
     } = useMap();
     const { objectsFilter } = useObjectsFilter();
+    const { userMe } = useAuth();
 
     const [cursor, setCursor] = useState<string>();
     const [mapRef, setMapRef] = useState<mapboxgl.Map>();
@@ -710,7 +736,44 @@ const Component: React.FC<ComponentProps> = ({
             swLat: bounds._sw.lat,
             swLng: bounds._sw.lng,
         });
+
+        if (syncViewStateToUrl) {
+            const center = map.getCenter();
+            setViewStateInUrl(center.lat, center.lng, map.getZoom());
+        }
     };
+
+    useEffect(() => {
+        if (settings?.globalGeometryBbox) {
+            MAPBOX_GEOCODER.setBbox(bbox(settings.globalGeometryBbox));
+        }
+    }, [settings?.globalGeometryBbox]);
+
+    useEffect(() => {
+        if (!userMe || userMe.userRole === 'SUPER_ADMIN') return;
+
+        const geoZones = userMe.userUserGroups.flatMap(({ userGroup }) => userGroup.geoZones);
+        const postcodePrefixes = new Set<string>();
+
+        for (const zone of geoZones) {
+            if (!zone.code) continue;
+
+            if (zone.geoZoneType === 'DEPARTMENT' || zone.geoZoneType === 'COMMUNE') {
+                postcodePrefixes.add(getDepartmentPostcodePrefix(zone.code));
+            }
+        }
+
+        if (postcodePrefixes.size > 0) {
+            MAPBOX_GEOCODER.setFilter((feature: GeoJSON.Feature) => {
+                const context = (feature as { context?: { id: string; text: string }[] }).context;
+                const postcodeEntry = context?.find((c) => c.id.startsWith('postcode.'));
+
+                if (!postcodeEntry) return true;
+
+                return postcodePrefixes.has(getDepartmentPostcodePrefix(postcodeEntry.text));
+            });
+        }
+    }, [userMe]);
 
     // map click events
 
@@ -905,7 +968,11 @@ const Component: React.FC<ComponentProps> = ({
                 reuseMaps={true}
                 ref={handleMapRef}
                 mapboxAccessToken={MAPBOX_TOKEN}
-                initialViewState={getMapInitialViewState(initialPosition, initialDetectionObjectUuid)}
+                initialViewState={getMapInitialViewState(
+                    initialPosition,
+                    initialDetectionObjectUuid,
+                    syncViewStateToUrl && !initialDetectionObjectUuid ? getViewStateFromUrl() : null,
+                )}
                 onLoad={loadDataFromBounds}
                 onMoveEnd={loadDataFromBounds}
                 interactiveLayerIds={[GEOJSON_DETECTIONS_LAYER_ID]}
@@ -1202,9 +1269,9 @@ const Component: React.FC<ComponentProps> = ({
                                   minzoom: layer.tileSet.minZoom,
                               }
                             : {})}
-                        {...(boundLayers && settings && (layer.tileSet.geometryBbox || settings.globalGeometryBbox)
+                        {...(boundLayers && layer.tileSet.geometryBbox
                             ? {
-                                  bounds: bbox(layer.tileSet.geometryBbox || settings.globalGeometryBbox),
+                                  bounds: bbox(layer.tileSet.geometryBbox),
                               }
                             : {})}
                     >

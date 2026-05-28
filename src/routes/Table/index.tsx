@@ -227,6 +227,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 const Component: React.FC = () => {
     const { allObjectTypes, customZoneLayers, otherObjectTypesUuids } = useStatistics();
     const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
+    const { selectedUserGroupUuid } = useAuth();
 
     if (!objectsFilter || !allObjectTypes || !customZoneLayers || !otherObjectTypesUuids) {
         return (
@@ -239,6 +240,7 @@ const Component: React.FC = () => {
     return (
         <LayoutBase title="Tableau">
             <ComponentInner
+                key={selectedUserGroupUuid}
                 allObjectTypes={allObjectTypes}
                 objectsFilter={objectsFilter}
                 mapGeoCustomZoneLayers={customZoneLayers}
