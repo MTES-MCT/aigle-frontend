@@ -23,6 +23,7 @@ const Component: React.FC = () => {
                         layers={layers}
                         initialPosition={userLastPosition}
                         initialDetectionObjectUuid={initialDetectionObjectUuid}
+                        syncViewStateToUrl
                     />
                 ) : (
                     <Loader className={classes.loader} />

@@ -24,6 +24,7 @@ import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
+import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
 import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -48,7 +49,11 @@ const getDepartmentPostcodePrefix = (code: string): string => {
     return code.substring(0, 2);
 };
 
-const getMapInitialViewState = (initialPosition?: GeoJSON.Position | null, initialDetectionObjectUuid?: string) => ({
+const getMapInitialViewState = (
+    initialPosition?: GeoJSON.Position | null,
+    initialDetectionObjectUuid?: string,
+    urlViewState?: { latitude: number; longitude: number; zoom: number } | null,
+) => ({
     longitude: 3.95657,
     latitude: 43.61951,
     zoom: 16,
@@ -58,7 +63,15 @@ const getMapInitialViewState = (initialPosition?: GeoJSON.Position | null, initi
               padding: MAP_PADDINGS.detailSectionShowed,
           }
         : {}),
-    ...(initialPosition ? { longitude: initialPosition[0], latitude: initialPosition[1] } : {}),
+    ...(urlViewState
+        ? {
+              longitude: urlViewState.longitude,
+              latitude: urlViewState.latitude,
+              zoom: urlViewState.zoom,
+          }
+        : initialPosition
+          ? { longitude: initialPosition[0], latitude: initialPosition[1] }
+          : {}),
 });
 
 const DRAW_MODE_ADD_DETECTION = 'draw_rectangle'; // draw new detection
@@ -213,6 +226,7 @@ interface ComponentProps {
     boundLayers?: boolean;
     initialPosition?: GeoJSON.Position | null;
     initialDetectionObjectUuid?: string;
+    syncViewStateToUrl?: boolean;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -226,6 +240,7 @@ const Component: React.FC<ComponentProps> = ({
     skipProcessDetections = false,
     displayLayersSelection = true,
     initialPosition,
+    syncViewStateToUrl = false,
 }) => {
     const [mapBounds, setMapBounds] = useState<MapBounds>();
     const [detectionDetailsShowed, setDetectionDetailsShowed] = useState<DetectionDetailsShowedState | null>(
@@ -721,6 +736,11 @@ const Component: React.FC<ComponentProps> = ({
             swLat: bounds._sw.lat,
             swLng: bounds._sw.lng,
         });
+
+        if (syncViewStateToUrl) {
+            const center = map.getCenter();
+            setViewStateInUrl(center.lat, center.lng, map.getZoom());
+        }
     };
 
     useEffect(() => {
@@ -948,7 +968,11 @@ const Component: React.FC<ComponentProps> = ({
                 reuseMaps={true}
                 ref={handleMapRef}
                 mapboxAccessToken={MAPBOX_TOKEN}
-                initialViewState={getMapInitialViewState(initialPosition, initialDetectionObjectUuid)}
+                initialViewState={getMapInitialViewState(
+                    initialPosition,
+                    initialDetectionObjectUuid,
+                    syncViewStateToUrl && !initialDetectionObjectUuid ? getViewStateFromUrl() : null,
+                )}
                 onLoad={loadDataFromBounds}
                 onMoveEnd={loadDataFromBounds}
                 interactiveLayerIds={[GEOJSON_DETECTIONS_LAYER_ID]}
