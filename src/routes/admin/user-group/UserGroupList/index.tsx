@@ -11,20 +11,22 @@ import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { GeoZone } from '@/models/geo/geo-zone';
 import { ObjectTypeCategory } from '@/models/object-type-category';
-import { UserGroupDetail } from '@/models/user-group';
+import { UserGroupDetail, UserGroupType, userGroupTypes } from '@/models/user-group';
 import { userGroupBulkConfig } from '@/routes/admin/user-group/UserGroupList/bulkConfig';
 import { USER_GROUP_TYPES_NAMES_MAP } from '@/utils/constants';
-import { Button, Input, Table } from '@mantine/core';
+import { Button, Checkbox, Input, Stack, Table } from '@mantine/core';
 import { IconSearch, IconUserPlus } from '@tabler/icons-react';
 import isEqual from 'lodash/isEqual';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface DataFilter {
     q: string;
+    userGroupTypes: UserGroupType[];
 }
 
 const DATA_FILTER_INITIAL_VALUE: DataFilter = {
     q: '',
+    userGroupTypes: [...userGroupTypes].sort(),
 };
 
 const Component: React.FC = () => {
@@ -64,6 +66,28 @@ const Component: React.FC = () => {
                                 }));
                             }}
                         />
+
+                        <Checkbox.Group
+                            label="Type"
+                            value={filter.userGroupTypes}
+                            onChange={(userGroupTypes) => {
+                                setFilter((filter) => ({
+                                    ...filter,
+                                    userGroupTypes: (userGroupTypes as UserGroupType[]).sort(),
+                                }));
+                            }}
+                        >
+                            <Stack gap={0}>
+                                {userGroupTypes.map((type) => (
+                                    <Checkbox
+                                        mt="xs"
+                                        key={type}
+                                        value={type}
+                                        label={USER_GROUP_TYPES_NAMES_MAP[type]}
+                                    />
+                                ))}
+                            </Stack>
+                        </Checkbox.Group>
                     </SoloAccordion>
                 }
                 tableHeader={[
