@@ -4,6 +4,7 @@ import { customZoneEndpoints, objectTypeCategoryEndpoints, userGroupEndpoints, u
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
+import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
@@ -133,6 +134,17 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 {...form.getInputProps('geoCustomZonesUuids')}
             />
             <h2 className="form-sub-title">Collectivités accessibles par le groupe</h2>
+
+            <InfoCard title="Droits d'accès">
+                <p>
+                    Les droits d&apos;accès sont cumulatifs : ajouter un département donne accès à l&apos;ensemble de
+                    ses communes.
+                </p>
+                <p>
+                    Si le groupe ne doit accéder qu&apos;à certaines communes, sélectionnez uniquement ces communes sans
+                    ajouter leur département ni leur région.
+                </p>
+            </InfoCard>
 
             <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
 
