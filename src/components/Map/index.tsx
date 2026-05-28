@@ -18,6 +18,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
+import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
@@ -39,6 +40,14 @@ import classes from './index.module.scss';
 
 const ZOOM_LIMIT_TO_DISPLAY_DETECTIONS = 9;
 const ZOOM_LIMIT_TO_DISPLAY_ANNOTATION_GRID = 13;
+
+// Corsica departments 2A/2B map to postcode prefix "20"; overseas (97x) use 3-digit prefixes.
+const getDepartmentPostcodePrefix = (code: string): string => {
+    if (code.startsWith('97')) return code.substring(0, 3);
+    if (code.startsWith('2A') || code.startsWith('2B')) return '20';
+    return code.substring(0, 2);
+};
+
 const getMapInitialViewState = (initialPosition?: GeoJSON.Position | null, initialDetectionObjectUuid?: string) => ({
     longitude: 3.95657,
     latitude: 43.61951,
@@ -70,11 +79,12 @@ const MAPBOX_DRAW_CONTROL = new MapboxDraw({
 });
 const MAPBOX_GEOCODER = new MapboxGeocoder({
     accessToken: MAPBOX_TOKEN,
-    mapboxgl: mapboxgl,
+    mapboxgl,
     placeholder: 'Rechercher par adresse',
+    countries: 'fr',
 });
 const MAP_CONTROLS: {
-    control: mapboxgl.Control | mapboxgl.IControl;
+    control: mapboxgl.IControl;
     position: 'top-left' | 'bottom-right' | 'top-right' | 'bottom-left';
     hideWhenNoDetection?: boolean;
     needsWritePermission?: boolean;
@@ -253,6 +263,7 @@ const Component: React.FC<ComponentProps> = ({
         isDetailFetching,
     } = useMap();
     const { objectsFilter } = useObjectsFilter();
+    const { userMe } = useAuth();
 
     const [cursor, setCursor] = useState<string>();
     const [mapRef, setMapRef] = useState<mapboxgl.Map>();
@@ -711,6 +722,38 @@ const Component: React.FC<ComponentProps> = ({
             swLng: bounds._sw.lng,
         });
     };
+
+    useEffect(() => {
+        if (settings?.globalGeometryBbox) {
+            MAPBOX_GEOCODER.setBbox(bbox(settings.globalGeometryBbox));
+        }
+    }, [settings?.globalGeometryBbox]);
+
+    useEffect(() => {
+        if (!userMe || userMe.userRole === 'SUPER_ADMIN') return;
+
+        const geoZones = userMe.userUserGroups.flatMap(({ userGroup }) => userGroup.geoZones);
+        const postcodePrefixes = new Set<string>();
+
+        for (const zone of geoZones) {
+            if (!zone.code) continue;
+
+            if (zone.geoZoneType === 'DEPARTMENT' || zone.geoZoneType === 'COMMUNE') {
+                postcodePrefixes.add(getDepartmentPostcodePrefix(zone.code));
+            }
+        }
+
+        if (postcodePrefixes.size > 0) {
+            MAPBOX_GEOCODER.setFilter((feature: GeoJSON.Feature) => {
+                const context = (feature as { context?: { id: string; text: string }[] }).context;
+                const postcodeEntry = context?.find((c) => c.id.startsWith('postcode.'));
+
+                if (!postcodeEntry) return true;
+
+                return postcodePrefixes.has(getDepartmentPostcodePrefix(postcodeEntry.text));
+            });
+        }
+    }, [userMe]);
 
     // map click events
 
