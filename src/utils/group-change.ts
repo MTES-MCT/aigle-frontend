@@ -21,6 +21,10 @@ export const useGroupChange = () => {
                 mapSettings.userLastPosition = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
             }
 
+            const url = new URL(window.location.href);
+            url.search = '';
+            window.history.replaceState({}, '', url.toString());
+
             setMapSettings(mapSettings);
             setStatisticsMapSettings(mapSettings);
 
