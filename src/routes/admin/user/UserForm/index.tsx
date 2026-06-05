@@ -5,6 +5,7 @@ import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { ObjectType } from '@/models/object-type';
 import { SelectOption } from '@/models/ui/select-option';
 import { User, UserRole, UserUserGroupInput, userGroupRights, userRoles } from '@/models/user';
@@ -27,7 +28,7 @@ import { UseFormReturnType, isEmail, isNotEmpty, useForm } from '@mantine/form';
 import { IconTrash, IconUserPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
 import omit from 'lodash/omit';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/users';
 
@@ -61,7 +62,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
     const [error, setError] = useState<ApiError>();
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
     const { userMe } = useAuth();
 
     const [searchGroupValue, setSearchGroupValue] = useState('');
@@ -252,7 +253,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
                     type="button"
                     variant="outline"
                     component={Link}
-                    to={BACK_URL}
+                    to={buildPath(BACK_URL)}
                 >
                     Annuler
                 </Button>

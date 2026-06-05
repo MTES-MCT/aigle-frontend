@@ -7,6 +7,7 @@ import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ObjectTypeCategory } from '@/models/object-type-category';
@@ -18,7 +19,7 @@ import { Button, MultiSelect, Select, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconUserPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/user-groups';
 
@@ -49,7 +50,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, categories, geoCustomZones }) => {
     const [error, setError] = useState<ApiError>();
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
@@ -154,7 +155,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     type="button"
                     variant="outline"
                     component={Link}
-                    to={BACK_URL}
+                    to={buildPath(BACK_URL)}
                 >
                     Annuler
                 </Button>

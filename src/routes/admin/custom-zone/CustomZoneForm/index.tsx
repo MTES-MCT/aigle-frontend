@@ -9,10 +9,11 @@ import { Button, ColorInput, Select, TextInput } from '@mantine/core';
 import { isNotEmpty, useForm, UseFormReturnType } from '@mantine/form';
 import { IconHexagonPlus2 } from '@tabler/icons-react';
 import { useMutation, UseMutationResult, useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import InfoCard from '@/components/ui/InfoCard';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import {
     GeoCustomZoneDetail,
     GeoCustomZoneStatus,
@@ -62,7 +63,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geoCustomZoneCategories }) => {
     const [error, setError] = useState<ApiError>();
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
     const { userMe } = useAuth();
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -195,7 +196,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     type="button"
                     variant="outline"
                     component={Link}
-                    to={BACK_URL}
+                    to={buildPath(BACK_URL)}
                 >
                     Annuler
                 </Button>

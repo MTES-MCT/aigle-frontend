@@ -6,6 +6,7 @@ import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import InfoCard from '@/components/ui/InfoCard';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { TileSetDetail, TileSetScheme, tileSetSchemes, TileSetStatus, tileSetStatuses } from '@/models/tile-set';
 import { tileSetBulkConfig } from '@/routes/admin/tile-set/TileSetList/bulkConfig';
@@ -15,7 +16,7 @@ import { Button, Checkbox, Input, Stack, Table, Tooltip } from '@mantine/core';
 import { IconLink, IconMapPlus, IconSearch, IconX } from '@tabler/icons-react';
 import { format } from 'date-fns';
 import isEqual from 'lodash/isEqual';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 interface DataFilter {
     q: string;
@@ -30,7 +31,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 };
 
 const Component: React.FC = () => {
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
     const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     return (
@@ -39,11 +40,7 @@ const Component: React.FC = () => {
             actions={
                 <>
                     <BulkImportExportButtons config={tileSetBulkConfig} exportParams={filter} />
-                    <Button
-                        leftSection={<IconMapPlus />}
-                        component={Link}
-                        to={`/admin/tile-sets/form${window.location.search}`}
-                    >
+                    <Button leftSection={<IconMapPlus />} component={Link} to={buildPath('/admin/tile-sets/form')}>
                         Ajouter un fond de carte
                     </Button>
                 </>
@@ -168,7 +165,7 @@ const Component: React.FC = () => {
                         }
                     },
                 ]}
-                onItemClick={({ uuid }) => navigate(`/admin/tile-sets/form/${uuid}${window.location.search}`)}
+                onItemClick={({ uuid }) => navigate(`/admin/tile-sets/form/${uuid}`)}
             />
         </LayoutAdminBase>
     );

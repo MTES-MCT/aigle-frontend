@@ -8,6 +8,7 @@ import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import UserGroupRightIcon from '@/components/icons/UserGroupRightIcon';
 import DateInfo from '@/components/ui/DateInfo';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { Uuided } from '@/models/data';
 import { User, UserRole, UserUserGroup, userRoles } from '@/models/user';
@@ -20,7 +21,7 @@ import { Button, Checkbox, Input, MultiSelect, Stack, Table } from '@mantine/cor
 import { IconSearch, IconUserPlus } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 interface DataFilter {
     email: string;
@@ -40,7 +41,7 @@ interface UuidedUserUserGroup extends Uuided {
 
 const Component: React.FC = () => {
     const { userMe } = useAuth();
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
     const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     const { data: userGroups } = useQuery({
@@ -54,11 +55,7 @@ const Component: React.FC = () => {
             actions={
                 <>
                     <BulkImportExportButtons config={userBulkConfig} exportParams={filter} />
-                    <Button
-                        leftSection={<IconUserPlus />}
-                        component={Link}
-                        to={`/admin/users/form${window.location.search}`}
-                    >
+                    <Button leftSection={<IconUserPlus />} component={Link} to={buildPath('/admin/users/form')}>
                         Ajouter un utilisateur
                     </Button>
                 </>
@@ -151,7 +148,7 @@ const Component: React.FC = () => {
                         />
                     ),
                 ]}
-                onItemClick={({ uuid }) => navigate(`/admin/users/form/${uuid}${window.location.search}`)}
+                onItemClick={({ uuid }) => navigate(`/admin/users/form/${uuid}`)}
             />
         </LayoutAdminBase>
     );

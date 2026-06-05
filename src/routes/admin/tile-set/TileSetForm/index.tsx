@@ -8,6 +8,7 @@ import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { MapTileSetLayer } from '@/models/map-layer';
 import {
     TileSet,
@@ -32,7 +33,7 @@ import { IconMapPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
 import { format, formatISO, parse } from 'date-fns';
 import { Geometry } from 'geojson';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import classes from './index.module.scss';
 
 const BACK_URL = '/admin/tile-sets';
@@ -150,7 +151,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, geometry, userMe }) => {
     const [error, setError] = useState<ApiError>();
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
     const shouldNavigateRef = useRef(true);
     const [mapPreviewProps, setMapPreviewProps] = useState<MapPreviewProps>({
         uuid,
@@ -520,7 +521,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     type="button"
                     variant="outline"
                     component={Link}
-                    to={BACK_URL}
+                    to={buildPath(BACK_URL)}
                 >
                     Annuler
                 </Button>

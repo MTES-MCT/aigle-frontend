@@ -7,6 +7,7 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import SelectItem from '@/components/ui/SelectItem';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { Uuided } from '@/models/data';
 import { ObjectType } from '@/models/object-type';
@@ -20,7 +21,7 @@ import { Button, Input, MultiSelect, Table } from '@mantine/core';
 import { IconCategoryPlus, IconEye, IconEyeDotted, IconEyeOff, IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 interface DataFilter {
     q: string;
@@ -55,7 +56,7 @@ const ObjectTypeCategoryIcon: React.FC<ObjectTypeCategoryIconProps> = ({ objectT
 };
 
 const Component: React.FC = () => {
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
     const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
     const fetchObjectTypes = () => api<ObjectType[]>(objectTypeEndpoints.list);
@@ -81,7 +82,7 @@ const Component: React.FC = () => {
                     <Button
                         leftSection={<IconCategoryPlus />}
                         component={Link}
-                        to={`/admin/object-type-categories/form${window.location.search}`}
+                        to={buildPath('/admin/object-type-categories/form')}
                     >
                         Ajouter une thématique
                     </Button>
@@ -155,9 +156,7 @@ const Component: React.FC = () => {
                         />
                     ),
                 ]}
-                onItemClick={({ uuid }) =>
-                    navigate(`/admin/object-type-categories/form/${uuid}${window.location.search}`)
-                }
+                onItemClick={({ uuid }) => navigate(`/admin/object-type-categories/form/${uuid}`)}
             />
         </LayoutAdminBase>
     );

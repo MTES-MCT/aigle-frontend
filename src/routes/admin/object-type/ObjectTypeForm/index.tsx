@@ -4,13 +4,14 @@ import { objectTypeEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { ObjectType, ObjectTypeDetail } from '@/models/object-type';
 import api, { ApiError } from '@/utils/api';
 import { Button, ColorInput, NumberInput, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconCubePlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/object-types';
 
@@ -39,7 +40,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
     const [error, setError] = useState<ApiError>();
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
 
     const form: UseFormReturnType<FormValues> = useForm({
         mode: 'uncontrolled',
@@ -110,7 +111,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }) => {
                     type="button"
                     variant="outline"
                     component={Link}
-                    to={BACK_URL}
+                    to={buildPath(BACK_URL)}
                 >
                     Annuler
                 </Button>

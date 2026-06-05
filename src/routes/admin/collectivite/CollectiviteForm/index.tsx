@@ -5,6 +5,7 @@ import Map from '@/components/Map';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { CollectivityType, GeoCollectivity, GeoCollectivityDetail, collectivityTypes } from '@/models/geo/_common';
 import { MapTileSetLayer } from '@/models/map-layer';
 import api, { ApiError } from '@/utils/api';
@@ -90,7 +91,7 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geometry, backUrl }) => {
     const [error, setError] = useState<ApiError>();
     const [mapPreviewShowed, setMapPreviewShowed] = useState(false);
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
 
     const form: UseFormReturnType<FormValues> = useForm({
         mode: 'uncontrolled',
@@ -158,7 +159,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geom
                     type="button"
                     variant="outline"
                     component={Link}
-                    to={backUrl}
+                    to={buildPath(backUrl)}
                 >
                     Annuler
                 </Button>
