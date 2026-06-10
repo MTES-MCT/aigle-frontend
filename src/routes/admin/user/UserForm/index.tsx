@@ -17,6 +17,7 @@ import {
     ActionIcon,
     Autocomplete,
     Button,
+    Checkbox,
     Group,
     MultiSelect,
     PasswordInput,
@@ -43,6 +44,7 @@ interface FormValues {
     email: string;
     userRole: UserRole;
     password: string;
+    isStaff: boolean;
     userUserGroups: UserUserGroupInput[];
 }
 
@@ -173,6 +175,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
             <Button mt="xs" variant="light" onClick={() => form.setFieldValue('password', generateRandomPassword())}>
                 Générer un mot de passe aléatoire
             </Button>
+            <Checkbox
+                mt="md"
+                label="Membre du staff"
+                key={form.key('isStaff')}
+                {...form.getInputProps('isStaff', { type: 'checkbox' })}
+            />
             <Select
                 allowDeselect={false}
                 label="Rôle"
@@ -275,6 +283,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     email: '',
     userRole: 'REGULAR',
     password: '',
+    isStaff: false,
     userUserGroups: [],
 };
 

@@ -18,7 +18,7 @@ import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
 import { ROLES_NAMES_MAP, USER_GROUP_RIGHTS_ORDERED } from '@/utils/constants';
 import { Button, Checkbox, Input, MultiSelect, Stack, Table } from '@mantine/core';
-import { IconSearch, IconUserPlus } from '@tabler/icons-react';
+import { IconCheck, IconSearch, IconUserPlus } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import { Link } from 'react-router-dom';
@@ -120,12 +120,14 @@ const Component: React.FC = () => {
                     <Table.Th key="createdAt">Date création</Table.Th>,
                     <Table.Th key="email">Email</Table.Th>,
                     <Table.Th key="role">Rôle</Table.Th>,
+                    <Table.Th key="isStaff">Staff</Table.Th>,
                     <Table.Th key="groups">Groupes</Table.Th>,
                 ]}
                 tableBodyRenderFns={[
                     (item: User) => <DateInfo date={item.createdAt} />,
                     (item: User) => item.email,
                     (item: User) => ROLES_NAMES_MAP[item.userRole],
+                    (item: User) => (item.isStaff ? <IconCheck size={16} /> : null),
                     (item: User) => (
                         <PillsDataCell<UuidedUserUserGroup>
                             items={item.userUserGroups.map((userUserGroup) => ({

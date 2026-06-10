@@ -20,5 +20,6 @@ export interface UserUserGroup {
 export interface User extends Uuided, Timestamped {
     email: string;
     userRole: UserRole;
+    isStaff: boolean;
     userUserGroups: UserUserGroup[];
 }
