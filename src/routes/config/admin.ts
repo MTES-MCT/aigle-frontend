@@ -3,6 +3,8 @@ import CollectiviteList from '@/routes/admin/collectivite/CollectiviteList';
 import CustomZoneCategoryForm from '@/routes/admin/custom-zone/CustomZoneCategoryForm';
 import CustomZoneForm from '@/routes/admin/custom-zone/CustomZoneForm';
 import CustomZoneList from '@/routes/admin/custom-zone/CustomZoneList';
+import DeployedDataDetail from '@/routes/admin/deployed-data/DeployedDataDetail';
+import DeployedDataList from '@/routes/admin/deployed-data/DeployedDataList';
 import ImportsPage from '@/routes/admin/imports';
 import ObjectTypeCategoryForm from '@/routes/admin/object-type-category/ObjectTypeCategoryForm';
 import ObjectTypeCategoryList from '@/routes/admin/object-type-category/ObjectTypeCategoryList';
@@ -187,6 +189,20 @@ export const adminRoutes: RouteGroup = {
         {
             path: '/admin/user-action-logs',
             component: UserActionLogList,
+            roles: ['SUPER_ADMIN'],
+            requiresAuth: true,
+        },
+
+        // Deployed Data - Super Admin Only
+        {
+            path: '/admin/deployed-data',
+            component: DeployedDataList,
+            roles: ['SUPER_ADMIN'],
+            requiresAuth: true,
+        },
+        {
+            path: '/admin/deployed-data/:uuid',
+            component: DeployedDataDetail,
             roles: ['SUPER_ADMIN'],
             requiresAuth: true,
         },

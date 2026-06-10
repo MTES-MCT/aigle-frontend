@@ -12,6 +12,7 @@ interface ComponentProps {
     className?: string;
     opened?: boolean;
     title?: string;
+    icon?: React.ReactNode;
 }
 
 const Component: React.FC<PropsWithChildren<ComponentProps>> = ({
@@ -20,6 +21,7 @@ const Component: React.FC<PropsWithChildren<ComponentProps>> = ({
     className,
     opened,
     title = 'Filtres',
+    icon = <IconAdjustments />,
 }: PropsWithChildren<ComponentProps>) => {
     return (
         <Accordion
@@ -28,13 +30,7 @@ const Component: React.FC<PropsWithChildren<ComponentProps>> = ({
             defaultValue={opened ? ACCORDION_ITEM_VALUE : undefined}
         >
             <Accordion.Item key={ACCORDION_ITEM_VALUE} value={ACCORDION_ITEM_VALUE}>
-                <Accordion.Control
-                    icon={
-                        <Indicator disabled={!indicatorShown}>
-                            <IconAdjustments />
-                        </Indicator>
-                    }
-                >
+                <Accordion.Control icon={<Indicator disabled={!indicatorShown}>{icon}</Indicator>}>
                     {title}
                 </Accordion.Control>
                 <Accordion.Panel className={classes.content}>{children}</Accordion.Panel>
