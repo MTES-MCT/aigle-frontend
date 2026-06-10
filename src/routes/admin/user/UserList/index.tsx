@@ -120,7 +120,7 @@ const Component: React.FC = () => {
                     <Table.Th key="createdAt">Date création</Table.Th>,
                     <Table.Th key="email">Email</Table.Th>,
                     <Table.Th key="role">Rôle</Table.Th>,
-                    <Table.Th key="isStaff">Staff</Table.Th>,
+                    <Table.Th key="isStaff">Interne</Table.Th>,
                     <Table.Th key="groups">Groupes</Table.Th>,
                 ]}
                 tableBodyRenderFns={[

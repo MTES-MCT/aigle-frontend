@@ -177,7 +177,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
             </Button>
             <Checkbox
                 mt="md"
-                label="Membre du staff"
+                label="Utilisateur interne"
                 key={form.key('isStaff')}
                 {...form.getInputProps('isStaff', { type: 'checkbox' })}
             />
