@@ -1,8 +1,10 @@
 import React from 'react';
 
 import { DownloadOutputFormat, detectionEndpoints } from '@/api/endpoints';
+import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
+import { useStatistics } from '@/store/slices/statistics';
 import api, { ApiError } from '@/utils/api';
 import { Button } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
@@ -53,10 +55,16 @@ const Component: React.FC<ComponentProps> = ({
     ordering,
 }: ComponentProps) => {
     const { objectsFilter } = useObjectsFilter();
+    const { otherObjectTypesUuids } = useStatistics();
+
+    const apiObjectsFilter =
+        objectsFilter && otherObjectTypesUuids
+            ? objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids)
+            : objectsFilter;
 
     const mutation: UseMutationResult<void, ApiError, DownloadOutputFormat> = useMutation({
         mutationFn: (outputFormat: DownloadOutputFormat) =>
-            download(outputFormat, communesUuids, departmentsUuids, regionsUuids, objectsFilter, ordering),
+            download(outputFormat, communesUuids, departmentsUuids, regionsUuids, apiObjectsFilter, ordering),
         onSuccess: (data, outputFormat) => {
             const blob = new Blob([data], { type: data.type });
             const url = window.URL.createObjectURL(blob);
