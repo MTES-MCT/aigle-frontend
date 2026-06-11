@@ -1,0 +1,16 @@
+.detail-container {
+    padding: 0.5rem 0.25rem;
+}
+
+.detail-log {
+    max-height: 320px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.8rem;
+}
+
+.task-id {
+    font-family: var(--mantine-font-family-monospace);
+    word-break: break-all;
+}

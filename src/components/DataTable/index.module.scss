@@ -72,3 +72,17 @@ $space-between-elements: 16px;
     margin-top: var(--mantine-spacing-md);
     margin-bottom: var(--mantine-spacing-md);
 }
+
+.refetch-control {
+    align-items: flex-end;
+}
+
+.refetch-loader {
+    /* fixed width prevents the Select from shifting when the spinner appears/disappears */
+    width: 16px;
+    /* matches Mantine default Select input height */
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
