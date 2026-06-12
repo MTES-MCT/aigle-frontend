@@ -5,13 +5,14 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
-import { CommandRun, CommandRunStatus, commandRunStatuses } from '@/models/command';
+import { CommandRun, CommandRunStatus, commandRunStatuses, CommandWithParameters } from '@/models/command';
+import RunCommandModal from '@/routes/admin/run-command/RunCommandExecute/RunCommandModal';
 import api, { ApiError } from '@/utils/api';
 import { colors } from '@/utils/colors';
-import { ActionIcon, Badge, Checkbox, Code, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Checkbox, Code, Group, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconCancel } from '@tabler/icons-react';
-import { useMutation, UseMutationResult, useQueryClient } from '@tanstack/react-query';
+import { IconCancel, IconReload } from '@tabler/icons-react';
+import { useMutation, UseMutationResult, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isEqual } from 'lodash';
 import classes from './index.module.scss';
 
@@ -164,72 +165,122 @@ const Component: React.FC = () => {
     });
     const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
 
+    // Available commands (with their parameter definitions) needed to re-open the launch
+    // modal for a retry. Shares the TanStack Query cache with the "Exécuter" tab.
+    const { data: commands } = useQuery<CommandWithParameters[]>({
+        queryKey: [runCommandEndpoints.list],
+        queryFn: () => api<CommandWithParameters[]>(runCommandEndpoints.list),
+    });
+    const [retryModal, setRetryModal] = React.useState<{
+        command: CommandWithParameters;
+        initialValues: CommandRun['arguments']['kwargs'];
+    }>();
+
+    const handleRetry = (item: CommandRun) => {
+        const command = (commands || []).find((command) => command.name === item.commandName);
+
+        if (!command) {
+            notifications.show({
+                title: 'Commande introuvable',
+                message: "Cette commande n'est plus disponible et ne peut pas être relancée.",
+            });
+            return;
+        }
+
+        setRetryModal({ command, initialValues: item.arguments.kwargs });
+    };
+
     return (
-        <DataTable<CommandRun, DataFilter>
-            endpoint={runCommandEndpoints.tasks}
-            filter={filter}
-            refetchInterval={INITIAL_REFETCH_INTERVAL_MS}
-            SoloAccordion={
-                <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
-                    <Checkbox.Group
-                        label="Statuts"
-                        value={filter.statuses}
-                        onChange={(statuses) => {
-                            setFilter((filter) => ({
-                                ...filter,
-                                statuses: (statuses as CommandRunStatus[]).sort(),
-                            }));
-                        }}
-                    >
-                        <Stack gap={0}>
-                            {commandRunStatuses.map((status) => (
-                                <Checkbox
-                                    mt="xs"
-                                    key={status}
-                                    value={status}
-                                    label={COMMAND_RUN_STATUS_NAMES_MAP[status]}
-                                />
-                            ))}
-                        </Stack>
-                    </Checkbox.Group>
-                </SoloAccordion>
-            }
-            tableHeader={[
-                <Table.Th key="actions" />,
-                <Table.Th key="createdAt">Date</Table.Th>,
-                <Table.Th key="name">Commande</Table.Th>,
-                <Table.Th key="arguments">Arguments</Table.Th>,
-                <Table.Th key="status">Statut</Table.Th>,
-                <Table.Th key="taskId">Task id</Table.Th>,
-            ]}
-            tableBodyRenderFns={[
-                (item: CommandRun) => (
-                    <Tooltip label="Annuler la tâche">
-                        <ActionIcon
-                            disabled={!ACTIVE_STATUSES.includes(item.status)}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                mutation.mutate(item.taskId);
+        <>
+            <DataTable<CommandRun, DataFilter>
+                endpoint={runCommandEndpoints.tasks}
+                filter={filter}
+                refetchInterval={INITIAL_REFETCH_INTERVAL_MS}
+                SoloAccordion={
+                    <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                        <Checkbox.Group
+                            label="Statuts"
+                            value={filter.statuses}
+                            onChange={(statuses) => {
+                                setFilter((filter) => ({
+                                    ...filter,
+                                    statuses: (statuses as CommandRunStatus[]).sort(),
+                                }));
                             }}
-                            color="red"
-                            variant="subtle"
                         >
-                            <IconCancel />
-                        </ActionIcon>
-                    </Tooltip>
-                ),
-                (item: CommandRun) => <DateInfo date={item.createdAt} />,
-                (item: CommandRun) => item.commandName,
-                (item: CommandRun) => <ArgumentsDisplay arguments={item.arguments} />,
-                (item: CommandRun) => <StatusBadge status={item.status} />,
-                (item: CommandRun) => (
-                    <Text size="xs" c="dimmed" className={classes['task-id']}>
-                        {item.taskId}
-                    </Text>
-                ),
-            ]}
-            getExpandedContent={(item: CommandRun) => <CommandRunDetail item={item} />}
-        />
+                            <Stack gap={0}>
+                                {commandRunStatuses.map((status) => (
+                                    <Checkbox
+                                        mt="xs"
+                                        key={status}
+                                        value={status}
+                                        label={COMMAND_RUN_STATUS_NAMES_MAP[status]}
+                                    />
+                                ))}
+                            </Stack>
+                        </Checkbox.Group>
+                    </SoloAccordion>
+                }
+                tableHeader={[
+                    <Table.Th key="actions" />,
+                    <Table.Th key="createdAt">Date</Table.Th>,
+                    <Table.Th key="name">Commande</Table.Th>,
+                    <Table.Th key="arguments">Arguments</Table.Th>,
+                    <Table.Th key="status">Statut</Table.Th>,
+                    <Table.Th key="taskId">Task id</Table.Th>,
+                ]}
+                tableBodyRenderFns={[
+                    (item: CommandRun) => (
+                        <Group gap="xs" wrap="nowrap">
+                            <Tooltip label="Annuler la tâche">
+                                <ActionIcon
+                                    disabled={!ACTIVE_STATUSES.includes(item.status)}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        mutation.mutate(item.taskId);
+                                    }}
+                                    color="red"
+                                    variant="subtle"
+                                >
+                                    <IconCancel />
+                                </ActionIcon>
+                            </Tooltip>
+                            {item.status === 'ERROR' ? (
+                                <Tooltip label="Relancer la commande">
+                                    <ActionIcon
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            handleRetry(item);
+                                        }}
+                                        color="blue"
+                                        variant="subtle"
+                                    >
+                                        <IconReload />
+                                    </ActionIcon>
+                                </Tooltip>
+                            ) : null}
+                        </Group>
+                    ),
+                    (item: CommandRun) => <DateInfo date={item.createdAt} />,
+                    (item: CommandRun) => item.commandName,
+                    (item: CommandRun) => <ArgumentsDisplay arguments={item.arguments} />,
+                    (item: CommandRun) => <StatusBadge status={item.status} />,
+                    (item: CommandRun) => (
+                        <Text size="xs" c="dimmed" className={classes['task-id']}>
+                            {item.taskId}
+                        </Text>
+                    ),
+                ]}
+                getExpandedContent={(item: CommandRun) => <CommandRunDetail item={item} />}
+            />
+
+            <RunCommandModal
+                isShowed={!!retryModal}
+                hide={() => setRetryModal(undefined)}
+                command={retryModal?.command}
+                initialParamsValues={retryModal?.initialValues}
+            />
+        </>
     );
 };
 

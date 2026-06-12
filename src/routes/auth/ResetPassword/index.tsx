@@ -35,7 +35,7 @@ const Success: React.FC<SuccessProps> = ({ email }) => {
             </Alert>
 
             <Button component={Link} to={DEFAULT_ROUTE} mt="md">
-                Retour à la page d&apos;acueuil
+                Retour à la page d&apos;accueil
             </Button>
         </LayoutAuth>
     );

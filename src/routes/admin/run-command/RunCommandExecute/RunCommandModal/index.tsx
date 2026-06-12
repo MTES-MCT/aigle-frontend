@@ -74,8 +74,10 @@ interface ComponentProps {
     isShowed: boolean;
     hide: () => void;
     command?: CommandWithParameters;
+    // Pre-fill the form with values from a previous run (used to retry a failed command).
+    initialParamsValues?: ParamsValues;
 }
-const Component: React.FC<ComponentProps> = ({ isShowed, hide, command }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ isShowed, hide, command, initialParamsValues }: ComponentProps) => {
     const [paramsValues, setParamsValues] = useState<ParamsValues>({});
     const [formMode, setFormMode] = useState<'normal' | 'json'>('normal');
     const [jsonValue, setJsonValue] = useState<string>('{}');
@@ -87,7 +89,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, hide, command }: Compon
             return;
         }
 
-        const initialValues = command.parameters.reduce(
+        const defaultValues = command.parameters.reduce(
             (prev, curr) => ({
                 ...prev,
                 [curr.name]: curr.default ? curr.default : curr.type === 'bool' ? false : undefined,
@@ -95,9 +97,11 @@ const Component: React.FC<ComponentProps> = ({ isShowed, hide, command }: Compon
             {},
         );
 
+        const initialValues = initialParamsValues ? { ...defaultValues, ...initialParamsValues } : defaultValues;
+
         setParamsValues(initialValues);
         setJsonValue(JSON.stringify(initialValues, null, 2));
-    }, [command]);
+    }, [command, initialParamsValues]);
 
     useEffect(() => {
         if (formMode === 'json') {
