@@ -14,6 +14,7 @@ import {
     IconHexagon,
     IconHistory,
     IconMap,
+    IconReportAnalytics,
     IconTerminal,
     IconUser,
     IconUsers,
@@ -49,6 +50,14 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
             </AppShell.Header>
 
             <AppShell.Navbar p="md">
+                {userMe?.userRole === 'SUPER_ADMIN' ? (
+                    <NavLink
+                        label="Données déployées"
+                        href="/admin/deployed-data"
+                        active={pathname.includes('/admin/deployed-data')}
+                        leftSection={<IconReportAnalytics size={ICON_SIZE} />}
+                    />
+                ) : null}
                 <NavLink
                     label="Utilisateurs"
                     href="/admin/users"

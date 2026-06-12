@@ -1,0 +1,38 @@
+.container {
+    padding: var(--mantine-spacing-xs) 0;
+}
+
+.stat {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--mantine-spacing-sm);
+}
+
+.stat-value {
+    line-height: 1.1;
+}
+
+.stat-label {
+    font-size: var(--mantine-font-size-xs);
+}
+
+.section {
+    .section-header {
+        flex-wrap: nowrap;
+    }
+}
+
+.communes-table {
+    width: 100%;
+    background-color: var(--mantine-color-white);
+
+    .count-col {
+        text-align: right;
+        width: 120px;
+    }
+}
+
+.users-accordion {
+    margin-top: var(--mantine-spacing-xs);
+}

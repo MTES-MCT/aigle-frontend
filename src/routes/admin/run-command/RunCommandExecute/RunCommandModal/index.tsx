@@ -19,14 +19,16 @@ interface CommandParamProps {
 }
 
 const CommandParam = ({ parameter, value, setValue }: CommandParamProps) => {
-    if (parameter.type === 'int') {
+    // Repeatable params (even int ones like --ids) are entered as a comma-separated
+    // string and split server-side, so a free-text input is needed — a NumberInput
+    // would reject "1,2,3".
+    if (parameter.type === 'int' && !parameter.multiple) {
         return (
             <NumberInput
                 placeholder="123"
                 allowDecimal={false}
                 value={value as number}
                 onChange={(value) => setValue(value)}
-                description={parameter.multiple ? MULTIPLE_DESCRIPTION : undefined}
                 label={parameter.name}
                 mt="sm"
             />

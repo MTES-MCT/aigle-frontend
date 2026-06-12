@@ -117,7 +117,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
         limit: initialLimit,
     });
     const tableRef = useRef<HTMLTableElement>(null);
-    const [rowsExpanded, setRowsExpanded] = useState<Set<number>>(new Set());
+    const [rowsExpanded, setRowsExpanded] = useState<Set<string>>(new Set());
 
     const refetchControlShown = refetchInterval !== undefined;
     const [userRefetchInterval, setUserRefetchInterval] = useState<number | false>(() =>
@@ -260,7 +260,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                             </Table.Td>
                                         </Table.Tr>
                                     ) : null}
-                                    {data?.map((item, index) => (
+                                    {data?.map((item) => (
                                         <React.Fragment key={item.uuid}>
                                             <Table.Tr
                                                 bg={
@@ -299,10 +299,10 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                                                       if (getExpandedContent) {
                                                                           setRowsExpanded((prev) => {
                                                                               const newSet = new Set(prev);
-                                                                              if (newSet.has(index)) {
-                                                                                  newSet.delete(index);
+                                                                              if (newSet.has(item.uuid)) {
+                                                                                  newSet.delete(item.uuid);
                                                                               } else {
-                                                                                  newSet.add(index);
+                                                                                  newSet.add(item.uuid);
                                                                               }
                                                                               return newSet;
                                                                           });
@@ -315,7 +315,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                                     </Table.Td>
                                                 ))}
                                             </Table.Tr>
-                                            {rowsExpanded.has(index) ? (
+                                            {rowsExpanded.has(item.uuid) ? (
                                                 <Table.Tr>
                                                     <Table.Td colSpan={colsCount}>
                                                         {getExpandedContent && getExpandedContent(item)}
