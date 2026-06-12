@@ -4,12 +4,13 @@ import { customZoneEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import api, { ApiError } from '@/utils/api';
 import { Button, ColorInput, TextInput } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconHexagonalPrismPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 
@@ -41,7 +42,7 @@ interface FormProps {
 
 const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
     const [error, setError] = useState<ApiError>();
-    const navigate = useNavigate();
+    const { navigate, buildPath } = useFilterNavigation();
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
     });
@@ -103,7 +104,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
                     type="button"
                     variant="outline"
                     component={Link}
-                    to={BACK_URL}
+                    to={buildPath(BACK_URL)}
                 >
                     Annuler
                 </Button>

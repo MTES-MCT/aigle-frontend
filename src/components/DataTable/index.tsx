@@ -7,11 +7,49 @@ import { Paginated, Uuided } from '@/models/data';
 import { PAGINATION_OFFSET_LIMIT_INITIAL_VALUE, PaginationOffsetLimit } from '@/models/table';
 import api from '@/utils/api';
 import { getPaginationPage } from '@/utils/pagination';
-import { ActionIcon, Checkbox, Flex, LoadingOverlay, Pagination, Select, Table, TableProps } from '@mantine/core';
+import {
+    ActionIcon,
+    Checkbox,
+    Flex,
+    LoadingOverlay,
+    Loader as MantineLoader,
+    Pagination,
+    Select,
+    Table,
+    TableProps,
+} from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import classes from './index.module.scss';
+
+const REFETCH_INTERVAL_OPTIONS = [
+    { value: '0', label: 'Désactivé' },
+    { value: '5000', label: '5 secondes' },
+    { value: '30000', label: '30 secondes' },
+    { value: '60000', label: '1 minute' },
+    { value: '300000', label: '5 minutes' },
+];
+
+const REFETCH_INTERVAL_PRESET_MS = [5000, 30000, 60000, 300000];
+
+const snapToPreset = (interval: number | false): number | false => {
+    if (interval === false || interval <= 0) {
+        return false;
+    }
+    return REFETCH_INTERVAL_PRESET_MS.reduce((closest, preset) =>
+        Math.abs(preset - interval) < Math.abs(closest - interval) ? preset : closest,
+    );
+};
+
+const intervalToSelectValue = (interval: number | false): string => (interval === false ? '0' : String(interval));
+
+const selectValueToInterval = (value: string | null): number | false => {
+    if (!value || value === '0') {
+        return false;
+    }
+    return Number(value);
+};
 
 const scrollToTable = (tableRef: React.RefObject<HTMLTableElement>) => {
     if (tableRef.current) {
@@ -47,6 +85,9 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object | undefi
     getExpandedContent?: (item: T_DATA) => React.ReactNode;
     striped?: boolean;
     highlightOnHover?: boolean;
+    // When defined, renders a Select letting the user pick the auto-refresh cadence.
+    // The given value is the initial picker state (snapped to the nearest preset).
+    refetchInterval?: number | false;
 }
 
 const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
@@ -69,6 +110,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
     showRefresh = true,
     striped = true,
     highlightOnHover = true,
+    refetchInterval,
 }: ComponentProps<T_DATA, T_FILTER>) => {
     const [pagination, setPagination] = useState<PaginationOffsetLimit>({
         ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
@@ -76,6 +118,11 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
     });
     const tableRef = useRef<HTMLTableElement>(null);
     const [rowsExpanded, setRowsExpanded] = useState<Set<number>>(new Set());
+
+    const refetchControlShown = refetchInterval !== undefined;
+    const [userRefetchInterval, setUserRefetchInterval] = useState<number | false>(() =>
+        refetchInterval === undefined ? false : snapToPreset(refetchInterval),
+    );
 
     useEffect(() => {
         setPagination((prev) => ({
@@ -114,6 +161,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
         queryFn: ({ signal }) => fetchData(signal, pagination),
         placeholderData: keepPreviousData,
         enabled: queryEnabled,
+        refetchInterval: refetchControlShown ? userRefetchInterval : false,
     });
 
     const paginationPage = getPaginationPage(pagination);
@@ -136,8 +184,22 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                         </p>
                     ) : null}
                 </div>
-                {showRefresh || paginated ? (
+                {showRefresh || paginated || refetchControlShown ? (
                     <Flex gap="xs" align="flex-end" justify="flex-end">
+                        {refetchControlShown ? (
+                            <Flex gap="xs" align="center" className={classes['refetch-control']} aria-live="polite">
+                                <div className={classes['refetch-loader']}>
+                                    {isFetching ? <MantineLoader size="xs" /> : null}
+                                </div>
+                                <Select
+                                    label="Rafraîchissement auto"
+                                    data={REFETCH_INTERVAL_OPTIONS}
+                                    value={intervalToSelectValue(userRefetchInterval)}
+                                    onChange={(value) => setUserRefetchInterval(selectValueToInterval(value))}
+                                    allowDeselect={false}
+                                />
+                            </Flex>
+                        ) : null}
                         {showRefresh ? (
                             <ActionIcon
                                 variant="subtle"
@@ -188,7 +250,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                 </Table.Thead>
 
                                 <Table.Tbody>
-                                    <LoadingOverlay visible={isFetching}>
+                                    <LoadingOverlay visible={isFetching && !refetchControlShown}>
                                         <Loader />
                                     </LoadingOverlay>
                                     {data?.length === 0 ? (

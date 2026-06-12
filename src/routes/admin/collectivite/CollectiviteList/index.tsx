@@ -3,12 +3,12 @@ import React, { useMemo } from 'react';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
+import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { CollectivityType, GeoCollectivity, collectivityTypes } from '@/models/geo/_common';
 import { COLLECTIVITY_TYPES_ENDPOINTS_MAP, COLLECTIVITY_TYPES_NAMES_MAP } from '@/utils/constants';
 import { Button, Input, Table } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
 
 interface DataFilter {
     q: string;
@@ -22,7 +22,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 
 const Component: React.FC = () => {
     const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
-    const navigate = useNavigate();
+    const { navigate } = useFilterNavigation();
 
     const collectivityTypeSelected = (
         collectivityTypes.includes(filter.collectivityType as CollectivityType)
@@ -72,9 +72,7 @@ const Component: React.FC = () => {
                 }
                 tableHeader={[<Table.Th key="code">Code</Table.Th>, <Table.Th key="name">Nom</Table.Th>]}
                 tableBodyRenderFns={[(item: GeoCollectivity) => item.code, (item: GeoCollectivity) => item.name]}
-                onItemClick={({ uuid }) =>
-                    navigate(`/admin/collectivites/${collectivityTypeSelected}/form/${uuid}${window.location.search}`)
-                }
+                onItemClick={({ uuid }) => navigate(`/admin/collectivites/${collectivityTypeSelected}/form/${uuid}`)}
             />
         </LayoutAdminBase>
     );

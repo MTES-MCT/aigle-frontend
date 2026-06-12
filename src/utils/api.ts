@@ -1,5 +1,6 @@
 import { authEndpoints } from '@/api/endpoints';
 import { useAuth } from '@/store/slices/auth';
+import { getActiveScopedUserGroupUuid } from '@/utils/scope';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
@@ -93,8 +94,11 @@ const doFetch = async (path: string, options: ApiFetchOptions): Promise<Response
         headers['Authorization'] = `JWT ${token}`;
     }
 
-    if (auth && authState.selectedUserGroupUuid && !headers['X-User-Group-Uuid']) {
-        headers['X-User-Group-Uuid'] = authState.selectedUserGroupUuid;
+    if (auth && !headers['X-User-Group-Uuid']) {
+        const scopedUserGroupUuid = getActiveScopedUserGroupUuid();
+        if (scopedUserGroupUuid) {
+            headers['X-User-Group-Uuid'] = scopedUserGroupUuid;
+        }
     }
 
     const fetchBody = serializeBody(body, headers);

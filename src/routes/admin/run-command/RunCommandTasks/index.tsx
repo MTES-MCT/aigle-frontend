@@ -8,11 +8,12 @@ import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { CommandRun, CommandRunStatus, commandRunStatuses } from '@/models/command';
 import api, { ApiError } from '@/utils/api';
 import { colors } from '@/utils/colors';
-import { ActionIcon, Badge, Checkbox, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Checkbox, Code, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCancel } from '@tabler/icons-react';
-import { useMutation, UseMutationResult } from '@tanstack/react-query';
+import { useMutation, UseMutationResult, useQueryClient } from '@tanstack/react-query';
 import { isEqual } from 'lodash';
+import classes from './index.module.scss';
 
 interface ArgumentsDisplayProps {
     arguments: CommandRun['arguments'];
@@ -90,6 +91,9 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     );
 };
 
+const ACTIVE_STATUSES: CommandRunStatus[] = ['PENDING', 'RUNNING'];
+const INITIAL_REFETCH_INTERVAL_MS = 5000;
+
 const cancelTask = (taskId: string) => api<string>(runCommandEndpoints.cancel(taskId), { method: 'POST' });
 
 interface DataFilter {
@@ -100,7 +104,48 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
     statuses: [...commandRunStatuses].sort(),
 };
 
+interface CommandRunDetailProps {
+    item: CommandRun;
+}
+
+const CommandRunDetail: React.FC<CommandRunDetailProps> = ({ item }) => {
+    const hasOutput = !!item.output && item.output.trim().length > 0;
+    const hasError = !!item.error && item.error.trim().length > 0;
+
+    return (
+        <Stack gap="md" className={classes['detail-container']}>
+            {hasError ? (
+                <div>
+                    <Text size="sm" fw={600} c="red" mb={4}>
+                        Erreur
+                    </Text>
+                    <Code block className={classes['detail-log']} color="var(--mantine-color-red-light)">
+                        {item.error}
+                    </Code>
+                </div>
+            ) : null}
+            <div>
+                <Text size="sm" fw={600} mb={4}>
+                    Sortie
+                </Text>
+                {hasOutput ? (
+                    <Code block className={classes['detail-log']}>
+                        {item.output}
+                    </Code>
+                ) : (
+                    <Text size="sm" c="dimmed">
+                        {ACTIVE_STATUSES.includes(item.status)
+                            ? 'La tâche est en cours d’exécution, les logs apparaîtront à la fin.'
+                            : 'Aucune sortie.'}
+                    </Text>
+                )}
+            </div>
+        </Stack>
+    );
+};
+
 const Component: React.FC = () => {
+    const queryClient = useQueryClient();
     const mutation: UseMutationResult<string, ApiError, string> = useMutation({
         mutationFn: (taskId: string) => cancelTask(taskId),
         onSuccess: () => {
@@ -108,6 +153,7 @@ const Component: React.FC = () => {
                 title: 'La tâche a été annulée',
                 message: 'La tâche a été annulée avec succès.',
             });
+            queryClient.invalidateQueries({ queryKey: [runCommandEndpoints.tasks] });
         },
         onError: (error) => {
             notifications.show({
@@ -122,10 +168,11 @@ const Component: React.FC = () => {
         <DataTable<CommandRun, DataFilter>
             endpoint={runCommandEndpoints.tasks}
             filter={filter}
+            refetchInterval={INITIAL_REFETCH_INTERVAL_MS}
             SoloAccordion={
                 <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
                     <Checkbox.Group
-                        label="Rôles"
+                        label="Statuts"
                         value={filter.statuses}
                         onChange={(statuses) => {
                             setFilter((filter) => ({
@@ -150,19 +197,20 @@ const Component: React.FC = () => {
             tableHeader={[
                 <Table.Th key="actions" />,
                 <Table.Th key="createdAt">Date</Table.Th>,
-                <Table.Th key="taskId">Task id</Table.Th>,
-                <Table.Th key="name">Nom</Table.Th>,
-                <Table.Th key="nameShort">Arguments</Table.Th>,
+                <Table.Th key="name">Commande</Table.Th>,
+                <Table.Th key="arguments">Arguments</Table.Th>,
                 <Table.Th key="status">Statut</Table.Th>,
-                <Table.Th key="error">Erreur</Table.Th>,
-                <Table.Th key="output">Message</Table.Th>,
+                <Table.Th key="taskId">Task id</Table.Th>,
             ]}
             tableBodyRenderFns={[
                 (item: CommandRun) => (
                     <Tooltip label="Annuler la tâche">
                         <ActionIcon
-                            disabled={!['PENDING', 'RUNNING'].includes(item.status)}
-                            onClick={() => mutation.mutate(item.taskId)}
+                            disabled={!ACTIVE_STATUSES.includes(item.status)}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                mutation.mutate(item.taskId);
+                            }}
                             color="red"
                             variant="subtle"
                         >
@@ -171,13 +219,16 @@ const Component: React.FC = () => {
                     </Tooltip>
                 ),
                 (item: CommandRun) => <DateInfo date={item.createdAt} />,
-                (item: CommandRun) => item.taskId,
                 (item: CommandRun) => item.commandName,
                 (item: CommandRun) => <ArgumentsDisplay arguments={item.arguments} />,
                 (item: CommandRun) => <StatusBadge status={item.status} />,
-                (item: CommandRun) => item.error,
-                (item: CommandRun) => item.output,
+                (item: CommandRun) => (
+                    <Text size="xs" c="dimmed" className={classes['task-id']}>
+                        {item.taskId}
+                    </Text>
+                ),
             ]}
+            getExpandedContent={(item: CommandRun) => <CommandRunDetail item={item} />}
         />
     );
 };
