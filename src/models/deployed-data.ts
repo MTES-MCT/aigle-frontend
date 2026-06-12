@@ -41,6 +41,8 @@ export interface DeployedDataDepartment {
     uuid: string;
     name: string;
     parcelsCount: number;
+    // Detections whose validation status was last changed by the SITADEL import.
+    sitadelUpdatedDetectionsCount: number;
     communesWithDetectionsCount: number;
     communes: DeployedDataCommune[];
     userGroups: DeployedDataUserGroup[];

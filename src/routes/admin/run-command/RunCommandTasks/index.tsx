@@ -177,7 +177,7 @@ const Component: React.FC = () => {
     }>();
 
     const handleRetry = (item: CommandRun) => {
-        const command = (commands || []).find((command) => command.name === item.commandName);
+        const command = (commands || []).find((command) => command.name === item.command_name);
 
         if (!command) {
             notifications.show({
@@ -187,6 +187,8 @@ const Component: React.FC = () => {
             return;
         }
 
+        // The API stores arguments keyed by the raw CLI flags ("--table-name"), which match the
+        // form's parameter names, so they can pre-fill the modal directly — no re-mapping needed.
         setRetryModal({ command, initialValues: item.arguments.kwargs });
     };
 
@@ -237,7 +239,7 @@ const Component: React.FC = () => {
                                     disabled={!ACTIVE_STATUSES.includes(item.status)}
                                     onClick={(event) => {
                                         event.stopPropagation();
-                                        mutation.mutate(item.taskId);
+                                        mutation.mutate(item.task_id);
                                     }}
                                     color="red"
                                     variant="subtle"
@@ -261,13 +263,13 @@ const Component: React.FC = () => {
                             ) : null}
                         </Group>
                     ),
-                    (item: CommandRun) => <DateInfo date={item.createdAt} />,
-                    (item: CommandRun) => item.commandName,
+                    (item: CommandRun) => <DateInfo date={item.created_at} />,
+                    (item: CommandRun) => item.command_name,
                     (item: CommandRun) => <ArgumentsDisplay arguments={item.arguments} />,
                     (item: CommandRun) => <StatusBadge status={item.status} />,
                     (item: CommandRun) => (
                         <Text size="xs" c="dimmed" className={classes['task-id']}>
-                            {item.taskId}
+                            {item.task_id}
                         </Text>
                     ),
                 ]}

@@ -1,5 +1,3 @@
-import { Timestamped, Uuided } from '@/models/data';
-
 type CommandParametersType = 'str' | 'int' | 'bool';
 
 export interface CommandParameter {
@@ -26,9 +24,14 @@ interface CommandRunArgments {
     args?: CommandRunArgmentsType[];
 }
 
-export interface CommandRun extends Uuided, Timestamped {
-    taskId: string;
-    commandName: string;
+// The /api/run-command/ routes opt out of the camelCase renderer (see CommandAsyncViewSet)
+// so a run's arguments round-trip verbatim — hence the snake_case keys here.
+export interface CommandRun {
+    uuid: string;
+    created_at: string;
+    updated_at: string;
+    task_id: string;
+    command_name: string;
     arguments: CommandRunArgments;
     status: CommandRunStatus;
     error: string | null;

@@ -79,6 +79,7 @@ export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
     OFFICIAL_REPORT_DRAWN_UP: 'PV dressé',
     ADMINISTRATIVE_CONSTRAINT: 'Astreinte Administrative',
     OBSERVARTION_REPORT_REDACTED: 'Rapport de constatations rédigé',
+    JUGEMENT: 'Jugement',
     REHABILITATED: 'Remis en état',
 } as const;
 
@@ -91,6 +92,7 @@ export const DETECTION_CONTROL_STATUSES_COLORS_MAP: {
     OFFICIAL_REPORT_DRAWN_UP: '#ad460f',
     ADMINISTRATIVE_CONSTRAINT: '#ba3216',
     OBSERVARTION_REPORT_REDACTED: colors.RED,
+    JUGEMENT: '#6a1b9a',
     REHABILITATED: colors.GREEN,
 } as const;
 

@@ -14,6 +14,7 @@ export const detectionControlStatuses = [
     'OFFICIAL_REPORT_DRAWN_UP',
     'ADMINISTRATIVE_CONSTRAINT',
     'OBSERVARTION_REPORT_REDACTED',
+    'JUGEMENT',
     'REHABILITATED',
 ] as const;
 export type DetectionControlStatus = (typeof detectionControlStatuses)[number];

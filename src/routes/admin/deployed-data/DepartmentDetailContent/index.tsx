@@ -6,6 +6,7 @@ import { formatDateOnly } from '@/utils/format';
 import { Anchor, Badge, ColorSwatch, Group, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon } from '@mantine/core';
 import {
     IconBuildingCommunity,
+    IconFileCertificate,
     IconHexagons,
     IconMap2,
     IconRulerMeasure,
@@ -75,12 +76,17 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
 
     return (
         <Stack gap="lg" className={classes.container}>
-            <SimpleGrid cols={{ base: 2, sm: 3, lg: 5 }} spacing="sm">
+            <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }} spacing="sm">
                 <Stat icon={<IconRulerMeasure size={20} />} label="Parcelles" value={department.parcelsCount} />
                 <Stat
                     icon={<IconBuildingCommunity size={20} />}
                     label="Communes déployées"
                     value={department.communesWithDetectionsCount}
+                />
+                <Stat
+                    icon={<IconFileCertificate size={20} />}
+                    label="Détections mises à jour via SITADEL"
+                    value={department.sitadelUpdatedDetectionsCount}
                 />
                 <Stat icon={<IconUsersGroup size={20} />} label="Groupes" value={department.userGroups.length} />
                 <Stat icon={<IconUser size={20} />} label="Utilisateurs" value={usersCount} />
@@ -150,6 +156,7 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
                                                     component={Link}
                                                     to={`/admin/users/form/${user.uuid}`}
                                                     size="sm"
+                                                    className={classes['user-link']}
                                                     {...NEW_TAB_PROPS}
                                                 >
                                                     <Group gap={6} wrap="nowrap" align="center">
