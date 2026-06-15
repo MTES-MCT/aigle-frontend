@@ -6,6 +6,7 @@ import { formatDateOnly } from '@/utils/format';
 import { Anchor, Badge, ColorSwatch, Group, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon } from '@mantine/core';
 import {
     IconBuildingCommunity,
+    IconChartBar,
     IconFileCertificate,
     IconHexagons,
     IconMap2,
@@ -85,8 +86,8 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
                 />
                 <Stat
                     icon={<IconFileCertificate size={20} />}
-                    label="Détections mises à jour via SITADEL"
-                    value={department.sitadelUpdatedDetectionsCount}
+                    label="Parcelles mises à jour via SITADEL"
+                    value={department.sitadelUpdatedParcelsCount}
                 />
                 <Stat icon={<IconUsersGroup size={20} />} label="Groupes" value={department.userGroups.length} />
                 <Stat icon={<IconUser size={20} />} label="Utilisateurs" value={usersCount} />
@@ -103,7 +104,10 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Commune</Table.Th>
-                                <Table.Th className={classes['count-col']}>Détections</Table.Th>
+                                <Table.Th className={classes['count-col']}>Nombre total d&apos;objets</Table.Th>
+                                <Table.Th className={classes['count-col']}>
+                                    Nombre de d&apos;objets incluses en ZAE
+                                </Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -112,7 +116,12 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
                                     <Table.Td>{commune.name}</Table.Td>
                                     <Table.Td className={classes['count-col']}>
                                         <Badge variant="light" radius="sm">
-                                            {commune.detectionsCount}
+                                            {commune.detectionObjectsCount}
+                                        </Badge>
+                                    </Table.Td>
+                                    <Table.Td className={classes['count-col']}>
+                                        <Badge variant="light" radius="sm" color="orange">
+                                            {commune.detectionObjectsInCustomZoneCount}
                                         </Badge>
                                     </Table.Td>
                                 </Table.Tr>
@@ -122,6 +131,55 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
                 ) : (
                     <Text c="dimmed" size="sm">
                         Aucune commune
+                    </Text>
+                )}
+            </Section>
+
+            <Section
+                icon={<IconChartBar size={16} />}
+                title="Détections par fond de carte"
+                count={department.detectionsByTileSet.length}
+            >
+                {department.detectionsByTileSet.length ? (
+                    <Table className={classes['communes-table']} highlightOnHover withTableBorder verticalSpacing="xs">
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th>Fond de carte</Table.Th>
+                                <Table.Th className={classes['count-col']}>Nombre total de détections</Table.Th>
+                                <Table.Th className={classes['count-col']}>
+                                    Nombre de détections incluses en ZAE
+                                </Table.Th>
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {department.detectionsByTileSet.map((tileSet) => (
+                                <Table.Tr key={tileSet.uuid}>
+                                    <Table.Td>
+                                        <Anchor
+                                            component={Link}
+                                            to={`/admin/tile-sets/form/${tileSet.uuid}`}
+                                            {...NEW_TAB_PROPS}
+                                        >
+                                            {tileSet.name}
+                                        </Anchor>
+                                    </Table.Td>
+                                    <Table.Td className={classes['count-col']}>
+                                        <Badge variant="light" radius="sm">
+                                            {tileSet.detectionsCount}
+                                        </Badge>
+                                    </Table.Td>
+                                    <Table.Td className={classes['count-col']}>
+                                        <Badge variant="light" radius="sm" color="orange">
+                                            {tileSet.detectionsInCustomZoneCount}
+                                        </Badge>
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </Table>
+                ) : (
+                    <Text c="dimmed" size="sm">
+                        Aucune détection
                     </Text>
                 )}
             </Section>
