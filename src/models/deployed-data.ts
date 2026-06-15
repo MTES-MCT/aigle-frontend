@@ -12,7 +12,11 @@ export interface DeployedDataUserGroup {
 export interface DeployedDataCommune {
     uuid: string;
     name: string;
-    detectionsCount: number;
+    // Per commune we count detection OBJECTS (an object detected across several tile
+    // sets/years is one object) — not Detection rows like the per-tile-set breakdown.
+    detectionObjectsCount: number;
+    // Detection objects that fall inside at least one custom zone ("zone à enjeux").
+    detectionObjectsInCustomZoneCount: number;
 }
 
 export interface DeployedDataCustomZone {
@@ -28,6 +32,17 @@ export interface DeployedDataTileSet {
     date: string;
 }
 
+// Detection counts for one tile set (Detection.tile_set): total, and the subset whose
+// object falls inside at least one custom zone ("zone à enjeux") — same criteria as the
+// per-commune counts.
+export interface DeployedDataDetectionsByTileSet {
+    uuid: string;
+    name: string;
+    date: string;
+    detectionsCount: number;
+    detectionsInCustomZoneCount: number;
+}
+
 // Lightweight row served by the list endpoint (the full breakdown lives on the detail endpoint).
 export interface DeployedDataDepartmentSummary {
     uuid: string;
@@ -41,13 +56,14 @@ export interface DeployedDataDepartment {
     uuid: string;
     name: string;
     parcelsCount: number;
-    // Detections whose validation status was last changed by the SITADEL import.
-    sitadelUpdatedDetectionsCount: number;
+    // Parcels updated by the SITADEL import (a parcel with a SITADEL-sourced detection).
+    sitadelUpdatedParcelsCount: number;
     communesWithDetectionsCount: number;
     communes: DeployedDataCommune[];
     userGroups: DeployedDataUserGroup[];
     customZones: DeployedDataCustomZone[];
     tileSets: DeployedDataTileSet[];
+    detectionsByTileSet: DeployedDataDetectionsByTileSet[];
 }
 
 // Distinct users across all the department's groups (a user may belong to several groups).
