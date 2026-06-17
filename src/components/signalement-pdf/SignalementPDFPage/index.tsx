@@ -29,7 +29,6 @@ const countSuspectObjectsParcel = (parcel: ParcelDetail, excludeObjectUuid?: str
     return suspectObjectsMap;
 };
 
-// Create styles
 const styles = StyleSheet.create({
     page: {
         padding: '32px 16px',
@@ -103,7 +102,6 @@ export interface ComponentProps {
     parcel: ParcelDetail;
 }
 
-// Create Document Component
 const Component: React.FC<ComponentProps> = ({ detectionObjects, previewImages, parcel, latLong }) => {
     if (detectionObjects.length === 1) {
     }

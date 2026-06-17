@@ -24,12 +24,7 @@ export const extendBbox = (
     const width = bbox[2] - bbox[0];
     const height = bbox[3] - bbox[1];
 
-    return [
-        bbox[0] - level * width,
-        bbox[1] - level * height, // minY - height
-        bbox[2] + level * width, // maxX + width
-        bbox[3] + level * height, // maxY + height
-    ];
+    return [bbox[0] - level * width, bbox[1] - level * height, bbox[2] + level * width, bbox[3] + level * height];
 };
 
 const MAX_LEVEL_FIT = 5;
@@ -67,21 +62,16 @@ export const getAddressFromPolygon = async (polygon: Polygon): Promise<string | 
 export const convertBBoxToSquare = (bbox: [number, number, number, number]): [number, number, number, number] => {
     const [minX, minY, maxX, maxY] = bbox;
 
-    // Calculate the center point of the bbox
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
     const centerPoint = turf.point([centerX, centerY]);
 
-    // Calculate the width (distance between minX and maxX)
     const width = turf.distance(turf.point([minX, centerY]), turf.point([maxX, centerY]), { units: 'kilometers' });
 
-    // Calculate the height (distance between minY and maxY)
     const height = turf.distance(turf.point([centerX, minY]), turf.point([centerX, maxY]), { units: 'kilometers' });
 
-    // Determine the maximum distance
     const maxDistance = Math.max(width, height) / 2;
 
-    // Create a square by expanding the smaller dimension
     const squareMinPoint = turf.destination(centerPoint, maxDistance, -135, { units: 'kilometers' });
     const squareMaxPoint = turf.destination(centerPoint, maxDistance, 45, { units: 'kilometers' });
 

@@ -85,8 +85,7 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object | undefi
     getExpandedContent?: (item: T_DATA) => React.ReactNode;
     striped?: boolean;
     highlightOnHover?: boolean;
-    // When defined, renders a Select letting the user pick the auto-refresh cadence.
-    // The given value is the initial picker state (snapped to the nearest preset).
+    // When defined, renders the auto-refresh picker; value is the initial cadence (snapped to nearest preset).
     refetchInterval?: number | false;
 }
 

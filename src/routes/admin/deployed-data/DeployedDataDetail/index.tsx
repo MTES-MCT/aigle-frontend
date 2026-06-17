@@ -20,8 +20,7 @@ const DEFAULT_MIN_COMMUNE_DETECTIONS = '50';
 
 const ComponentInner: React.FC = () => {
     const { uuid } = useParams();
-    // Mirror the list's per-commune threshold (default 50) so the detail stays consistent
-    // with the row clicked, and keep it on the URL so it's explicit and shareable.
+    // On the URL so the threshold stays consistent with the clicked list row and is shareable.
     const [filter, setFilter] = useUrlFilter({ minCommuneDetections: DEFAULT_MIN_COMMUNE_DETECTIONS });
     const { minCommuneDetections } = filter;
 

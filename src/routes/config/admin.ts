@@ -23,7 +23,6 @@ import { RouteGroup } from './types';
 export const adminRoutes: RouteGroup = {
     name: 'admin',
     routes: [
-        // User Management
         {
             path: '/admin/users',
             component: UserList,
@@ -43,7 +42,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // User Groups - Super Admin Only
         {
             path: '/admin/user-groups',
             component: UserGroupList,
@@ -63,7 +61,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Custom Zones
         {
             path: '/admin/custom-zones',
             component: CustomZoneList,
@@ -95,7 +92,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Collectivites - Super Admin Only
         {
             path: '/admin/collectivites',
             component: CollectiviteList,
@@ -109,7 +105,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Object Types - Super Admin Only
         {
             path: '/admin/object-types',
             component: ObjectTypeList,
@@ -129,7 +124,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Object Type Categories - Super Admin Only
         {
             path: '/admin/object-type-categories',
             component: ObjectTypeCategoryList,
@@ -149,7 +143,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Tile Sets - Super Admin Only
         {
             path: '/admin/tile-sets',
             component: TileSetList,
@@ -169,7 +162,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Imports - Super Admin Only
         {
             path: '/admin/imports',
             component: ImportsPage,
@@ -177,7 +169,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Run Command - Super Admin Only
         {
             path: '/admin/run-command',
             component: RunCommand,
@@ -185,7 +176,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // User Action Log - Super Admin Only
         {
             path: '/admin/user-action-logs',
             component: UserActionLogList,
@@ -193,7 +183,6 @@ export const adminRoutes: RouteGroup = {
             requiresAuth: true,
         },
 
-        // Deployed Data - Super Admin Only
         {
             path: '/admin/deployed-data',
             component: DeployedDataList,

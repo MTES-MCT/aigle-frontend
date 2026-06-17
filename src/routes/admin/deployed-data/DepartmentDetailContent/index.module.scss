@@ -36,10 +36,7 @@
 .users-accordion {
     margin-top: var(--mantine-spacing-xs);
 
-    // Flex row keeps the DSFR external-link ::after icon inline with the email
-    // instead of dropping below the icon+email Group. Kept nested so the
-    // descendant selector outranks the Mantine Anchor inline-display rule
-    // (equal specificity otherwise loses on source order).
+    // Nested so this outranks Mantine's Anchor inline-display rule (equal specificity loses on source order); keeps the DSFR external-link ::after icon inline.
     .user-link {
         display: inline-flex;
         align-items: center;

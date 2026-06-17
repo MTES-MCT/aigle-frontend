@@ -6,7 +6,6 @@ export * from './geo';
 export * from './users';
 export * from './utils';
 
-// Legacy exports for backward compatibility
 export {
     objectTypeCategoryEndpoints as OBJECT_TYPE_CATEGORY_ENDPOINTS,
     objectTypeEndpoints as OBJECT_TYPE_ENDPOINTS,
@@ -28,5 +27,4 @@ export {
     utilsEndpoints as UTILS_ENDPOINTS,
 } from './utils';
 
-// Re-export individual functions for backward compatibility
 export { getGeoCreateEndpoint, getGeoDetailEndpoint, getGeoListEndpoint } from './geo';
