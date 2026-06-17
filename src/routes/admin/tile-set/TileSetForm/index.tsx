@@ -272,13 +272,10 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
             const currentName = form.getValues().name;
 
             if (!currentName) {
-                // If name is empty, set it to the year
                 form.setFieldValue('name', year);
             } else if (/\d{4}/.test(currentName)) {
-                // If name contains a 4-digit year, replace it with the new year
                 form.setFieldValue('name', currentName.replace(/\d{4}/, year));
             } else {
-                // If name doesn't contain a year, append the year
                 form.setFieldValue('name', `${currentName} ${year}`);
             }
         }
@@ -389,21 +386,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                                 return;
                             }
 
-                            // Extract collectivity name, removing parenthesis part if present
                             const collectivityName = collectivitiesNames[0].replace(/\s*\([^)]*\)/, '').trim();
                             const currentName = form.getValues().name.trim();
 
-                            // Check if the name is only a year (4 digits, ignoring spaces)
                             const onlyYearMatch = currentName.match(/^\d{4}$/);
 
                             if (onlyYearMatch) {
-                                // If name is only a year, add collectivity name as prefix
                                 form.setFieldValue('name', `${collectivityName} ${currentName}`);
                             } else if (!currentName) {
-                                // If name is empty, set it to collectivity name
                                 form.setFieldValue('name', collectivityName);
                             } else if (/\d{4}/.test(currentName)) {
-                                // If name contains a year AND other text, extract year and use collectivity name
                                 const yearMatch = currentName.match(/\d{4}/);
                                 if (yearMatch) {
                                     form.setFieldValue('name', `${collectivityName} ${yearMatch[0]}`);

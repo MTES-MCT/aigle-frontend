@@ -214,7 +214,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     setSelectedUuids([]);
 
                     if (dataUpdated) {
-                        // Invalidate the query to refresh the data
                         queryClient.invalidateQueries({ queryKey: [ENDPOINT, detectionEndpoints.getList()] });
                     }
                 }}

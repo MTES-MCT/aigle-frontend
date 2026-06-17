@@ -74,8 +74,8 @@ const getMapInitialViewState = (
           : {}),
 });
 
-const DRAW_MODE_ADD_DETECTION = 'draw_rectangle'; // draw new detection
-const DRAW_MODE_MULTIPOLYGON = 'draw_polygon'; // edit multiple detections and download multiple detections
+const DRAW_MODE_ADD_DETECTION = 'draw_rectangle';
+const DRAW_MODE_MULTIPOLYGON = 'draw_polygon';
 
 const MAPBOX_DRAW_CONTROL = new MapboxDraw({
     userProperties: true,
@@ -85,9 +85,9 @@ const MAPBOX_DRAW_CONTROL = new MapboxDraw({
         [DRAW_MODE_ADD_DETECTION]: DrawRectangle,
     }),
     controls: {
-        point: true, // draw new detection
-        polygon: true, // edit multiple detections
-        line_string: true, // download multiple detections
+        point: true,
+        polygon: true,
+        line_string: true,
     },
 });
 const MAPBOX_GEOCODER = new MapboxGeocoder({
@@ -102,19 +102,15 @@ const MAP_CONTROLS: {
     hideWhenNoDetection?: boolean;
     needsWritePermission?: boolean;
 }[] = [
-    // search bar
     {
         control: MAPBOX_GEOCODER,
         position: 'top-left',
     },
-    // scale
     {
         control: new mapboxgl.ScaleControl(),
         position: 'bottom-right',
     },
-    // full screen
     { control: new mapboxgl.FullscreenControl(), position: 'bottom-right' },
-    // zoom
     {
         control: new mapboxgl.NavigationControl({
             showCompass: true,
@@ -123,7 +119,6 @@ const MAP_CONTROLS: {
         }),
         position: 'bottom-right',
     },
-    // draw control: multiple selection and manually add detection
     {
         control: MAPBOX_DRAW_CONTROL,
         position: 'top-right',
@@ -339,8 +334,6 @@ const Component: React.FC<ComponentProps> = ({
             }
         });
 
-        // fit bounds
-
         if (fitBoundsFirstLayer) {
             const layer = layersDisplayed.find((layer) => layer.tileSet.geometryBbox);
 
@@ -348,8 +341,6 @@ const Component: React.FC<ComponentProps> = ({
                 node.fitBounds(bbox(layer.tileSet.geometryBbox), { padding: 20, animate: false });
             }
         }
-
-        // change controls labels
 
         setTimeout(() => {
             for (const { querySelector, title } of [
@@ -422,8 +413,6 @@ const Component: React.FC<ComponentProps> = ({
         if (!mapRef) {
             return;
         }
-
-        // draw control callbacks
 
         const handleModeChange = (event) => {
             const { mode } = event;
@@ -585,8 +574,6 @@ const Component: React.FC<ComponentProps> = ({
 
     const layersDisplayed = layers.filter((layer) => layer.displayed);
 
-    // detections fetching
-
     const fetchDetections = async (signal: AbortSignal, mapBounds?: MapBounds) => {
         if (!displayDetections || !mapBounds || !objectsFilter || !otherObjectTypesUuids) {
             return null;
@@ -611,8 +598,6 @@ const Component: React.FC<ComponentProps> = ({
 
         return processDetections(data, otherObjectTypesUuids || new Set());
     };
-
-    // annotation grid fetching
 
     const annotationGridFilters = objectsFilter ? getAnnotationGridFilters(objectsFilter) : undefined;
 
@@ -646,8 +631,6 @@ const Component: React.FC<ComponentProps> = ({
         enabled: annotationLayerVisible && !!mapBounds && !isDetailFetching,
     });
 
-    // custom zones fetching
-
     const fetchCustomZoneGeometries = async (signal: AbortSignal, mapBounds?: MapBounds) => {
         if (!mapBounds || (customZoneLayersDisplayedUuids.length === 0 && !customZoneNegativeFilterVisible)) {
             return null;
@@ -675,7 +658,6 @@ const Component: React.FC<ComponentProps> = ({
         enabled: !!mapBounds && !isDetailFetching,
     });
 
-    // event that makes detections to be reloaded
     useEffect(() => {
         const updateDetections = () => {
             refetchAnnotationGrid();
@@ -723,8 +705,6 @@ const Component: React.FC<ComponentProps> = ({
     useEffect(() => {
         refetch();
     }, [objectsFilter, refetch]);
-
-    // bounds
 
     const loadDataFromBounds = (e: mapboxgl.MapboxEvent | ViewStateChangeEvent) => {
         const map = e.target;
@@ -774,8 +754,6 @@ const Component: React.FC<ComponentProps> = ({
             });
         }
     }, [userMe]);
-
-    // map click events
 
     useEffect(() => {
         const geocoderEventCallback = () => {
@@ -858,12 +836,10 @@ const Component: React.FC<ComponentProps> = ({
 
                 closeDetectionDetail();
 
-                // if section was open, we just close it
                 if (!noSectionOpen) {
                     return;
                 }
-                // else use clicked when no section was open => we look for a detection
-
+                // clicking empty space with nothing open: look for a detection hidden by filters
                 const { lng, lat } = lngLat;
 
                 if (clickAbortRef.current) {

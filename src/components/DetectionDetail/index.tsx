@@ -64,7 +64,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     const [signalementPdfGenerating, setSignalementPdfGenerating] = useState<SignalementPDFType | undefined>();
     const [forceVisibleLoading, setForceVisibleLoading] = useState(false);
 
-    // Use custom hooks for business logic
     const { address, isLoading: isAddressLoading } = useDetectionAddress(detectionObject);
     const { downloadPriorLetter, isDownloading } = usePriorLetterDownload();
 
@@ -385,7 +384,6 @@ const Component: React.FC<ComponentProps> = ({
     setDetectionUnhidden,
     onClose,
 }: ComponentProps) => {
-    // Use custom hook for detection object fetching
     const {
         detectionObject,
         isRefetching: detectionObjectRefreshing,

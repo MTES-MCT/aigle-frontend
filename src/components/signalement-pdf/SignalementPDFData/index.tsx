@@ -279,7 +279,6 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         setPagesDisplayed((currentPagesDisplayed) => {
-            // Filter out pages that are already displayed or done
             const pagePreviewsToDisplay = previewParams.filter(
                 (param) =>
                     !currentPagesDisplayed.some(

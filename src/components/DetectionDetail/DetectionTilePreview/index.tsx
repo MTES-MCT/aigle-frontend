@@ -76,7 +76,6 @@ const Component: React.FC<ComponentProps> = ({
 
         const map = mapRef.current.getMap();
 
-        // Check if all sources are loaded
         const allSourcesLoaded = ['geojson-data', 'raster-source'].every((sourceId) => {
             return map.isSourceLoaded(sourceId);
         });
@@ -95,7 +94,6 @@ const Component: React.FC<ComponentProps> = ({
                 });
             });
         } else {
-            // Retry in a short time
             checkCompleteTimeoutRef.current = setTimeout(checkIfFullyRendered, 100);
         }
     }, [onFullyLoaded]);
@@ -111,11 +109,9 @@ const Component: React.FC<ComponentProps> = ({
     }, []);
 
     const onRender = useCallback(() => {
-        // Clear any existing timeout
         if (checkCompleteTimeoutRef.current) {
             clearTimeout(checkCompleteTimeoutRef.current);
         }
-        // Check if fully rendered after a short delay
         checkCompleteTimeoutRef.current = setTimeout(checkIfFullyRendered, 100);
     }, [checkIfFullyRendered]);
 
@@ -124,12 +120,10 @@ const Component: React.FC<ComponentProps> = ({
         const allSourcesLoaded = requiredSources.every((sourceId) => sourcesLoaded.has(sourceId));
 
         if (allSourcesLoaded && styleLoaded && !renderComplete) {
-            // All sources and style loaded, start checking for render completion
             checkIfFullyRendered();
         }
     }, [sourcesLoaded, styleLoaded, renderComplete, checkIfFullyRendered]);
 
-    // Cleanup timeout on unmount
     useEffect(() => {
         return () => {
             if (checkCompleteTimeoutRef.current) {

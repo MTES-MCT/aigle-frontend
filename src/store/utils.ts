@@ -78,7 +78,6 @@ export const getInitialMapLayers = (settings: MapSettings) => {
         });
     });
 
-    // sort years by descinding order
     let backgroundLayerYears_ = [...backgroundLayerYears];
     backgroundLayerYears_.sort();
     backgroundLayerYears_ = backgroundLayerYears_.reverse();

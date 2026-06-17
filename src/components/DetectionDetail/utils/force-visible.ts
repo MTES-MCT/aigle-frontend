@@ -10,16 +10,12 @@ export const getFiltersToMakeVisible = (
 ): ObjectsFilter => {
     const objectFiltersUpdated = cloneDeep(currentObjectsFilters);
 
-    // objectTypesUuids
-
     if (
         currentObjectsFilters.objectTypesUuids.length &&
         !currentObjectsFilters.objectTypesUuids.includes(invisibleDetectionObject.objectType.uuid)
     ) {
         objectFiltersUpdated.objectTypesUuids.push(invisibleDetectionObject.objectType.uuid);
     }
-
-    // detectionValidationStatuses
 
     if (
         currentObjectsFilters.detectionValidationStatuses.length &&
@@ -32,8 +28,6 @@ export const getFiltersToMakeVisible = (
         );
     }
 
-    // detectionControlStatuses
-
     if (
         currentObjectsFilters.detectionControlStatuses.length &&
         !currentObjectsFilters.detectionControlStatuses.includes(
@@ -44,8 +38,6 @@ export const getFiltersToMakeVisible = (
     }
 
     // we do not update score as it's bypassed when object is set to force visible
-
-    // prescripted
 
     if (
         (invisibleDetection.detectionData.detectionPrescriptionStatus === 'NOT_PRESCRIBED' &&

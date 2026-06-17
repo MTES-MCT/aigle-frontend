@@ -44,7 +44,7 @@ const Component: React.FC<ComponentProps> = ({
                 containerRef.current.appendChild(controlContainerRef.current);
             }
             containerRef.current.classList.add('mapboxgl-ctrl');
-            containerRef.current.style.pointerEvents = 'auto'; // Ensure the container allows pointer events
+            containerRef.current.style.pointerEvents = 'auto';
             return containerRef.current;
         }
 

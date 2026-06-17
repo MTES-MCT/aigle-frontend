@@ -18,10 +18,8 @@ import {
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
-// All related-item links open the admin detail page in a new tab.
 const NEW_TAB_PROPS = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
-// Fallback swatch color for a custom zone with no color set.
 const DEFAULT_SWATCH_COLOR = 'var(--mantine-color-gray-3)';
 
 interface StatProps {

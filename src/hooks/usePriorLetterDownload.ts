@@ -7,13 +7,12 @@ const downloadPriorLetter = async (detectionObjectUuid: string) => {
     const blob = await response.blob();
 
     const contentDisposition = response.headers.get('content-disposition');
-    let filename = 'Courrier préalable.odt'; // fallback filename
+    let filename = 'Courrier préalable.odt';
 
     if (contentDisposition) {
-        // Parse Content-Disposition header to extract filename
         const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
         if (filenameMatch && filenameMatch[1]) {
-            filename = filenameMatch[1].replace(/['"]/g, ''); // remove quotes
+            filename = filenameMatch[1].replace(/['"]/g, '');
         }
     }
 

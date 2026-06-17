@@ -184,8 +184,6 @@ const EMPTY_FORM_VALUES: FormValues = {
 };
 
 const ComponentInner: React.FC = () => {
-    // user group
-
     const { uuid } = useParams();
 
     const fetchData = async () => {
@@ -218,8 +216,6 @@ const ComponentInner: React.FC = () => {
         enabled: !!uuid,
         queryFn: () => fetchData(),
     });
-
-    // additional data
 
     const fetchObjectTypeCategories = () => api<ObjectTypeCategory[]>(objectTypeCategoryEndpoints.list);
 

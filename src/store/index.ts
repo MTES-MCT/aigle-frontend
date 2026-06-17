@@ -1,4 +1,3 @@
-// Re-export store slices for easy imports
 export * from './slices/auth';
 export * from './slices/map';
 export * from './slices/statistics';
