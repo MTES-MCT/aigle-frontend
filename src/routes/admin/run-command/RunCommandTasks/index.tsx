@@ -17,7 +17,7 @@ import api, { ApiError } from '@/utils/api';
 import { colors } from '@/utils/colors';
 import { DEFAULT_DATETIME_FORMAT } from '@/utils/constants';
 import { formatDurationMs } from '@/utils/format';
-import { ActionIcon, Badge, Checkbox, Code, Group, Input, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Checkbox, Code, Group, Input, Progress, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCancel, IconReload, IconSearch } from '@tabler/icons-react';
 import { useMutation, UseMutationResult, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -101,6 +101,26 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         <Badge color={COMMAND_RUN_STATUS_COLORS_MAP[status]} variant="filled">
             {COMMAND_RUN_STATUS_NAMES_MAP[status]}
         </Badge>
+    );
+};
+
+const StatusCell: React.FC<{ item: CommandRun }> = ({ item }) => {
+    const { progress } = item;
+    const hasProgress = progress !== null && progress.total > 0;
+    const percent = hasProgress ? Math.min(100, (progress.current / progress.total) * 100) : 0;
+
+    return (
+        <Stack gap={4} align="flex-start">
+            <StatusBadge status={item.status} />
+            {hasProgress ? (
+                <Stack gap={2} w={120}>
+                    <Progress value={percent} size="sm" />
+                    <Text size="xs" c="dimmed">
+                        {progress.current}/{progress.total} ({percent.toFixed(0)}%)
+                    </Text>
+                </Stack>
+            ) : null}
+        </Stack>
     );
 };
 
@@ -332,7 +352,7 @@ const Component: React.FC = () => {
                     (item: CommandRun) => <OriginBadge origin={item.run_origin} />,
                     (item: CommandRun) => item.command_name,
                     (item: CommandRun) => <ArgumentsDisplay arguments={item.arguments} />,
-                    (item: CommandRun) => <StatusBadge status={item.status} />,
+                    (item: CommandRun) => <StatusCell item={item} />,
                     (item: CommandRun) =>
                         item.run_started_at ? (
                             <Text size="sm">{format(item.run_started_at, DEFAULT_DATETIME_FORMAT)}</Text>

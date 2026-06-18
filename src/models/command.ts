@@ -40,6 +40,8 @@ export interface CommandRun {
     status: CommandRunStatus;
     run_started_at: string | null;
     run_ended_at: string | null;
+    // Ephemeral (Redis-backed) progress while the command runs; null once finished/cleared.
+    progress: { current: number; total: number } | null;
     error: string | null;
     output: string | null;
 }
