@@ -138,7 +138,7 @@ const CommandRunDetail: React.FC<CommandRunDetailProps> = ({ item }) => {
                 ) : (
                     <Text size="sm" c="dimmed">
                         {ACTIVE_STATUSES.includes(item.status)
-                            ? 'La tâche est en cours d’exécution, les logs apparaîtront à la fin.'
+                            ? 'Les logs apparaîtront quand la tâche commencera.'
                             : 'Aucune sortie.'}
                     </Text>
                 )}

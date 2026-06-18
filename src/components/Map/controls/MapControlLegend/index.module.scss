@@ -1,6 +1,9 @@
 @use '@/constants.scss' as constants;
 
 .content {
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+
     bottom: 46px; // 20px (switch height) + 10px (switch margin) + 16px (switch padding)
     left: 0;
 

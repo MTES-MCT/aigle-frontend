@@ -3,6 +3,9 @@
 .content {
     z-index: 100;
 
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+
     max-height: calc(100% - 20px - 14px * 2 - 10px * 2 - 10px); // total size of search bar + margins
 
     margin-left: constants.$margin-map-elements;

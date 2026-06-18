@@ -12,8 +12,26 @@ import {
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
     OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
-import { ActionIcon, Badge, Button, Checkbox, Group, MultiSelect, Slider, Stack, Text, Tooltip } from '@mantine/core';
-import { UseFormReturnType, useForm } from '@mantine/form';
+import {
+    CUSTOM_PRESET_ID,
+    CUSTOM_PRESET_LABEL,
+    getMatchingPresetId,
+    OBJECTS_FILTER_PRESETS,
+} from '@/utils/objects-filter-presets';
+import {
+    ActionIcon,
+    Badge,
+    Button,
+    Checkbox,
+    Group,
+    MultiSelect,
+    Select,
+    Slider,
+    Stack,
+    Text,
+    Tooltip,
+} from '@mantine/core';
+import { useForm, UseFormReturnType } from '@mantine/form';
 import { IconChecks, IconX } from '@tabler/icons-react';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -154,9 +172,40 @@ const Component: React.FC<ComponentProps> = ({
         return objectTypesToDisplay_;
     }, [objectTypes, otherObjectTypesUuids]);
 
+    const presetSelectData = useMemo(
+        () => [
+            ...OBJECTS_FILTER_PRESETS.map(({ id, label }) => ({ value: id, label })),
+            { value: CUSTOM_PRESET_ID, label: CUSTOM_PRESET_LABEL, disabled: true },
+        ],
+        [],
+    );
+    const selectedPresetId = useMemo(() => getMatchingPresetId(objectsFilter) ?? CUSTOM_PRESET_ID, [objectsFilter]);
+
+    const applyPreset = (presetId: string | null) => {
+        const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === presetId);
+        if (!preset) {
+            return;
+        }
+        form.setValues(preset.filter);
+        updateObjectsFilter({ ...objectsFilter, ...preset.filter });
+    };
+
     return (
         <form className={classes.form}>
             <h2>{CONTROL_LABEL}</h2>
+
+            <Group gap="md" mb="md" align="center" wrap="nowrap">
+                <Text className="input-label">Filtres rapides</Text>
+                <Select
+                    data={presetSelectData}
+                    value={selectedPresetId}
+                    onChange={applyPreset}
+                    allowDeselect={false}
+                    flex={1}
+                    maw={300}
+                    styles={{ input: { caretColor: 'transparent', cursor: 'pointer' } }}
+                />
+            </Group>
 
             <div className={classes['filters-container']}>
                 <div className={classes['filters-section']}>
