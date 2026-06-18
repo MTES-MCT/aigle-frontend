@@ -9,9 +9,9 @@ import { CommandRun, CommandRunStatus, commandRunStatuses, CommandWithParameters
 import RunCommandModal from '@/routes/admin/run-command/RunCommandExecute/RunCommandModal';
 import api, { ApiError } from '@/utils/api';
 import { colors } from '@/utils/colors';
-import { ActionIcon, Badge, Checkbox, Code, Group, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Checkbox, Code, Group, Input, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconCancel, IconReload } from '@tabler/icons-react';
+import { IconCancel, IconReload, IconSearch } from '@tabler/icons-react';
 import { useMutation, UseMutationResult, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isEqual } from 'lodash';
 import classes from './index.module.scss';
@@ -98,10 +98,12 @@ const INITIAL_REFETCH_INTERVAL_MS = 5000;
 const cancelTask = (taskId: string) => api<string>(runCommandEndpoints.cancel(taskId), { method: 'POST' });
 
 interface DataFilter {
+    q: string;
     statuses: CommandRunStatus[];
 }
 
 const DATA_FILTER_INITIAL_VALUE: DataFilter = {
+    q: '',
     statuses: [...commandRunStatuses].sort(),
 };
 
@@ -200,6 +202,19 @@ const Component: React.FC = () => {
                 refetchInterval={INITIAL_REFETCH_INTERVAL_MS}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                        <Input
+                            placeholder="Rechercher une commande"
+                            leftSection={<IconSearch size={16} />}
+                            value={filter.q}
+                            onChange={(event) => {
+                                const value = event.currentTarget.value;
+                                setFilter((filter) => ({
+                                    ...filter,
+                                    q: value,
+                                }));
+                            }}
+                            mb="md"
+                        />
                         <Checkbox.Group
                             label="Statuts"
                             value={filter.statuses}

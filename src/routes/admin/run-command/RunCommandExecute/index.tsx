@@ -1,10 +1,11 @@
 import { runCommandEndpoints } from '@/api/endpoints';
+import SoloAccordion from '@/components/SoloAccordion';
 import Loader from '@/components/ui/Loader';
 import OptionalText from '@/components/ui/OptionalText';
 import { CommandWithParameters } from '@/models/command';
 import api from '@/utils/api';
-import { Accordion, ActionIcon, Center, Divider } from '@mantine/core';
-import { IconPlayerPlay } from '@tabler/icons-react';
+import { Accordion, ActionIcon, Center, Divider, Input, Text } from '@mantine/core';
+import { IconPlayerPlay, IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import classes from './index.module.scss';
@@ -76,11 +77,25 @@ const Command: React.FC<CommandProps> = ({ command, onRunCommandClicked }) => {
 
 const Component: React.FC = () => {
     const [commandModalShowed, setCommandModalShowed] = useState<CommandWithParameters>();
+    const [search, setSearch] = useState('');
 
     const { data: commands, isLoading } = useQuery<CommandWithParameters[]>({
         queryKey: [runCommandEndpoints.list],
         queryFn: () => fetchCommands(),
     });
+
+    const filteredCommands = useMemo(() => {
+        const query = search.trim().toLowerCase();
+
+        if (!query) {
+            return commands ?? [];
+        }
+
+        return (commands ?? []).filter(
+            (command) =>
+                command.name.toLowerCase().includes(query) || (command.help ?? '').toLowerCase().includes(query),
+        );
+    }, [commands, search]);
 
     return (
         <>
@@ -88,15 +103,29 @@ const Component: React.FC = () => {
                 <Loader />
             ) : (
                 <div className={classes.container}>
-                    <Accordion>
-                        {commands.map((command) => (
-                            <Command
-                                key={command.name}
-                                command={command}
-                                onRunCommandClicked={() => setCommandModalShowed(command)}
-                            />
-                        ))}
-                    </Accordion>
+                    <SoloAccordion indicatorShown={!!search.trim()}>
+                        <Input
+                            placeholder="Rechercher une commande"
+                            leftSection={<IconSearch size={16} />}
+                            value={search}
+                            onChange={(event) => setSearch(event.currentTarget.value)}
+                        />
+                    </SoloAccordion>
+                    {filteredCommands.length ? (
+                        <Accordion mt="md">
+                            {filteredCommands.map((command) => (
+                                <Command
+                                    key={command.name}
+                                    command={command}
+                                    onRunCommandClicked={() => setCommandModalShowed(command)}
+                                />
+                            ))}
+                        </Accordion>
+                    ) : (
+                        <Center mt="md">
+                            <Text c="dimmed">Aucune commande ne correspond à la recherche.</Text>
+                        </Center>
+                    )}
                 </div>
             )}
 
