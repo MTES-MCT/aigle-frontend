@@ -22,6 +22,7 @@ const formatData = (data: ValidationStatusObjectTypesGlobal[]): any[] => {
             prev[curr.objectTypeName] = {
                 DETECTED_NOT_VERIFIED: 0,
                 SUSPECT: 0,
+                ILLEGAL: 0,
                 LEGITIMATE: 0,
                 INVALIDATED: 0,
             };
@@ -35,6 +36,7 @@ const formatData = (data: ValidationStatusObjectTypesGlobal[]): any[] => {
         objectTypeName,
         [DETECTION_VALIDATION_STATUSES_NAMES_MAP.DETECTED_NOT_VERIFIED]: statusMap.DETECTED_NOT_VERIFIED,
         [DETECTION_VALIDATION_STATUSES_NAMES_MAP.SUSPECT]: statusMap.SUSPECT,
+        [DETECTION_VALIDATION_STATUSES_NAMES_MAP.ILLEGAL]: statusMap.ILLEGAL,
         [DETECTION_VALIDATION_STATUSES_NAMES_MAP.LEGITIMATE]: statusMap.LEGITIMATE,
         [DETECTION_VALIDATION_STATUSES_NAMES_MAP.INVALIDATED]: statusMap.INVALIDATED,
     }));

@@ -42,7 +42,7 @@ export const setObjectFilters = (objectsFilter: ObjectsFilter) => {
 
 const getObjectsFilterDefault = (objectTypesUuids: string[], customZonesUuids: string[]): ObjectsFilter => ({
     objectTypesUuids: objectTypesUuids,
-    detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'],
+    detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT', 'ILLEGAL'],
     detectionControlStatuses: detectionControlStatuses.filter((status) => status !== 'REHABILITATED'),
     score: 0.3,
     prescripted: false,

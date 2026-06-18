@@ -74,12 +74,13 @@ export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
     [status in DetectionControlStatus]: string;
 } = {
     NOT_CONTROLLED: 'Non contrôlé',
+    TO_CONTROL: 'À contrôler',
     PRIOR_LETTER_SENT: 'Courrier préalable envoyé',
     CONTROLLED_FIELD: 'Contrôlé terrain',
     OFFICIAL_REPORT_DRAWN_UP: 'PV dressé',
     ADMINISTRATIVE_CONSTRAINT: 'Astreinte Administrative',
     OBSERVARTION_REPORT_REDACTED: 'Rapport de constatations rédigé',
-    JUGEMENT: 'Jugement',
+    JUGEMENT: 'En jugement',
     REHABILITATED: 'Remis en état',
 } as const;
 
@@ -87,6 +88,7 @@ export const DETECTION_CONTROL_STATUSES_COLORS_MAP: {
     [status in DetectionControlStatus]: string;
 } = {
     NOT_CONTROLLED: colors.BLUE,
+    TO_CONTROL: '#0c8599',
     PRIOR_LETTER_SENT: colors.YELLOW,
     CONTROLLED_FIELD: '#a05a08',
     OFFICIAL_REPORT_DRAWN_UP: '#ad460f',
@@ -115,6 +117,7 @@ export const DETECTION_VALIDATION_STATUSES_NAMES_MAP: {
 } = {
     DETECTED_NOT_VERIFIED: 'Non vérifié',
     SUSPECT: 'Suspect',
+    ILLEGAL: 'Illégal',
     LEGITIMATE: 'Légal',
     INVALIDATED: 'Invalidé',
 } as const;
@@ -124,8 +127,9 @@ export const DETECTION_VALIDATION_STATUSES_COLORS_MAP: {
 } = {
     DETECTED_NOT_VERIFIED: colors.BLUE,
     SUSPECT: colors.YELLOW,
+    ILLEGAL: colors.RED,
     LEGITIMATE: colors.GREEN,
-    INVALIDATED: colors.RED,
+    INVALIDATED: '#495057',
 } as const;
 
 export const USER_GROUP_TYPES_NAMES_MAP: {

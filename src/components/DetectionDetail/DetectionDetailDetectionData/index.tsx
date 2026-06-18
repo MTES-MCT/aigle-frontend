@@ -222,6 +222,9 @@ const Form: React.FC<FormProps> = ({
                             <b>suspecté d&apos;être illégal</b>
                         </p>
                         <p>
+                            Illégal: l&apos;objet est <b>bien présent</b> sur les images et <b>illégal</b>
+                        </p>
+                        <p>
                             Légitime: l&apos;objet est <b>bien présent</b> sur les images et <b>légal</b>
                         </p>
                         <p>
