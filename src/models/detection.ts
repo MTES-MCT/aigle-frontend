@@ -14,8 +14,8 @@ export const detectionControlStatuses = [
     'PRIOR_LETTER_SENT',
     'OFFICIAL_REPORT_DRAWN_UP',
     'ADMINISTRATIVE_CONSTRAINT',
-    'OBSERVARTION_REPORT_REDACTED',
     'JUGEMENT',
+    'OBSERVARTION_REPORT_REDACTED',
     'REHABILITATED',
 ] as const;
 export type DetectionControlStatus = (typeof detectionControlStatuses)[number];
