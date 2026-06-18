@@ -40,6 +40,20 @@ export const formatDateOnly = (isoDate: string, displayFormat: string = DEFAULT_
     return displayFormat.replace('yyyy', year).replace('MM', month).replace('dd', day);
 };
 
+export const formatDurationMs = (durationMs: number): string => {
+    const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const parts: string[] = [];
+    if (hours) parts.push(`${hours} h`);
+    if (minutes) parts.push(`${minutes} min`);
+    if (seconds || parts.length === 0) parts.push(`${seconds} s`);
+
+    return parts.join(' ');
+};
+
 export const formatGeoCustomZonesWithSubZones = (geoCustomZones: GeoCustomZoneWithSubZones[]) => {
     return geoCustomZones
         .map((geoCustomZone) => {

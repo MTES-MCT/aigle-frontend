@@ -17,6 +17,9 @@ export interface CommandWithParameters {
 export const commandRunStatuses = ['PENDING', 'RUNNING', 'SUCCESS', 'ERROR', 'CANCELED'] as const;
 export type CommandRunStatus = (typeof commandRunStatuses)[number];
 
+export const commandRunOrigins = ['API', 'CLI'] as const;
+export type CommandRunOrigin = (typeof commandRunOrigins)[number];
+
 type CommandRunArgmentsType = string | number | boolean;
 
 interface CommandRunArgments {
@@ -33,7 +36,10 @@ export interface CommandRun {
     task_id: string;
     command_name: string;
     arguments: CommandRunArgments;
+    run_origin: CommandRunOrigin;
     status: CommandRunStatus;
+    run_started_at: string | null;
+    run_ended_at: string | null;
     error: string | null;
     output: string | null;
 }
