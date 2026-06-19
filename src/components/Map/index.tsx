@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Map, { GeolocateControl, Layer, Source, ViewStateChangeEvent } from 'react-map-gl';
+import Map, { GeolocateControl, Layer, MapRef, Source, ViewStateChangeEvent } from 'react-map-gl';
 
 import { detectionEndpoints, detectionObjectEndpoints, utilsEndpoints } from '@/api/endpoints';
 import DetectionDetail from '@/components/DetectionDetail';
@@ -57,6 +57,9 @@ const getMapInitialViewState = (
     longitude: 3.95657,
     latitude: 43.61951,
     zoom: 16,
+    // detections are north-up rectangles: lock bearing/pitch so the map can't render tilted
+    bearing: 0,
+    pitch: 0,
     ...(initialDetectionObjectUuid
         ? {
               zoom: 19,
@@ -113,9 +116,9 @@ const MAP_CONTROLS: {
     { control: new mapboxgl.FullscreenControl(), position: 'bottom-right' },
     {
         control: new mapboxgl.NavigationControl({
-            showCompass: true,
+            showCompass: false,
             showZoom: true,
-            visualizePitch: true,
+            visualizePitch: false,
         }),
         position: 'bottom-right',
     },
@@ -323,6 +326,10 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         setMapRef(node);
+
+        // keep pinch-zoom but forbid pinch-rotate, and undo any bearing a prior gesture left behind
+        (node as unknown as MapRef).getMap().touchZoomRotate.disableRotation();
+        node.setBearing(0);
 
         MAP_CONTROLS.forEach(({ control, position, hideWhenNoDetection }) => {
             if (!displayDetections && hideWhenNoDetection) {
@@ -962,6 +969,10 @@ const Component: React.FC<ComponentProps> = ({
                 onMouseEnter={onPolygonMouseEnter}
                 onMouseLeave={onPolygonMouseLeave}
                 cursor={cursor}
+                dragRotate={false}
+                pitchWithRotate={false}
+                touchPitch={false}
+                maxPitch={0}
                 mapStyle="mapbox://styles/mapbox/streets-v12"
                 {...(settings?.globalGeometryBbox ? { maxBounds: bbox(settings.globalGeometryBbox) } : {})}
             >
