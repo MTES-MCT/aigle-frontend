@@ -265,6 +265,7 @@ const Component: React.FC = () => {
         <>
             <DataTable<CommandRun, DataFilter>
                 endpoint={runCommandEndpoints.tasks}
+                showCopyUuidCol
                 filter={filter}
                 refetchInterval={INITIAL_REFETCH_INTERVAL_MS}
                 SoloAccordion={

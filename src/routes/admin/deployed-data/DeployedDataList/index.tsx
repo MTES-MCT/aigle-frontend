@@ -34,6 +34,7 @@ const Component: React.FC = () => {
             <div className={classes.container}>
                 <DataTable<DeployedDataDepartmentSummary, DataFilter>
                     endpoint={deployedDataEndpoints.list}
+                    showCopyUuidCol
                     filter={filter}
                     paginated={false}
                     layout="auto"

@@ -63,6 +63,7 @@ const Component: React.FC = () => {
         >
             <DataTable<User, DataFilter>
                 endpoint={usersEndpoints.list}
+                showCopyUuidCol
                 filter={filter}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
