@@ -5,14 +5,23 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
-import { CommandRun, CommandRunStatus, commandRunStatuses, CommandWithParameters } from '@/models/command';
+import {
+    CommandRun,
+    CommandRunOrigin,
+    CommandRunStatus,
+    commandRunStatuses,
+    CommandWithParameters,
+} from '@/models/command';
 import RunCommandModal from '@/routes/admin/run-command/RunCommandExecute/RunCommandModal';
 import api, { ApiError } from '@/utils/api';
 import { colors } from '@/utils/colors';
-import { ActionIcon, Badge, Checkbox, Code, Group, Stack, Table, Text, Tooltip } from '@mantine/core';
+import { DEFAULT_DATETIME_FORMAT } from '@/utils/constants';
+import { formatDurationMs } from '@/utils/format';
+import { ActionIcon, Badge, Checkbox, Code, Group, Input, Progress, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconCancel, IconReload } from '@tabler/icons-react';
+import { IconCancel, IconReload, IconSearch } from '@tabler/icons-react';
 import { useMutation, UseMutationResult, useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { isEqual } from 'lodash';
 import classes from './index.module.scss';
 
@@ -21,8 +30,11 @@ interface ArgumentsDisplayProps {
 }
 
 const ArgumentsDisplay: React.FC<ArgumentsDisplayProps> = ({ arguments: args }) => {
-    const hasKwargs = Object.keys(args.kwargs).length > 0;
-    const hasArgs = (args.args || []).length > 0;
+    // arguments can be an empty object (e.g. a CLI run with no args), so guard kwargs/args.
+    const kwargs = args?.kwargs ?? {};
+    const positionalArgs = args?.args ?? [];
+    const hasKwargs = Object.keys(kwargs).length > 0;
+    const hasArgs = positionalArgs.length > 0;
 
     if (!hasKwargs && !hasArgs) {
         return (
@@ -40,7 +52,7 @@ const ArgumentsDisplay: React.FC<ArgumentsDisplayProps> = ({ arguments: args }) 
                         Arguments nommés:
                     </Text>
                     <ul>
-                        {Object.entries(args.kwargs).map(([key, value]) => (
+                        {Object.entries(kwargs).map(([key, value]) => (
                             <li key={key}>
                                 {key}: {String(value)}
                             </li>
@@ -54,7 +66,7 @@ const ArgumentsDisplay: React.FC<ArgumentsDisplayProps> = ({ arguments: args }) 
                         Arguments positionnels:
                     </Text>
                     <ul>
-                        {(args.args || []).map((arg, index) => (
+                        {positionalArgs.map((arg, index) => (
                             <li key={index}>{String(arg)}</li>
                         ))}
                     </ul>
@@ -92,16 +104,73 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     );
 };
 
+const StatusCell: React.FC<{ item: CommandRun }> = ({ item }) => {
+    const { progress } = item;
+    const hasProgress = progress !== null && progress.total > 0;
+    const percent = hasProgress ? Math.min(100, (progress.current / progress.total) * 100) : 0;
+
+    return (
+        <Stack gap={4} align="flex-start">
+            <StatusBadge status={item.status} />
+            {hasProgress ? (
+                <Stack gap={2} w={120}>
+                    <Progress value={percent} size="sm" />
+                    <Text size="xs" c="dimmed">
+                        {progress.current}/{progress.total} ({percent.toFixed(0)}%)
+                    </Text>
+                </Stack>
+            ) : null}
+        </Stack>
+    );
+};
+
+const COMMAND_RUN_ORIGIN_NAMES_MAP: Record<CommandRunOrigin, string> = {
+    API: 'Interface',
+    CLI: 'Serveur',
+};
+
+const OriginBadge: React.FC<{ origin: CommandRunOrigin }> = ({ origin }) => (
+    <Badge color={origin === 'CLI' ? colors.GREY : colors.BLUE} variant="light">
+        {COMMAND_RUN_ORIGIN_NAMES_MAP[origin]}
+    </Badge>
+);
+
+// run_ended_at is null while a run is active, so the duration ticks against "now" — it
+// advances on each table refetch rather than every second, which is precise enough here.
+const getDurationMs = (item: CommandRun): number | null => {
+    if (!item.run_started_at) {
+        return null;
+    }
+    const end = item.run_ended_at ? new Date(item.run_ended_at) : new Date();
+    return end.getTime() - new Date(item.run_started_at).getTime();
+};
+
+const DurationDisplay: React.FC<{ item: CommandRun }> = ({ item }) => {
+    const durationMs = getDurationMs(item);
+
+    if (durationMs === null) {
+        return (
+            <Text size="sm" c="dimmed">
+                -
+            </Text>
+        );
+    }
+
+    return <Text size="sm">{formatDurationMs(durationMs)}</Text>;
+};
+
 const ACTIVE_STATUSES: CommandRunStatus[] = ['PENDING', 'RUNNING'];
 const INITIAL_REFETCH_INTERVAL_MS = 5000;
 
 const cancelTask = (taskId: string) => api<string>(runCommandEndpoints.cancel(taskId), { method: 'POST' });
 
 interface DataFilter {
+    q: string;
     statuses: CommandRunStatus[];
 }
 
 const DATA_FILTER_INITIAL_VALUE: DataFilter = {
+    q: '',
     statuses: [...commandRunStatuses].sort(),
 };
 
@@ -136,7 +205,7 @@ const CommandRunDetail: React.FC<CommandRunDetailProps> = ({ item }) => {
                 ) : (
                     <Text size="sm" c="dimmed">
                         {ACTIVE_STATUSES.includes(item.status)
-                            ? 'La tâche est en cours d’exécution, les logs apparaîtront à la fin.'
+                            ? 'Les logs apparaîtront quand la tâche commencera.'
                             : 'Aucune sortie.'}
                     </Text>
                 )}
@@ -200,6 +269,19 @@ const Component: React.FC = () => {
                 refetchInterval={INITIAL_REFETCH_INTERVAL_MS}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                        <Input
+                            placeholder="Rechercher une commande"
+                            leftSection={<IconSearch size={16} />}
+                            value={filter.q}
+                            onChange={(event) => {
+                                const value = event.currentTarget.value;
+                                setFilter((filter) => ({
+                                    ...filter,
+                                    q: value,
+                                }));
+                            }}
+                            mb="md"
+                        />
                         <Checkbox.Group
                             label="Statuts"
                             value={filter.statuses}
@@ -225,10 +307,13 @@ const Component: React.FC = () => {
                 }
                 tableHeader={[
                     <Table.Th key="actions" />,
-                    <Table.Th key="createdAt">Date</Table.Th>,
+                    <Table.Th key="createdAt">Submission</Table.Th>,
+                    <Table.Th key="origin">Origine</Table.Th>,
                     <Table.Th key="name">Commande</Table.Th>,
                     <Table.Th key="arguments">Arguments</Table.Th>,
                     <Table.Th key="status">Statut</Table.Th>,
+                    <Table.Th key="startedAt">Démarrage</Table.Th>,
+                    <Table.Th key="duration">Durée</Table.Th>,
                     <Table.Th key="taskId">Task id</Table.Th>,
                 ]}
                 tableBodyRenderFns={[
@@ -264,9 +349,19 @@ const Component: React.FC = () => {
                         </Group>
                     ),
                     (item: CommandRun) => <DateInfo date={item.created_at} />,
+                    (item: CommandRun) => <OriginBadge origin={item.run_origin} />,
                     (item: CommandRun) => item.command_name,
                     (item: CommandRun) => <ArgumentsDisplay arguments={item.arguments} />,
-                    (item: CommandRun) => <StatusBadge status={item.status} />,
+                    (item: CommandRun) => <StatusCell item={item} />,
+                    (item: CommandRun) =>
+                        item.run_started_at ? (
+                            <Text size="sm">{format(item.run_started_at, DEFAULT_DATETIME_FORMAT)}</Text>
+                        ) : (
+                            <Text size="sm" c="dimmed">
+                                -
+                            </Text>
+                        ),
+                    (item: CommandRun) => <DurationDisplay item={item} />,
                     (item: CommandRun) => (
                         <Text size="xs" c="dimmed" className={classes['task-id']}>
                             {item.task_id}

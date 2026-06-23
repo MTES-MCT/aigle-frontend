@@ -40,12 +40,22 @@ export const setObjectFilters = (objectsFilter: ObjectsFilter) => {
     window.history.replaceState({}, '', url.toString());
 };
 
+export const DEFAULT_DETECTION_VALIDATION_STATUSES: DetectionValidationStatus[] = [
+    'DETECTED_NOT_VERIFIED',
+    'SUSPECT',
+    'ILLEGAL',
+];
+export const DEFAULT_DETECTION_CONTROL_STATUSES: DetectionControlStatus[] = detectionControlStatuses.filter(
+    (status) => status !== 'REHABILITATED',
+);
+export const DEFAULT_PRESCRIPTED = false;
+
 const getObjectsFilterDefault = (objectTypesUuids: string[], customZonesUuids: string[]): ObjectsFilter => ({
     objectTypesUuids: objectTypesUuids,
-    detectionValidationStatuses: ['DETECTED_NOT_VERIFIED', 'SUSPECT'],
-    detectionControlStatuses: detectionControlStatuses.filter((status) => status !== 'REHABILITATED'),
+    detectionValidationStatuses: DEFAULT_DETECTION_VALIDATION_STATUSES,
+    detectionControlStatuses: DEFAULT_DETECTION_CONTROL_STATUSES,
     score: 0.3,
-    prescripted: false,
+    prescripted: DEFAULT_PRESCRIPTED,
     interfaceDrawn: 'ALL',
     customZonesUuids: customZonesUuids,
 });

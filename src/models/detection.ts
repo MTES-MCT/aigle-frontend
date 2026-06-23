@@ -9,17 +9,24 @@ import { FeatureCollection, Polygon } from 'geojson';
 
 export const detectionControlStatuses = [
     'NOT_CONTROLLED',
+    'TO_CONTROL',
     'CONTROLLED_FIELD',
     'PRIOR_LETTER_SENT',
     'OFFICIAL_REPORT_DRAWN_UP',
     'ADMINISTRATIVE_CONSTRAINT',
-    'OBSERVARTION_REPORT_REDACTED',
     'JUGEMENT',
+    'OBSERVARTION_REPORT_REDACTED',
     'REHABILITATED',
 ] as const;
 export type DetectionControlStatus = (typeof detectionControlStatuses)[number];
 
-export const detectionValidationStatuses = ['DETECTED_NOT_VERIFIED', 'SUSPECT', 'LEGITIMATE', 'INVALIDATED'] as const;
+export const detectionValidationStatuses = [
+    'DETECTED_NOT_VERIFIED',
+    'SUSPECT',
+    'ILLEGAL',
+    'LEGITIMATE',
+    'INVALIDATED',
+] as const;
 export type DetectionValidationStatus = (typeof detectionValidationStatuses)[number];
 
 export const detectionValidationStatusChangeReasons = ['SITADEL'] as const;
