@@ -24,6 +24,7 @@ const Component: React.FC = () => {
     return (
         <DataTable<GeoCustomZoneCategory, DataFilter>
             endpoint={customZoneEndpoints.category.list}
+            showCopyUuidCol
             filter={filter}
             SoloAccordion={
                 <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>

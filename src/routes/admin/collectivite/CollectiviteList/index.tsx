@@ -53,6 +53,7 @@ const Component: React.FC = () => {
             </Button.Group>
             <DataTable<GeoCollectivity, { q: string }>
                 endpoint={endpoint}
+                showCopyUuidCol
                 filter={apiFilter}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={filter.q !== ''}>

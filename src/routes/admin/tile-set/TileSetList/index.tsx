@@ -59,6 +59,7 @@ const Component: React.FC = () => {
             </InfoCard>
             <DataTable<TileSetDetail, DataFilter>
                 endpoint={tileSetEndpoints.list}
+                showCopyUuidCol
                 filter={filter}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>

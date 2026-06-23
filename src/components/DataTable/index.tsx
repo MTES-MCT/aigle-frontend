@@ -10,6 +10,7 @@ import { getPaginationPage } from '@/utils/pagination';
 import {
     ActionIcon,
     Checkbox,
+    CopyButton,
     Flex,
     LoadingOverlay,
     Loader as MantineLoader,
@@ -17,8 +18,9 @@ import {
     Select,
     Table,
     TableProps,
+    Tooltip,
 } from '@mantine/core';
-import { IconRefresh } from '@tabler/icons-react';
+import { IconCheck, IconCopy, IconRefresh } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -65,6 +67,27 @@ const scrollToTable = (tableRef: React.RefObject<HTMLTableElement>) => {
 
 const LIMITS: (typeof PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit)[] = [5, 10, 20, 50];
 
+const CopyUuidButton: React.FC<{ uuid: string }> = ({ uuid }) => (
+    <CopyButton value={uuid}>
+        {({ copied, copy }) => (
+            <Tooltip label={copied ? 'Copié !' : uuid} withArrow>
+                <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    size="sm"
+                    aria-label="Copier l'identifiant"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        copy();
+                    }}
+                >
+                    {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                </ActionIcon>
+            </Tooltip>
+        )}
+    </CopyButton>
+);
+
 interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object | undefined> {
     endpoint: string;
     filter?: T_FILTER;
@@ -79,6 +102,8 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object | undefi
     tableContainerClassName?: string;
     layout?: TableProps['layout'];
     showSelection?: boolean;
+    // Admin-only: prepends a column with a copy-to-clipboard button for each item's uuid.
+    showCopyUuidCol?: boolean;
     showRefresh?: boolean;
     selectedUuids?: string[];
     setSelectedUuids?: React.Dispatch<React.SetStateAction<string[]>>;
@@ -106,6 +131,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
     layout = 'fixed',
     initialLimit = PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit,
     showSelection = false,
+    showCopyUuidCol = false,
     showRefresh = true,
     striped = true,
     highlightOnHover = true,
@@ -164,7 +190,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
     });
 
     const paginationPage = getPaginationPage(pagination);
-    const colsCount = showSelection ? tableHeader.length + 1 : tableHeader.length;
+    const colsCount = tableHeader.length + (showSelection ? 1 : 0) + (showCopyUuidCol ? 1 : 0);
 
     return (
         <>
@@ -244,7 +270,9 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                             >
                                 <Table.Thead>
                                     <Table.Tr>
-                                        {showSelection ? [<Table.Th key="select-row" />, ...tableHeader] : tableHeader}
+                                        {showCopyUuidCol ? <Table.Th key="copy-uuid" w={48} /> : null}
+                                        {showSelection ? <Table.Th key="select-row" /> : null}
+                                        {tableHeader}
                                     </Table.Tr>
                                 </Table.Thead>
 
@@ -271,6 +299,11 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                                     [classes['row-clickable']]: !!onItemClick || !!getExpandedContent,
                                                 })}
                                             >
+                                                {showCopyUuidCol ? (
+                                                    <Table.Td>
+                                                        <CopyUuidButton uuid={item.uuid} />
+                                                    </Table.Td>
+                                                ) : null}
                                                 {showSelection ? (
                                                     <Table.Td>
                                                         <Checkbox

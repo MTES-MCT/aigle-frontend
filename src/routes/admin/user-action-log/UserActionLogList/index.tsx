@@ -55,6 +55,7 @@ const Component: React.FC = () => {
         <LayoutAdminBase title="Journal des actions">
             <DataTable<UserActionLog, DataFilter>
                 endpoint={userActionLogEndpoints.list}
+                showCopyUuidCol
                 filter={filter}
                 SoloAccordion={
                     <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
