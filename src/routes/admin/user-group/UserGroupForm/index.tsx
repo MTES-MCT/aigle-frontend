@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { customZoneEndpoints, objectTypeCategoryEndpoints, userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
@@ -8,6 +8,7 @@ import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
 import { useFilterNavigation } from '@/hooks/useFilterNavigation';
+import { CollectivityType } from '@/models/geo/_common';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ObjectTypeCategory } from '@/models/object-type-category';
@@ -22,6 +23,11 @@ import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/user-groups';
+
+// A user-group is scoped to departments OR communes, never both — regions are not supported for now.
+const COLLECTIVITY_TYPES_DISPLAYED = new Set<CollectivityType>(['department', 'commune']);
+const DEPARTMENTS_OR_COMMUNES_MESSAGE =
+    'Un groupe utilisateurs ne peut être assigné qu’à des départements OU des communes, pas les deux.';
 
 interface FormValues {
     name: string;
@@ -51,6 +57,21 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, categories, geoCustomZones }) => {
     const [error, setError] = useState<ApiError>();
     const { navigate, buildPath } = useFilterNavigation();
+
+    const [zonesSearch, setZonesSearch] = useState('');
+    const keepZonesSearchRef = useRef(false);
+
+    // The form is uncontrolled (Mantine default), so mirror the geo selection here to react to it live.
+    const [geoSelected, setGeoSelected] = useState<GeoValues>(
+        initialGeoSelectedValues || { region: [], department: [], commune: [] },
+    );
+    const disabledCollectivityTypes: Partial<Record<CollectivityType, string>> = {};
+    if (geoSelected.department.length && !geoSelected.commune.length) {
+        disabledCollectivityTypes.commune = DEPARTMENTS_OR_COMMUNES_MESSAGE;
+    }
+    if (geoSelected.commune.length && !geoSelected.department.length) {
+        disabledCollectivityTypes.department = DEPARTMENTS_OR_COMMUNES_MESSAGE;
+    }
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
@@ -126,6 +147,19 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 label="Zones"
                 placeholder="Zones à risque fort,..."
                 searchable
+                searchValue={zonesSearch}
+                onSearchChange={(value) => {
+                    // ponytail: Mantine clears the search on select; swallow that one clear so the query
+                    // stays put for adding several zones in a row. Upgrade path: a prop if Mantine adds one.
+                    if (keepZonesSearchRef.current) {
+                        keepZonesSearchRef.current = false;
+                        return;
+                    }
+                    setZonesSearch(value);
+                }}
+                onOptionSubmit={() => {
+                    keepZonesSearchRef.current = true;
+                }}
                 data={(geoCustomZones || []).map(({ name, uuid }) => ({
                     value: uuid,
                     label: name,
@@ -138,16 +172,26 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
             <InfoCard title="Droits d'accès">
                 <p>
+                    Un groupe peut être assigné soit à des départements, soit à des communes, mais pas aux deux à la
+                    fois.
+                </p>
+                <p>
                     Les droits d&apos;accès sont cumulatifs : ajouter un département donne accès à l&apos;ensemble de
                     ses communes.
                 </p>
                 <p>
                     Si le groupe ne doit accéder qu&apos;à certaines communes, sélectionnez uniquement ces communes sans
-                    ajouter leur département ni leur région.
+                    ajouter leur département.
                 </p>
             </InfoCard>
 
-            <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
+            <GeoCollectivitiesMultiSelects
+                form={form}
+                initialGeoSelectedValues={initialGeoSelectedValues}
+                displayedCollectivityTypes={COLLECTIVITY_TYPES_DISPLAYED}
+                disabledCollectivityTypes={disabledCollectivityTypes}
+                onChange={setGeoSelected}
+            />
 
             <div className="form-actions">
                 <Button
