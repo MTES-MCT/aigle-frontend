@@ -2,7 +2,6 @@ import React from 'react';
 
 import SoloAccordion from '@/components/SoloAccordion';
 import { DeployedDataDepartment, getDeployedDepartmentUsersCount } from '@/models/deployed-data';
-import { formatDateOnly } from '@/utils/format';
 import { Anchor, Badge, ColorSwatch, Group, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon } from '@mantine/core';
 import {
     IconBuildingCommunity,
@@ -89,7 +88,11 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
                 />
                 <Stat icon={<IconUsersGroup size={20} />} label="Groupes" value={department.userGroups.length} />
                 <Stat icon={<IconUser size={20} />} label="Utilisateurs" value={usersCount} />
-                <Stat icon={<IconMap2 size={20} />} label="Fonds de carte" value={department.tileSets.length} />
+                <Stat
+                    icon={<IconMap2 size={20} />}
+                    label="Fonds de carte"
+                    value={department.detectionsByTileSet.length}
+                />
             </SimpleGrid>
 
             <Section
@@ -257,32 +260,6 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
                 ) : (
                     <Text c="dimmed" size="sm">
                         Aucune zone à enjeux
-                    </Text>
-                )}
-            </Section>
-
-            <Section icon={<IconMap2 size={16} />} title="Fonds de carte" count={department.tileSets.length}>
-                {department.tileSets.length ? (
-                    <Stack gap="sm">
-                        {department.tileSets.map((tileSet) => (
-                            <Group key={tileSet.uuid} justify="space-between" wrap="nowrap" gap="md">
-                                <Anchor
-                                    component={Link}
-                                    to={`/admin/tile-sets/form/${tileSet.uuid}`}
-                                    fw={500}
-                                    {...NEW_TAB_PROPS}
-                                >
-                                    {tileSet.name}
-                                </Anchor>
-                                <Badge variant="light" size="sm" radius="sm">
-                                    {formatDateOnly(tileSet.date)}
-                                </Badge>
-                            </Group>
-                        ))}
-                    </Stack>
-                ) : (
-                    <Text c="dimmed" size="sm">
-                        Aucun fond de carte
                     </Text>
                 )}
             </Section>

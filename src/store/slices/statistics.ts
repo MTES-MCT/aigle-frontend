@@ -6,23 +6,14 @@ import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { getCommonMapSettingsData, getInitialStatisticsLayers } from '@/store/utils';
 import { create } from 'zustand';
 
-interface ZonesFilter {
-    tileSetsUuids: string[];
-    communesUuids: string[];
-    departmentsUuids: string[];
-    regionsUuids: string[];
-}
-
 interface StatisticsState {
     layers?: MapTileSetLayer[];
     allObjectTypes?: ObjectType[];
     geoCustomZones?: GeoCustomZone[];
-    zonesFilter?: ZonesFilter;
     otherObjectTypesUuids?: Set<string>;
     customZoneLayers?: MapGeoCustomZoneLayer[];
 
     setMapSettings: (settings: MapSettings) => void;
-    updateZonesFilter: (zonesFilter: ZonesFilter) => void;
 }
 
 const useStatistics = create<StatisticsState>()((set) => ({
@@ -37,23 +28,8 @@ const useStatistics = create<StatisticsState>()((set) => ({
             layers,
             allObjectTypes,
             geoCustomZones: settings.geoCustomZonesUncategorized,
-            zonesFilter: {
-                tileSetsUuids: [],
-                communesUuids: [],
-                departmentsUuids: [],
-                regionsUuids: [],
-            },
-            userLastPosition: settings.userLastPosition,
             otherObjectTypesUuids: otherObjectTypesUuids,
             customZoneLayers: initialMapGeoCustomZoneLayers,
-        }));
-    },
-    updateZonesFilter: (zonesFilter: ZonesFilter) => {
-        set((state) => ({
-            zonesFilter: {
-                ...state.zonesFilter,
-                ...zonesFilter,
-            },
         }));
     },
 }));

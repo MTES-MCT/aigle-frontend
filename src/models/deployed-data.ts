@@ -26,12 +26,6 @@ export interface DeployedDataCustomZone {
     color: string | null;
 }
 
-export interface DeployedDataTileSet {
-    uuid: string;
-    name: string;
-    date: string;
-}
-
 // Detection counts for one tile set (Detection.tile_set): total, and the subset whose
 // object falls inside at least one custom zone ("zone à enjeux") — same criteria as the
 // per-commune counts.
@@ -62,7 +56,6 @@ export interface DeployedDataDepartment {
     communes: DeployedDataCommune[];
     userGroups: DeployedDataUserGroup[];
     customZones: DeployedDataCustomZone[];
-    tileSets: DeployedDataTileSet[];
     detectionsByTileSet: DeployedDataDetectionsByTileSet[];
 }
 
