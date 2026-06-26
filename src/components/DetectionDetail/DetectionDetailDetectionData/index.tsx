@@ -222,9 +222,6 @@ const Form: React.FC<FormProps> = ({
                             <b>suspecté d&apos;être illégal</b>
                         </p>
                         <p>
-                            Illégal: l&apos;objet est <b>bien présent</b> sur les images et <b>illégal</b>
-                        </p>
-                        <p>
                             Légitime: l&apos;objet est <b>bien présent</b> sur les images et <b>légal</b>
                         </p>
                         <p>
@@ -240,7 +237,7 @@ const Form: React.FC<FormProps> = ({
                 })}
             >
                 {detectionValidationStatuses
-                    .filter((status) => status !== 'DETECTED_NOT_VERIFIED')
+                    .filter((status) => status !== 'DETECTED_NOT_VERIFIED' && status !== 'ILLEGAL')
                     .map((status) => (
                         <Button
                             variant={form.getValues().detectionValidationStatus === status ? 'filled' : 'outline'}
