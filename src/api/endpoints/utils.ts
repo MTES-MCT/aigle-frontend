@@ -17,7 +17,6 @@ export const parcelEndpoints = {
 };
 
 export const utilsEndpoints = {
-    importsInfos: `${BASE_UTILS}imports-infos/`,
     customGeometry: `${BASE_UTILS}get-custom-geometry/`,
     annotationGrid: `${BASE_UTILS}get-annotation-grid/`,
     generatePriorLetter: (detectionObjectUuid: string) => `${BASE_UTILS}generate-prior-letter/${detectionObjectUuid}/`,

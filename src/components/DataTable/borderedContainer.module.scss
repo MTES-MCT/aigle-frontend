@@ -1,0 +1,14 @@
+@use '@/constants.scss' as constants;
+
+// Shared bordered grid look (used by /table nested detections grid and /imports).
+.container {
+    border-radius: constants.$border-radius-small;
+    border: 1px solid var(--mantine-color-gray-3) !important;
+    background-color: var(--mantine-color-gray-1);
+    /* clip the square header corners to the rounded border */
+    overflow: hidden;
+
+    thead th {
+        background-color: var(--mantine-color-gray-2);
+    }
+}

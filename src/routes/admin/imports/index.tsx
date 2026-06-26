@@ -1,102 +1,173 @@
-import { utilsEndpoints } from '@/api/endpoints';
-import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
-import Loader from '@/components/ui/Loader';
-import { ImportsInfos } from '@/models/info-imports';
-import api from '@/utils/api';
-import { Code, Table } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
 import React from 'react';
-import classes from './index.module.scss';
 
-const fetchImportInfos = (): Promise<ImportsInfos> => api<ImportsInfos>(utilsEndpoints.importsInfos);
+import { dataDeploymentEndpoints } from '@/api/endpoints/admin';
+import DataTable from '@/components/DataTable';
+import borderedClasses from '@/components/DataTable/borderedContainer.module.scss';
+import SoloAccordion from '@/components/SoloAccordion';
+import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
+import DateInfo from '@/components/ui/DateInfo';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
+import { DataDeploymentRun, DataDeploymentRunResult, DataDeploymentStatus } from '@/models/data-deployment';
+import api, { ApiError } from '@/utils/api';
+import {
+    ActionIcon,
+    Anchor,
+    Badge,
+    Button,
+    Group,
+    Input,
+    List,
+    Modal,
+    Stack,
+    Table,
+    Text,
+    Title,
+    Tooltip,
+} from '@mantine/core';
+import { DateInput } from '@mantine/dates';
+import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@mantine/notifications';
+import { IconChevronDown, IconRocket, IconSearch } from '@tabler/icons-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { format, isValid, parse } from 'date-fns';
+import isEqual from 'lodash/isEqual';
 
-interface ImportsElementProps {
-    items: string[];
+interface DataFilter {
+    q: string;
+    batchCreatedAtMin: string;
 }
 
-const FieldPossibleValues: React.FC<ImportsElementProps> = ({ items }) => {
+const DATA_FILTER_INITIAL_VALUE: DataFilter = {
+    q: '',
+    batchCreatedAtMin: '',
+};
+
+const DEPLOYMENT_STATUS: Record<DataDeploymentStatus, { label: string; color: string }> = {
+    NOT_DEPLOYED: { label: 'Non déployé', color: 'red' },
+    DEPLOYMENT_RUNNING: { label: 'Déploiement en cours', color: 'orange' },
+    DEPLOYED: { label: 'Déployé', color: 'green' },
+};
+
+const DeployStatusBadge: React.FC<{ status: DataDeploymentStatus }> = ({ status }) => (
+    <Badge color={DEPLOYMENT_STATUS[status].color}>{DEPLOYMENT_STATUS[status].label}</Badge>
+);
+
+const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
+    const queryClient = useQueryClient();
+    const [confirmOpened, { open, close }] = useDisclosure(false);
+
+    const mutation = useMutation<DataDeploymentRunResult, ApiError<{ detail?: string }>, void>({
+        mutationFn: () => api<DataDeploymentRunResult>(dataDeploymentEndpoints.run(run.uuid), { method: 'POST' }),
+        onSuccess: (result) => {
+            close();
+            const skipped = result.skippedBatches.length ? ` ${result.skippedBatches.length} batch(s) ignoré(s).` : '';
+            notifications.show({
+                title: 'Déploiement lancé',
+                message:
+                    `${result.tileSetsCreated.length} fond(s) de carte créé(s), ` +
+                    `${result.queuedCommands.length} commande(s) en file d'attente.${skipped}`,
+                color: 'green',
+            });
+            // imports run async on the queue, so statuses won't flip yet; refetch
+            // anyway so a DEPLOYMENT_RUNNING already in flight is reflected
+            queryClient.invalidateQueries({ queryKey: [dataDeploymentEndpoints.list] });
+        },
+        onError: (error) => {
+            notifications.show({
+                title: 'Erreur lors du déploiement',
+                message: error.body?.detail ?? error.message,
+                color: 'red',
+            });
+        },
+    });
+
+    const deploying = mutation.status === 'pending';
+    // Don't let a deployment be stacked. Batch statuses only flip to DEPLOYMENT_RUNNING
+    // once the queued import_detections actually runs (much later, behind the FIFO queue),
+    // so also stay disabled once we've launched one this session (mutation.isSuccess).
+    const deployDisabled =
+        mutation.isSuccess || run.batches.some((batch) => batch.deployStatus === 'DEPLOYMENT_RUNNING');
+
     return (
         <>
-            <p>Valeurs possibles :</p>
-            <Code block mb="md">
-                {items.map((item) => (
-                    <div key={item}>{item}</div>
-                ))}
-            </Code>
+            <Group justify="flex-end">
+                <Button
+                    leftSection={<IconRocket size={16} />}
+                    onClick={open}
+                    disabled={deployDisabled}
+                    title={deployDisabled ? 'Un déploiement est déjà en cours ou vient d’être lancé' : undefined}
+                >
+                    Déployer les données
+                </Button>
+            </Group>
+
+            <Modal opened={confirmOpened} onClose={close} title="Déployer les données" centered>
+                <Stack>
+                    <Text size="sm">Cette action va, pour {run.geozoneName ?? 'cette collectivité'} :</Text>
+                    <List size="sm">
+                        <List.Item>créer un fond de carte par batch et le groupe « Cabanisation »</List.Item>
+                        <List.Item>
+                            mettre en file les imports (zones à enjeux, tuiles, parcelles, détections, Sitadel)
+                        </List.Item>
+                    </List>
+                    <Group justify="flex-end">
+                        <Button variant="outline" onClick={close} disabled={deploying}>
+                            Annuler
+                        </Button>
+                        <Button onClick={() => mutation.mutate()} loading={deploying}>
+                            Confirmer le déploiement
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </>
     );
 };
 
-const CSV_FIELDS: { name: string; required?: boolean; description: string; valueName?: string }[] = [
-    { name: 'id', required: true, description: 'ID externe' },
-    { name: 'batch_id', required: true, description: "ID du batch d'import, il est spécifié lors de l'import" },
-    { name: 'score', required: true, description: 'Score de la détection' },
-    { name: 'tile_x', description: 'Pour les détections sur les tuiles qui ne sont pas encore en bdd' },
-    { name: 'tile_y', description: 'Pour les détections sur les tuiles qui ne sont pas encore en bdd' },
-    { name: 'address', description: 'Adresse' },
-    { name: 'object_type', required: true, description: "Type de l'objet", valueName: 'objectTypes' },
-    { name: 'geometry', required: true, description: 'Geometry (polygon) de la détection' },
-    {
-        name: 'detection_source',
-        description: 'Source de la détection, si non-spécifiée, la source sera ANALYSIS',
-        valueName: 'detectionSources',
-    },
-    {
-        name: 'detection_control_status',
-        description: 'Le statut de contrôle, si non-spécifiée, la statut sera DETECTED',
-        valueName: 'detectionControlStatuses',
-    },
-    {
-        name: 'detection_validation_status',
-        description: 'Le statut de validation, si non-spécifiée, la statut sera DETECTED_NOT_VERIFIED',
-        valueName: 'detectionValidationStatuses',
-    },
-    {
-        name: 'detection_prescription_status',
-        description:
-            'Le statut de prescription, si non-spécifiée, le statut sera calculé automatiquement en fonction des détections liées.',
-        valueName: 'detectionPrescriptionStatuses',
-    },
-    { name: 'user_reviewed', description: 'true si un utilisateur a validé la détection' },
-];
+const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
+    <Stack gap="lg" py="md">
+        <DeployButton run={run} />
 
-const Component: React.FC = () => {
-    const { data, isLoading } = useQuery<ImportsInfos>({
-        queryKey: ['imports-infos'],
-        queryFn: () => fetchImportInfos(),
-    });
-
-    return (
-        <LayoutAdminBase title="Informations pour lancer un import">
-            {isLoading || !data ? (
-                <Loader />
+        <div>
+            <Title order={5} mb="xs">
+                Batches
+            </Title>
+            {run.batches.length === 0 ? (
+                <Text c="dimmed" size="sm">
+                    Aucun batch
+                </Text>
             ) : (
-                <div className={classes.container}>
-                    <p>
-                        Pour lancer un import, vous devez fournir une table dans un schema autre que <Code>public</Code>{' '}
-                        OU un fichier CSV avec les données à importer.
-                    </p>
-                    <p>Voici la liste des champs à renseigner :</p>
-
-                    <Table mt="md" mb="md">
+                <div className={borderedClasses.container}>
+                    <Table layout="fixed">
                         <Table.Thead>
                             <Table.Tr>
-                                <Table.Th>Champ</Table.Th>
-                                <Table.Th>Description</Table.Th>
+                                <Table.Th>Date création</Table.Th>
+                                <Table.Th>Batch</Table.Th>
+                                <Table.Th>Fond de carte</Table.Th>
+                                <Table.Th>Statut déploiement</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
-
                         <Table.Tbody>
-                            {CSV_FIELDS.map(({ name, required, description, valueName }) => (
-                                <Table.Tr key={name}>
+                            {run.batches.map((batch, index) => (
+                                <Table.Tr key={index}>
+                                    <Table.Td>{batch.createdAt ? <DateInfo date={batch.createdAt} /> : '—'}</Table.Td>
+                                    <Table.Td>{batch.name ?? '—'}</Table.Td>
                                     <Table.Td>
-                                        <Code>{name}</Code> {required ? ' (requis)' : null}
+                                        {batch.tilesUrl ? (
+                                            <Anchor
+                                                href={batch.tilesUrl}
+                                                target="_blank"
+                                                size="sm"
+                                                style={{ wordBreak: 'break-all' }}
+                                            >
+                                                {batch.tilesUrl}
+                                            </Anchor>
+                                        ) : (
+                                            '—'
+                                        )}
                                     </Table.Td>
                                     <Table.Td>
-                                        <p>{description}</p>
-                                        {valueName ? (
-                                            <FieldPossibleValues items={data[valueName as keyof ImportsInfos]} />
-                                        ) : null}
+                                        <DeployStatusBadge status={batch.deployStatus} />
                                     </Table.Td>
                                 </Table.Tr>
                             ))}
@@ -104,6 +175,113 @@ const Component: React.FC = () => {
                     </Table>
                 </div>
             )}
+        </div>
+
+        <div>
+            <Title order={5} mb="xs">
+                Zones à enjeux
+            </Title>
+            {run.zaeLayers.length === 0 ? (
+                <Text c="dimmed" size="sm">
+                    Aucune zone à enjeux
+                </Text>
+            ) : (
+                <div className={borderedClasses.container}>
+                    <Table layout="fixed">
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th>Date création</Table.Th>
+                                <Table.Th>Zone à enjeux</Table.Th>
+                                <Table.Th>Type</Table.Th>
+                                <Table.Th>Année</Table.Th>
+                                <Table.Th>Statut déploiement</Table.Th>
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {run.zaeLayers.map((zaeLayer, index) => (
+                                <Table.Tr key={index}>
+                                    <Table.Td>
+                                        {zaeLayer.createdAt ? <DateInfo date={zaeLayer.createdAt} /> : '—'}
+                                    </Table.Td>
+                                    <Table.Td>{zaeLayer.name ?? '—'}</Table.Td>
+                                    <Table.Td>{zaeLayer.typeName ?? zaeLayer.type ?? '—'}</Table.Td>
+                                    <Table.Td>{zaeLayer.year ?? '—'}</Table.Td>
+                                    <Table.Td>
+                                        <DeployStatusBadge status={zaeLayer.deployStatus} />
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </Table>
+                </div>
+            )}
+        </div>
+    </Stack>
+);
+
+const Component: React.FC = () => {
+    const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
+
+    // guard like onChange does — a hand-edited URL (?batchCreatedAtMin=foo) parses to an
+    // Invalid Date (truthy), which would feed a broken value into DateInput
+    const parsedMin = filter.batchCreatedAtMin ? parse(filter.batchCreatedAtMin, 'yyyy-MM-dd', new Date()) : null;
+    const batchCreatedAtMinDate = parsedMin && isValid(parsedMin) ? parsedMin : null;
+
+    return (
+        <LayoutAdminBase title="Imports">
+            <DataTable<DataDeploymentRun, DataFilter>
+                endpoint={dataDeploymentEndpoints.list}
+                filter={filter}
+                striped={false}
+                highlightOnHover={false}
+                layout="auto"
+                SoloAccordion={
+                    <SoloAccordion indicatorShown={!isEqual(filter, DATA_FILTER_INITIAL_VALUE)}>
+                        <Input
+                            placeholder="Rechercher un batch"
+                            leftSection={<IconSearch size={16} />}
+                            value={filter.q}
+                            onChange={(event) => {
+                                const value = event.currentTarget.value;
+                                setFilter((filter) => ({ ...filter, q: value }));
+                            }}
+                        />
+                        <DateInput
+                            label="Date de création (minimum)"
+                            placeholder="Sélectionner une date"
+                            clearable
+                            valueFormat="DD/MM/YYYY"
+                            dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
+                            value={batchCreatedAtMinDate}
+                            onChange={(date) => {
+                                setFilter((filter) => ({
+                                    ...filter,
+                                    // a free-typed invalid date parses to an Invalid Date (truthy) — guard it
+                                    batchCreatedAtMin: date && isValid(date) ? format(date, 'yyyy-MM-dd') : '',
+                                }));
+                            }}
+                        />
+                    </SoloAccordion>
+                }
+                tableHeader={[
+                    <Table.Th key="createdAt">Date création</Table.Th>,
+                    <Table.Th key="run">Run</Table.Th>,
+                    <Table.Th key="actions" />,
+                ]}
+                tableBodyRenderFns={[
+                    // createdAt is MAX(run.created_at) and can be null — guard like the nested rows do
+                    (item: DataDeploymentRun) => (item.createdAt ? <DateInfo date={item.createdAt} /> : '—'),
+                    (item: DataDeploymentRun) => item.geozoneName ?? '—',
+                    () => (
+                        <Tooltip label="Afficher les batches et zones à enjeux">
+                            <ActionIcon variant="subtle">
+                                <IconChevronDown size={16} />
+                            </ActionIcon>
+                        </Tooltip>
+                    ),
+                ]}
+                getExpandedContent={(item: DataDeploymentRun) => <ExpandedContent run={item} />}
+            />
         </LayoutAdminBase>
     );
 };

@@ -6,6 +6,7 @@ const BASE_TILE_SET = `${BASE_API}tile-set/`;
 const BASE_RUN_COMMAND = `${BASE_API}run-command/`;
 const BASE_USER_ACTION_LOG = `${BASE_API}user-action-log/`;
 const BASE_DEPLOYED_DATA = `${BASE_API}statistics/deployed-data/`;
+const BASE_DATA_DEPLOYMENT = `${BASE_API}utils/data-deployment/`;
 
 export const objectTypeEndpoints = {
     list: BASE_OBJECT_TYPE,
@@ -45,4 +46,9 @@ export const userActionLogEndpoints = {
 export const deployedDataEndpoints = {
     list: BASE_DEPLOYED_DATA,
     detail: (uuid: string) => `${BASE_DEPLOYED_DATA}${uuid}/`,
+};
+
+export const dataDeploymentEndpoints = {
+    list: BASE_DATA_DEPLOYMENT,
+    run: (geozoneId: string) => `${BASE_DATA_DEPLOYMENT}${geozoneId}/run/`,
 };
