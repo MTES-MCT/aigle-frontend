@@ -16,6 +16,7 @@ interface AuthState {
     setSelectedUserGroupUuid: (uuid?: string) => void;
     logout: () => void;
     getUserGroupType: () => UserGroupType;
+    getCanViewStatistics: () => boolean;
     getAccessibleGeozones: (geoZoneType?: GeoZoneType) => GeoZone[];
 
     isAuthenticated: () => boolean;
@@ -65,6 +66,9 @@ const useAuth = create<AuthState>()(
                 }
 
                 return 'COLLECTIVITY';
+            },
+            getCanViewStatistics: () => {
+                return get().userMe?.userRole === 'SUPER_ADMIN' || get().getUserGroupType() === 'DDTM';
             },
             getAccessibleGeozones: (geoZoneType?: GeoZoneType) => {
                 const userMe = get().userMe;

@@ -1,52 +1,22 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 
-import logoSmallImg from '@/assets/logo_small.png';
 import marianneImg from '@/assets/marianne.svg';
 import UserGroupSelector from '@/components/UserGroupSelector';
 import { useAuth } from '@/store/slices/auth';
-import { DEFAULT_ROUTE, ENVIRONMENT, ROLES_NAMES_MAP } from '@/utils/constants';
-import { getColorFromString, getEmailInitials } from '@/utils/string';
-import { Avatar, Burger, Button, Image, Menu, Tabs } from '@mantine/core';
+import { ENVIRONMENT } from '@/utils/constants';
+import { Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
     IconAdjustments,
     IconHelp,
     IconInfoCircle,
-    IconLogout,
     IconMap,
     IconReportAnalytics,
     IconTable,
 } from '@tabler/icons-react';
 import clsx from 'clsx';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import classes from './index.module.scss';
-
-type TabValue = 'map' | 'admin' | 'statistics' | 'about' | 'help';
-
-const getTabeValue = (pathname: string): TabValue => {
-    if (pathname.includes('/map')) {
-        return 'map';
-    }
-
-    if (pathname.includes('/statistics')) {
-        return 'statistics';
-    }
-
-    if (pathname.includes('/about')) {
-        return 'about';
-    }
-
-    if (pathname.includes('/help')) {
-        return 'help';
-    }
-
-    return 'admin';
-};
-
-interface AvatarState {
-    initials?: string;
-    color?: string;
-}
 
 const getSearchParamsForPath = (path: string) => {
     if (path.startsWith('/admin')) {
@@ -60,7 +30,7 @@ interface NavMenuProps {
 }
 
 const NavMenu: React.FC<NavMenuProps> = ({ onGroupChange }) => {
-    const { userMe, logout } = useAuth();
+    const { userMe, logout, getCanViewStatistics } = useAuth();
     const navigate = useNavigate();
 
     const handleNavigate = (path: string) => (e: React.MouseEvent) => {
@@ -82,16 +52,18 @@ const NavMenu: React.FC<NavMenuProps> = ({ onGroupChange }) => {
                         Carte
                     </a>
                 </li>
-                <li>
-                    <a
-                        className="fr-btn fr-btn--tertiary-no-outline"
-                        href="/statistics"
-                        onClick={handleNavigate('/statistics')}
-                    >
-                        <IconReportAnalytics className={classes['link-icon']} size={16} />
-                        Stats
-                    </a>
-                </li>
+                {getCanViewStatistics() ? (
+                    <li>
+                        <a
+                            className="fr-btn fr-btn--tertiary-no-outline"
+                            href="/statistics"
+                            onClick={handleNavigate('/statistics')}
+                        >
+                            <IconReportAnalytics className={classes['link-icon']} size={16} />
+                            Stats
+                        </a>
+                    </li>
+                ) : null}
                 <li>
                     <a className="fr-btn fr-btn--tertiary-no-outline" href="/table" onClick={handleNavigate('/table')}>
                         <IconTable className={classes['link-icon']} size={16} />
@@ -143,34 +115,9 @@ interface ComponentProps {
 }
 
 const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
-    const { userMe, logout } = useAuth();
-    const { pathname } = useLocation();
     const navigate = useNavigate();
 
     const [burgerOpened, { toggle: toggleBurgerOpened }] = useDisclosure();
-
-    const avatarState: AvatarState = useMemo(
-        () =>
-            userMe?.email
-                ? {
-                      initials: getEmailInitials(userMe.email),
-                      color: getColorFromString(userMe.email),
-                  }
-                : {},
-        [userMe?.email],
-    );
-
-    const onTabChange = (tab: TabValue) => {
-        const routes: Record<TabValue, string> = {
-            map: '/map',
-            statistics: '/statistics',
-            about: '/about',
-            help: '/help',
-            admin: '/admin',
-        };
-        const path = routes[tab];
-        navigate(`${path}${getSearchParamsForPath(path)}`);
-    };
 
     return (
         <header role="banner" className={clsx(classes.container, 'fr-header')}>
@@ -240,101 +187,6 @@ const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
                 <div className={classes['mobile-menu']}>
                     <NavMenu onGroupChange={onGroupChange} />
                 </div>
-            ) : null}
-        </header>
-    );
-
-    return (
-        <header className={classes.container}>
-            <div className="navigation-items">
-                <Link to={DEFAULT_ROUTE} className={classes['logo-container']}>
-                    <Image src={logoSmallImg} alt="Logo Aigle" h="100%" fit="contain" />
-                </Link>
-
-                <Tabs
-                    className={classes.tabs}
-                    ml="xl"
-                    value={getTabeValue(pathname)}
-                    onChange={(value) => onTabChange(value as TabValue)}
-                >
-                    <Tabs.List className={classes['tabs-list']}>
-                        <Tabs.Tab
-                            pl="xl"
-                            pr="xl"
-                            className={classes.tab}
-                            leftSection={<IconMap size={16} />}
-                            value="map"
-                        >
-                            Carte
-                        </Tabs.Tab>
-                        <Tabs.Tab
-                            pl="xl"
-                            pr="xl"
-                            className={classes.tab}
-                            leftSection={<IconReportAnalytics size={16} />}
-                            value="statistics"
-                        >
-                            Stats
-                        </Tabs.Tab>
-                        <Tabs.Tab
-                            pl="xl"
-                            pr="xl"
-                            className={classes.tab}
-                            leftSection={<IconInfoCircle size={16} />}
-                            value="about"
-                        >
-                            A propos
-                        </Tabs.Tab>
-                        <Tabs.Tab
-                            pl="xl"
-                            pr="xl"
-                            className={classes.tab}
-                            leftSection={<IconHelp size={16} />}
-                            value="help"
-                        >
-                            Besoin d&apos;aide
-                        </Tabs.Tab>
-                        {userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole) ? (
-                            <Tabs.Tab
-                                pl="xl"
-                                pr="xl"
-                                className={classes.tab}
-                                leftSection={<IconAdjustments size={16} />}
-                                value="admin"
-                            >
-                                Admin
-                            </Tabs.Tab>
-                        ) : null}
-                    </Tabs.List>
-                </Tabs>
-            </div>
-
-            {userMe ? (
-                <Menu position="bottom-end">
-                    <Menu.Target>
-                        <div className={classes['user-infos']}>
-                            <div className={classes['user-infos-details']}>
-                                <p className={classes['user-infos-details-email']}>{userMe.email}</p>
-                                <p className={classes['user-infos-details-role']}>{ROLES_NAMES_MAP[userMe.userRole]}</p>
-                            </div>
-                            <Avatar className={classes['avatar-button']} color={avatarState.color}>
-                                {avatarState.initials}
-                            </Avatar>
-                        </div>
-                    </Menu.Target>
-
-                    <Menu.Dropdown className={classes.menu}>
-                        <div className={classes['user-infos']}>
-                            <div className={classes['user-infos-details']}>
-                                <p className={classes['user-infos-details-email']}>{userMe.email}</p>
-                                <p className={classes['user-infos-details-role']}>{ROLES_NAMES_MAP[userMe.userRole]}</p>
-                            </div>
-                        </div>
-                        <Button variant="outline" leftSection={<IconLogout />} onClick={() => logout()}>
-                            Déconnexion
-                        </Button>
-                    </Menu.Dropdown>
-                </Menu>
             ) : null}
         </header>
     );

@@ -1,14 +1,18 @@
 import LayoutBase from '@/components/LayoutBase';
-import Statistics from '@/components/Statistics';
+import { useAuth } from '@/store/slices/auth';
 import React from 'react';
-import classes from './index.module.scss';
+import { Navigate } from 'react-router-dom';
 
 const Component: React.FC = () => {
+    const { getCanViewStatistics } = useAuth();
+
+    if (!getCanViewStatistics()) {
+        return <Navigate to="/" />;
+    }
+
     return (
         <LayoutBase title="Statistiques">
-            <div className={classes['charts-container']}>
-                <Statistics />
-            </div>
+            <p>Les statistiques DDTM seront affichées ici.</p>
         </LayoutBase>
     );
 };

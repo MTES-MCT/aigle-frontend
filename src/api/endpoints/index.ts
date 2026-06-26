@@ -23,7 +23,6 @@ export { usersEndpoints as USERS_ENDPOINTS, userGroupEndpoints as USER_GROUP_END
 export {
     mapEndpoints as MAP_ENDPOINTS,
     parcelEndpoints as PARCEL_ENDPOINTS,
-    statisticsEndpoints as STATISTICS_ENDPOINTS,
     utilsEndpoints as UTILS_ENDPOINTS,
 } from './utils';
 

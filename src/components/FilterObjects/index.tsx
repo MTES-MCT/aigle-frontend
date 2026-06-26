@@ -345,14 +345,16 @@ const Component: React.FC<ComponentProps> = ({
                             {...form.getInputProps('detectionValidationStatuses')}
                         >
                             <Stack gap="xs" mt="sm">
-                                {detectionValidationStatuses.map((status) => (
-                                    <Checkbox
-                                        key={status}
-                                        value={status}
-                                        label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
-                                        color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
-                                    />
-                                ))}
+                                {detectionValidationStatuses
+                                    .filter((status) => status !== 'ILLEGAL')
+                                    .map((status) => (
+                                        <Checkbox
+                                            key={status}
+                                            value={status}
+                                            label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
+                                            color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
+                                        />
+                                    ))}
                             </Stack>
                         </Checkbox.Group>
 
