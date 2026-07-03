@@ -1,6 +1,7 @@
 export type DataDeploymentStatus = 'NOT_DEPLOYED' | 'DEPLOYMENT_RUNNING' | 'DEPLOYED';
 
 export interface DataDeploymentBatch {
+    id: number;
     name: string | null;
     createdAt: string | null;
     tilesUrl: string | null;
@@ -8,6 +9,7 @@ export interface DataDeploymentBatch {
 }
 
 export interface DataDeploymentZaeLayer {
+    id: number;
     createdAt: string | null;
     name: string | null;
     type: string | null;
@@ -31,3 +33,6 @@ export interface DataDeploymentRunResult {
     skippedBatches: { id: number; name: string | null }[];
     queuedCommands: { commandName: string; commandRunUuid: string }[];
 }
+
+// single-item deploys (one batch / one zae layer) only surface the queued commands
+export type DataDeploymentItemRunResult = Pick<DataDeploymentRunResult, 'queuedCommands'>;

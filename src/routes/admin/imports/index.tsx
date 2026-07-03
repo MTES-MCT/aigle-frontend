@@ -7,7 +7,12 @@ import SoloAccordion from '@/components/SoloAccordion';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import DateInfo from '@/components/ui/DateInfo';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
-import { DataDeploymentRun, DataDeploymentRunResult, DataDeploymentStatus } from '@/models/data-deployment';
+import {
+    DataDeploymentItemRunResult,
+    DataDeploymentRun,
+    DataDeploymentRunResult,
+    DataDeploymentStatus,
+} from '@/models/data-deployment';
 import api, { ApiError } from '@/utils/api';
 import {
     ActionIcon,
@@ -124,6 +129,74 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
     );
 };
 
+// Deploy a single item (one batch / one zae layer) onto an already-deployed geozone.
+const ItemDeployButton: React.FC<{
+    endpoint: string;
+    label: string; // e.g. "le batch « x »" — completes "Cette action va, pour {label} :"
+    steps: string[];
+    deployable: boolean; // only an undeployed item can be deployed
+}> = ({ endpoint, label, steps, deployable }) => {
+    const queryClient = useQueryClient();
+    const [confirmOpened, { open, close }] = useDisclosure(false);
+
+    const mutation = useMutation<DataDeploymentItemRunResult, ApiError<{ detail?: string }>, void>({
+        mutationFn: () => api<DataDeploymentItemRunResult>(endpoint, { method: 'POST' }),
+        onSuccess: (result) => {
+            close();
+            notifications.show({
+                title: 'Déploiement lancé',
+                message: `${result.queuedCommands.length} commande(s) en file d'attente.`,
+                color: 'green',
+            });
+            queryClient.invalidateQueries({ queryKey: [dataDeploymentEndpoints.list] });
+        },
+        onError: (error) => {
+            notifications.show({
+                title: 'Erreur lors du déploiement',
+                message: error.body?.detail ?? error.message,
+                color: 'red',
+            });
+        },
+    });
+
+    const deploying = mutation.status === 'pending';
+    // once launched this session, keep it disabled (status flips later, behind the queue)
+    const disabled = mutation.isSuccess || !deployable;
+
+    return (
+        <>
+            <Button
+                size="compact-sm"
+                variant="light"
+                leftSection={<IconRocket size={14} />}
+                onClick={open}
+                disabled={disabled}
+            >
+                Déployer
+            </Button>
+
+            <Modal opened={confirmOpened} onClose={close} title="Déployer" centered>
+                <Stack>
+                    <Text size="sm">Cette action va, pour {label} :</Text>
+                    <List size="sm">
+                        {steps.map((step) => (
+                            <List.Item key={step}>{step}</List.Item>
+                        ))}
+                    </List>
+                    <Group justify="flex-end">
+                        <Button variant="outline" onClick={close} disabled={deploying}>
+                            Annuler
+                        </Button>
+                        <Button onClick={() => mutation.mutate()} loading={deploying}>
+                            Confirmer
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+        </>
+    );
+};
+
 const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
     <Stack gap="lg" py="md">
         <DeployButton run={run} />
@@ -145,6 +218,7 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                                 <Table.Th>Batch</Table.Th>
                                 <Table.Th>Fond de carte</Table.Th>
                                 <Table.Th>Statut déploiement</Table.Th>
+                                <Table.Th />
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -168,6 +242,19 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                                     </Table.Td>
                                     <Table.Td>
                                         <DeployStatusBadge status={batch.deployStatus} />
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <Group justify="flex-end">
+                                            <ItemDeployButton
+                                                endpoint={dataDeploymentEndpoints.runBatch(run.uuid, batch.id)}
+                                                label={`le batch « ${batch.name ?? '—'} »`}
+                                                steps={[
+                                                    'créer le fond de carte',
+                                                    'mettre en file les imports (détections, Sitadel)',
+                                                ]}
+                                                deployable={batch.deployStatus === 'NOT_DEPLOYED'}
+                                            />
+                                        </Group>
                                     </Table.Td>
                                 </Table.Tr>
                             ))}
@@ -195,6 +282,7 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                                 <Table.Th>Type</Table.Th>
                                 <Table.Th>Année</Table.Th>
                                 <Table.Th>Statut déploiement</Table.Th>
+                                <Table.Th />
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -208,6 +296,16 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                                     <Table.Td>{zaeLayer.year ?? '—'}</Table.Td>
                                     <Table.Td>
                                         <DeployStatusBadge status={zaeLayer.deployStatus} />
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <Group justify="flex-end">
+                                            <ItemDeployButton
+                                                endpoint={dataDeploymentEndpoints.runZae(run.uuid, zaeLayer.id)}
+                                                label={`la zone à enjeux « ${zaeLayer.name ?? '—'} »`}
+                                                steps={['importer la zone à enjeux comme zone personnalisée']}
+                                                deployable={zaeLayer.deployStatus === 'NOT_DEPLOYED'}
+                                            />
+                                        </Group>
                                     </Table.Td>
                                 </Table.Tr>
                             ))}
