@@ -1,0 +1,14 @@
+.stat {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--mantine-spacing-sm);
+}
+
+.stat-value {
+    line-height: 1.1;
+}
+
+.stat-label {
+    font-size: var(--mantine-font-size-xs);
+}

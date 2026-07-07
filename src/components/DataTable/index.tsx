@@ -6,6 +6,7 @@ import Loader from '@/components/ui/Loader';
 import { Paginated, Uuided } from '@/models/data';
 import { PAGINATION_OFFSET_LIMIT_INITIAL_VALUE, PaginationOffsetLimit } from '@/models/table';
 import api from '@/utils/api';
+import { HEADER_HEIGHT_PX } from '@/utils/constants';
 import { getPaginationPage } from '@/utils/pagination';
 import {
     ActionIcon,
@@ -55,8 +56,7 @@ const selectValueToInterval = (value: string | null): number | false => {
 
 const scrollToTable = (tableRef: React.RefObject<HTMLTableElement>) => {
     if (tableRef.current) {
-        const yOffset = -116.5; // $header-height
-        const y = tableRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        const y = tableRef.current.getBoundingClientRect().top + window.pageYOffset - HEADER_HEIGHT_PX;
 
         window.scrollTo({
             top: y,

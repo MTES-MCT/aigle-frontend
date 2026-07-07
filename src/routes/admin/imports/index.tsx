@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { dataDeploymentEndpoints } from '@/api/endpoints/admin';
 import DataTable from '@/components/DataTable';
@@ -19,6 +19,7 @@ import {
     Anchor,
     Badge,
     Button,
+    Checkbox,
     Group,
     Input,
     List,
@@ -61,8 +62,26 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
     const queryClient = useQueryClient();
     const [confirmOpened, { open, close }] = useDisclosure(false);
 
+    // Checkbox.Group works in strings; ids are numbers. Default: everything checked.
+    const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
+    const [selectedZaeIds, setSelectedZaeIds] = useState<string[]>([]);
+
+    const openModal = () => {
+        setSelectedBatchIds(run.batches.map((batch) => String(batch.id)));
+        setSelectedZaeIds(run.zaeLayers.map((zae) => String(zae.id)));
+        open();
+    };
+
     const mutation = useMutation<DataDeploymentRunResult, ApiError<{ detail?: string }>, void>({
-        mutationFn: () => api<DataDeploymentRunResult>(dataDeploymentEndpoints.run(run.uuid), { method: 'POST' }),
+        mutationFn: () =>
+            api<DataDeploymentRunResult>(dataDeploymentEndpoints.run(run.uuid), {
+                method: 'POST',
+                // only the checked batches / zae layers are deployed
+                body: {
+                    batchIds: selectedBatchIds.map(Number),
+                    zaeLayerIds: selectedZaeIds.map(Number),
+                },
+            }),
         onSuccess: (result) => {
             close();
             const skipped = result.skippedBatches.length ? ` ${result.skippedBatches.length} batch(s) ignoré(s).` : '';
@@ -98,7 +117,7 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
             <Group justify="flex-end">
                 <Button
                     leftSection={<IconRocket size={16} />}
-                    onClick={open}
+                    onClick={openModal}
                     disabled={deployDisabled}
                     title={deployDisabled ? 'Un déploiement est déjà en cours ou vient d’être lancé' : undefined}
                 >
@@ -108,13 +127,44 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
 
             <Modal opened={confirmOpened} onClose={close} title="Déployer les données" centered>
                 <Stack>
-                    <Text size="sm">Cette action va, pour {run.geozoneName ?? 'cette collectivité'} :</Text>
-                    <List size="sm">
-                        <List.Item>créer un fond de carte par batch et le groupe « Cabanisation »</List.Item>
-                        <List.Item>
-                            mettre en file les imports (zones à enjeux, tuiles, parcelles, détections, Sitadel)
-                        </List.Item>
-                    </List>
+                    <Text size="sm">
+                        Sélectionnez les batches et zones à enjeux à déployer pour{' '}
+                        {run.geozoneName ?? 'cette collectivité'} :
+                    </Text>
+
+                    {run.batches.length ? (
+                        <Checkbox.Group label="Batches" value={selectedBatchIds} onChange={setSelectedBatchIds}>
+                            <Stack gap="xs" mt="xs">
+                                {run.batches.map((batch) => (
+                                    <Checkbox
+                                        key={batch.id}
+                                        value={String(batch.id)}
+                                        label={batch.name ?? `Batch ${batch.id}`}
+                                    />
+                                ))}
+                            </Stack>
+                        </Checkbox.Group>
+                    ) : null}
+
+                    {run.zaeLayers.length ? (
+                        <Checkbox.Group label="Zones à enjeux" value={selectedZaeIds} onChange={setSelectedZaeIds}>
+                            <Stack gap="xs" mt="xs">
+                                {run.zaeLayers.map((zae) => (
+                                    <Checkbox
+                                        key={zae.id}
+                                        value={String(zae.id)}
+                                        label={zae.name ?? `Zone à enjeux ${zae.id}`}
+                                    />
+                                ))}
+                            </Stack>
+                        </Checkbox.Group>
+                    ) : null}
+
+                    <Text size="xs" c="dimmed">
+                        Crée un fond de carte par batch sélectionné et le groupe « Cabanisation », puis met en file les
+                        imports (zones à enjeux sélectionnées, tuiles, parcelles, détections, Sitadel).
+                    </Text>
+
                     <Group justify="flex-end">
                         <Button variant="outline" onClick={close} disabled={deploying}>
                             Annuler
@@ -250,7 +300,7 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                                                 label={`le batch « ${batch.name ?? '—'} »`}
                                                 steps={[
                                                     'créer le fond de carte',
-                                                    'mettre en file les imports (détections, Sitadel)',
+                                                    'mettre en file les imports (tuiles, détections, Sitadel)',
                                                 ]}
                                                 deployable={batch.deployStatus === 'NOT_DEPLOYED'}
                                             />

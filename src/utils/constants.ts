@@ -16,6 +16,9 @@ import { colors } from '@/utils/colors';
 
 export const DEFAULT_ROUTE = '/';
 
+// Must match $header-height in constants.scss — used to offset scroll targets under the fixed header.
+export const HEADER_HEIGHT_PX = 116.5;
+
 export const AUTH_ACCESS_TOKEN_STORAGE_KEY = 'auth_access_token';
 export const AUTH_REFRESH_TOKEN_STORAGE_KEY = 'auth_refresh_token';
 
