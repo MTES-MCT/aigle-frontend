@@ -1,0 +1,19 @@
+@use '@/constants.scss' as constants;
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.group-select {
+    max-width: 400px;
+}
+
+.bordered-table {
+    /* Thin outer border matching the table's own row lines (same 1px width and gray-3
+       color as Mantine's --table-border-color), with rounded corners. */
+    border: calc(0.0625rem * var(--mantine-scale)) solid var(--mantine-color-gray-3);
+    border-radius: constants.$border-radius-small;
+    /* clip the inner table's square corners to the rounded border */
+    overflow: hidden;
+}

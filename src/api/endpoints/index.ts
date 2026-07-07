@@ -3,6 +3,7 @@ export * from './admin';
 export * from './auth';
 export * from './detection';
 export * from './geo';
+export * from './statistics';
 export * from './users';
 export * from './utils';
 

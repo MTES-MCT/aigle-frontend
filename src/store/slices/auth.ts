@@ -68,7 +68,8 @@ const useAuth = create<AuthState>()(
                 return 'COLLECTIVITY';
             },
             getCanViewStatistics: () => {
-                return get().userMe?.userRole === 'SUPER_ADMIN' || get().getUserGroupType() === 'DDTM';
+                // Internal staff only for now, while the DDTM dashboard is being rolled out.
+                return get().userMe?.isStaff === true;
             },
             getAccessibleGeozones: (geoZoneType?: GeoZoneType) => {
                 const userMe = get().userMe;

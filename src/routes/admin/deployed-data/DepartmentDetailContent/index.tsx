@@ -1,6 +1,7 @@
 import React from 'react';
 
 import SoloAccordion from '@/components/SoloAccordion';
+import StatTile from '@/components/ui/StatTile';
 import { DeployedDataDepartment, getDeployedDepartmentUsersCount } from '@/models/deployed-data';
 import { Anchor, Badge, ColorSwatch, Group, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon } from '@mantine/core';
 import {
@@ -20,28 +21,6 @@ import classes from './index.module.scss';
 const NEW_TAB_PROPS = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
 const DEFAULT_SWATCH_COLOR = 'var(--mantine-color-gray-3)';
-
-interface StatProps {
-    icon: React.ReactNode;
-    label: string;
-    value: number;
-}
-
-const Stat: React.FC<StatProps> = ({ icon, label, value }) => (
-    <Paper withBorder p="sm" radius="md" className={classes.stat}>
-        <ThemeIcon variant="light" size="lg" radius="md">
-            {icon}
-        </ThemeIcon>
-        <div>
-            <Text className={classes['stat-value']} fw={700} fz={30}>
-                {value}
-            </Text>
-            <Text className={classes['stat-label']} c="dimmed">
-                {label}
-            </Text>
-        </div>
-    </Paper>
-);
 
 interface SectionProps {
     icon: React.ReactNode;
@@ -75,20 +54,20 @@ const Component: React.FC<ComponentProps> = ({ department }) => {
     return (
         <Stack gap="lg" className={classes.container}>
             <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }} spacing="sm">
-                <Stat icon={<IconRulerMeasure size={20} />} label="Parcelles" value={department.parcelsCount} />
-                <Stat
+                <StatTile icon={<IconRulerMeasure size={20} />} label="Parcelles" value={department.parcelsCount} />
+                <StatTile
                     icon={<IconBuildingCommunity size={20} />}
                     label="Communes déployées"
                     value={department.communesWithDetectionsCount}
                 />
-                <Stat
+                <StatTile
                     icon={<IconFileCertificate size={20} />}
                     label="Parcelles mises à jour via SITADEL"
                     value={department.sitadelUpdatedParcelsCount}
                 />
-                <Stat icon={<IconUsersGroup size={20} />} label="Groupes" value={department.userGroups.length} />
-                <Stat icon={<IconUser size={20} />} label="Utilisateurs" value={usersCount} />
-                <Stat
+                <StatTile icon={<IconUsersGroup size={20} />} label="Groupes" value={department.userGroups.length} />
+                <StatTile icon={<IconUser size={20} />} label="Utilisateurs" value={usersCount} />
+                <StatTile
                     icon={<IconMap2 size={20} />}
                     label="Fonds de carte"
                     value={department.detectionsByTileSet.length}
