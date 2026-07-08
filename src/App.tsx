@@ -9,7 +9,6 @@ import api from '@/utils/api';
 import { DEFAULT_ROUTE } from '@/utils/constants';
 import { setupMatomo } from '@/utils/matomo';
 import ProtectedRoute from '@/utils/ProtectedRoute';
-import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
@@ -36,10 +35,6 @@ const App: React.FC = () => {
             logout();
         }
     }, [setUser]);
-
-    useEffect(() => {
-        Crisp.configure('b7048ccf-68b6-424e-a7c0-0c6e8b5d2724');
-    }, []);
 
     const getMapSettings = useCallback(async () => {
         try {

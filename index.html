@@ -11,5 +11,20 @@
     <body>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
+        <!-- Brevo Conversations -->
+        <script>
+            (function (d, w, c) {
+                w.BrevoConversationsID = 'YOUR_BREVO_CONVERSATIONS_ID';
+                w[c] =
+                    w[c] ||
+                    function () {
+                        (w[c].q = w[c].q || []).push(arguments);
+                    };
+                var s = d.createElement('script');
+                s.async = true;
+                s.src = 'https://conversations-widget.brevo.com/brevo-conversations.js';
+                if (d.head) d.head.appendChild(s);
+            })(document, window, 'BrevoConversations');
+        </script>
     </body>
 </html>
