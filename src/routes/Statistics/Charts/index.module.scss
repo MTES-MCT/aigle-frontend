@@ -9,6 +9,10 @@
     max-width: 400px;
 }
 
+.granularity-control {
+    align-self: center;
+}
+
 .bordered-table {
     /* Thin outer border matching the table's own row lines (same 1px width and gray-3
        color as Mantine's --table-border-color), with rounded corners. */
