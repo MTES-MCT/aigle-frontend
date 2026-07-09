@@ -9,16 +9,38 @@ import api from '@/utils/api';
 import { DEFAULT_ROUTE } from '@/utils/constants';
 import { setupMatomo } from '@/utils/matomo';
 import ProtectedRoute from '@/utils/ProtectedRoute';
-import { Crisp } from 'crisp-sdk-web';
 import React, { useCallback, useEffect } from 'react';
-import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
 
 declare global {
     interface Window {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         _paq?: any[];
+        BrevoConversations?: (...args: unknown[]) => void;
     }
 }
+
+// Brevo chat: shown only for logged-in users outside /admin; pushes their email so the widget skips its identity form.
+const BrevoChat: React.FC = () => {
+    const { userMe } = useAuth();
+    const { pathname } = useLocation();
+
+    useEffect(() => {
+        const brevo = window.BrevoConversations;
+        if (!brevo) {
+            return;
+        }
+
+        if (userMe && !pathname.startsWith('/admin')) {
+            brevo('updateIntegrationData', { email: userMe.email });
+            brevo('show');
+        } else {
+            brevo('hide');
+        }
+    }, [userMe, pathname]);
+
+    return null;
+};
 
 const App: React.FC = () => {
     const { isAuthenticated, setUser, logout, setSelectedUserGroupUuid } = useAuth();
@@ -36,10 +58,6 @@ const App: React.FC = () => {
             logout();
         }
     }, [setUser]);
-
-    useEffect(() => {
-        Crisp.configure('b7048ccf-68b6-424e-a7c0-0c6e8b5d2724');
-    }, []);
 
     const getMapSettings = useCallback(async () => {
         try {
@@ -78,6 +96,7 @@ const App: React.FC = () => {
 
     return (
         <Router>
+            <BrevoChat />
             <Routes>
                 <Route index element={<Navigate to="/map" replace />} />
                 <Route path="/admin" element={<Navigate to="/admin/users" replace />} />

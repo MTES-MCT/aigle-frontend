@@ -11,5 +11,31 @@
     <body>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
+        <!-- Brevo Conversations -->
+        <script>
+            (function (d, w, c) {
+                w.BrevoConversationsID = '69c2523d2fbf2113de0f3f55';
+                w.BrevoConversationsSetup = {
+                    groupId: 'xmdB79sWLngdvYB7d',
+                    buttonPosition: 'br',
+                    zIndex: 10,
+                    colors: {
+                        buttonBg: '#117f58',
+                        visitorBubbleBg: '#117f58',
+                        agentBubbleBg: '#ededed',
+                    },
+                    startHidden: true, // App.tsx shows it only for logged-in users outside /admin
+                };
+                w[c] =
+                    w[c] ||
+                    function () {
+                        (w[c].q = w[c].q || []).push(arguments);
+                    };
+                var s = d.createElement('script');
+                s.async = true;
+                s.src = 'https://conversations-widget.brevo.com/brevo-conversations.js';
+                if (d.head) d.head.appendChild(s);
+            })(document, window, 'BrevoConversations');
+        </script>
     </body>
 </html>
