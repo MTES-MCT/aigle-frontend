@@ -21,7 +21,7 @@ import { MapTileSetLayer } from '@/models/map-layer';
 import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
@@ -317,7 +317,10 @@ const Component: React.FC<ComponentProps> = ({
         ],
         queryFn: ({ signal }) => fetchDetections(signal, mapBounds),
         placeholderData: keepPreviousData,
-        enabled: displayDetections && !!mapBounds && !isDetailFetching,
+        // at least one zone à enjeux is required (else the API 400s); a user with zero
+        // accessible zones simply sees no detections rather than a failing request loop
+        enabled:
+            displayDetections && !!mapBounds && !isDetailFetching && (objectsFilter?.customZonesUuids.length ?? 0) > 0,
     });
 
     const handleMapRef = useCallback((node?: mapboxgl.Map) => {
@@ -860,16 +863,43 @@ const Component: React.FC<ComponentProps> = ({
                     objectFromCoordinates: undefined,
                 }));
 
-                const objectFromCoordinates = await api<ObjectFromCoordinates>(
-                    detectionObjectEndpoints.fromCoordinates,
-                    {
+                let objectFromCoordinates: ObjectFromCoordinates | undefined;
+                try {
+                    objectFromCoordinates = await api<ObjectFromCoordinates>(detectionObjectEndpoints.fromCoordinates, {
                         params: {
                             lat,
                             lng,
                         },
                         signal: abortController.signal,
-                    },
-                );
+                    });
+                } catch (error) {
+                    if (error instanceof DOMException && error.name === 'AbortError') {
+                        return; // superseded by a newer click, keep the loader for the new request
+                    }
+
+                    setObjectFromCoordinates(() => ({
+                        fetchStatus: 'IDLE',
+                        objectFromCoordinates: undefined,
+                    }));
+
+                    if (
+                        error instanceof ApiError &&
+                        (error.body as { code?: string } | undefined)?.code === 'OUTSIDE_CUSTOM_ZONE'
+                    ) {
+                        notifications.show({
+                            color: 'red',
+                            title: 'Recherche impossible',
+                            message: 'Impossible de rechercher une détection en zone urbaine',
+                        });
+                    } else {
+                        notifications.show({
+                            color: 'red',
+                            title: 'Une erreur est survenue',
+                            message: 'Impossible de rechercher une détection à cet endroit',
+                        });
+                    }
+                    return;
+                }
 
                 if (!objectFromCoordinates) {
                     setObjectFromCoordinates(() => ({

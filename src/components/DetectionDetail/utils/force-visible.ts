@@ -56,9 +56,9 @@ export const getFiltersToMakeVisible = (
 
     const detectionObjectGeoCustomZoneUuids = invisibleDetectionObject.geoCustomZones.map(({ uuid }) => uuid);
 
-    if (detectionObjectGeoCustomZoneUuids.length === 0 && currentObjectsFilters.customZonesUuids.length) {
-        objectFiltersUpdated.customZonesUuids = [];
-    }
+    // A zoneless detection used to be revealed by clearing the zone filter (show all),
+    // but an empty zone filter is now forbidden (zones urbaines are blocked). Such a
+    // detection stays visible through the open detail panel; we no longer empty the filter.
 
     if (
         detectionObjectGeoCustomZoneUuids.length &&
