@@ -19,10 +19,12 @@ import {
     Button,
     Checkbox,
     Group,
+    Modal,
     MultiSelect,
     PasswordInput,
     Select,
     Table,
+    Text,
     TextInput,
 } from '@mantine/core';
 import { UseFormReturnType, isEmail, isNotEmpty, useForm } from '@mantine/form';
@@ -32,6 +34,14 @@ import omit from 'lodash/omit';
 import { Link, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/users';
+
+// Users whose email matches one of these names are likely internal (équipe aigle) — prompt to confirm.
+const INTERNAL_USER_NAME_HINTS = ['magali', 'tanguy', 'audrey'];
+
+const emailLooksInternal = (email: string): boolean => {
+    const emailLower = email.toLowerCase();
+    return INTERNAL_USER_NAME_HINTS.some((name) => emailLower.includes(name));
+};
 
 const generateRandomPassword = (): string => {
     const length = PASSWORD_MIN_LENGTH * 2;
@@ -68,6 +78,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
     const { userMe } = useAuth();
 
     const [searchGroupValue, setSearchGroupValue] = useState('');
+    // Values held while the "mark as internal?" confirmation modal is open.
+    const [pendingValues, setPendingValues] = useState<FormValues>();
 
     const form: UseFormReturnType<FormValues> = useForm({
         mode: 'uncontrolled',
@@ -112,7 +124,28 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
     });
 
     const handleSubmit = (values: FormValues) => {
+        if (!values.isStaff && emailLooksInternal(values.email)) {
+            setPendingValues(values);
+            return;
+        }
         mutation.mutate(values);
+    };
+
+    const submitAsInternal = () => {
+        if (!pendingValues) {
+            return;
+        }
+        form.setFieldValue('isStaff', true); // keep the checkbox in sync with what we submit
+        mutation.mutate({ ...pendingValues, isStaff: true });
+        setPendingValues(undefined);
+    };
+
+    const submitAsIs = () => {
+        if (!pendingValues) {
+            return;
+        }
+        mutation.mutate(pendingValues);
+        setPendingValues(undefined);
     };
 
     const label = uuid ? 'Modifier un utilisateur' : 'Ajouter un utilisateur';
@@ -147,6 +180,15 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
+            <Modal opened={!!pendingValues} onClose={() => setPendingValues(undefined)} title="Utilisateur interne ?">
+                <Text>L&apos;utilisateur est-il un utilisateur interne (équipe aigle) ?</Text>
+                <Group mt="lg" justify="flex-end">
+                    <Button variant="outline" onClick={submitAsIs}>
+                        Non
+                    </Button>
+                    <Button onClick={submitAsInternal}>Oui, marquer comme interne</Button>
+                </Group>
+            </Modal>
             <h1>{label}</h1>
             {error ? (
                 <ErrorCard>

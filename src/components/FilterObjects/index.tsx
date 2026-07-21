@@ -32,6 +32,7 @@ import {
     Tooltip,
 } from '@mantine/core';
 import { useForm, UseFormReturnType } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { IconChecks, IconX } from '@tabler/icons-react';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -411,10 +412,22 @@ const Component: React.FC<ComponentProps> = ({
                                                 Array.from(new Set([...customZonesUuids, ...customZoneUuids_])),
                                             );
                                         } else {
-                                            form.setFieldValue(
-                                                'customZonesUuids',
-                                                customZonesUuids.filter((uuid) => !customZoneUuids_.includes(uuid)),
+                                            const next = customZonesUuids.filter(
+                                                (uuid) => !customZoneUuids_.includes(uuid),
                                             );
+                                            if (next.length === 0) {
+                                                // At least one zone à enjeux must stay selected — detections
+                                                // outside every custom zone (zones urbaines) must not be shown.
+                                                // Re-set the same value (new ref) to snap the checkbox back on.
+                                                form.setFieldValue('customZonesUuids', [...customZonesUuids]);
+                                                notifications.show({
+                                                    color: 'red',
+                                                    title: 'Zone à enjeux',
+                                                    message: 'Au moins une zone à enjeux doit rester sélectionnée',
+                                                });
+                                                return;
+                                            }
+                                            form.setFieldValue('customZonesUuids', next);
                                         }
                                     }}
                                 />
@@ -424,7 +437,7 @@ const Component: React.FC<ComponentProps> = ({
                         {form.getValues().customZonesUuids.length === 0 ? (
                             <div className={classes['empty-filter-text']}>
                                 <p>Aucune zone à enjeux n&apos;est sélectionnée</p>
-                                <p>tous les objets sont affichés</p>
+                                <p>aucun objet ne peut être affiché</p>
                             </div>
                         ) : null}
                     </div>

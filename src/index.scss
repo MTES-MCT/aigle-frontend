@@ -455,3 +455,8 @@ $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
         text-transform: capitalize;
     }
 }
+
+#brevo-conversations {
+    margin-right: 64px;
+    margin-bottom: -8px;
+}

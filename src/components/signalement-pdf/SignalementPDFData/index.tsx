@@ -130,11 +130,17 @@ const getPreviewGeometries = (
 
 interface PreviewImagesProps {
     setFinalData: (previewImages: PreviewImage[], parcel: ParcelDetail) => void;
+    onInvalidParcel: () => void;
     parcelUuid: string;
     detectionObjectUuid?: string;
 }
 
-const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObjectUuid, setFinalData }) => {
+const PreviewImages: React.FC<PreviewImagesProps> = ({
+    parcelUuid,
+    detectionObjectUuid,
+    setFinalData,
+    onInvalidParcel,
+}) => {
     const [previewImages, setPreviewImages] = useState<Record<string, PreviewImage>>({});
 
     const { data: parcel, isLoading: parcelIsLoading } = useQuery({
@@ -142,7 +148,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
         queryFn: () => fetchParcelDetail(parcelUuid, detectionObjectUuid),
     });
 
-    const tileSetsToRender = parcel?.tileSetPreviews.filter(({ preview }) => preview) || [];
+    const tileSetsToRender = parcel?.tileSetPreviews?.filter(({ preview }) => preview) || [];
 
     useEffect(() => {
         if (!parcel || Object.keys(previewImages).length !== tileSetsToRender.length + 1) {
@@ -152,8 +158,17 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
         setFinalData(Object.values(previewImages), parcel);
     }, [previewImages, parcel]);
 
+    // a parcel with no detection to signal comes back as an empty payload from the download endpoint
+    useEffect(() => {
+        if (parcelIsLoading || !parcel || parcel.geometry) {
+            return;
+        }
+
+        onInvalidParcel();
+    }, [parcel, parcelIsLoading]);
+
     const previewBounds = useMemo(() => {
-        if (!parcel) {
+        if (!parcel || !parcel.geometry) {
             return undefined;
         }
 
@@ -305,6 +320,9 @@ const Component: React.FC<ComponentProps> = ({
                 <PreviewImages
                     {...pagePreviewProps}
                     key={`download-${pagePreviewProps.detectionObjectUuid || pagePreviewProps.parcelUuid}`}
+                    onInvalidParcel={() =>
+                        onGenerationFinished('Cette parcelle ne comporte aucune détection à signaler.')
+                    }
                     setFinalData={(previewImages: PreviewImage[], parcel: ParcelDetail) => {
                         setPdfProps((prev) => {
                             const centerPoint = parcel.geometry

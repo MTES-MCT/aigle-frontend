@@ -67,6 +67,10 @@ const paramsToObjectsFilter = (
 ): ObjectsFilter => {
     const objectsFilterDefault = getObjectsFilterDefault(objectTypesUuids, customZonesUuids);
 
+    // An empty custom-zone filter is no longer a valid state (empty => 400, blocked map).
+    // A stale/shared URL with an empty or fully-unresolvable param falls back to the default.
+    const parsedCustomZones = stringToTypedArray(customZonesUuids, params.customZonesUuids);
+
     return {
         objectTypesUuids:
             stringToTypedArray([...objectTypesUuids, OTHER_OBJECT_TYPE.uuid], params.objectTypesUuids) ||
@@ -89,7 +93,7 @@ const paramsToObjectsFilter = (
         interfaceDrawn: (params.interfaceDrawn || objectsFilterDefault.interfaceDrawn) as InterfaceDrawnFilter,
 
         customZonesUuids:
-            stringToTypedArray(customZonesUuids, params.customZonesUuids) || objectsFilterDefault.customZonesUuids,
+            parsedCustomZones && parsedCustomZones.length ? parsedCustomZones : objectsFilterDefault.customZonesUuids,
     };
 };
 
