@@ -129,7 +129,7 @@ const doRefresh = async (): Promise<string> => {
 
     const response = await doFetch(authEndpoints.refreshToken, {
         method: 'POST',
-        body: { token: refreshToken },
+        body: { refresh: refreshToken },
         auth: false,
     });
 
