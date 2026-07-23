@@ -2,7 +2,6 @@ import React, { PropsWithChildren } from 'react';
 
 import Header from '@/components/Header';
 import { useAuth } from '@/store/slices/auth';
-import { useGroupChange } from '@/utils/group-change';
 import { getPageTitle } from '@/utils/html';
 import { AppShell, NavLink } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -32,7 +31,6 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
     const [opened] = useDisclosure();
     const { pathname } = useLocation();
     const { userMe } = useAuth();
-    const onGroupChange = useGroupChange();
 
     return (
         <AppShell
@@ -46,7 +44,7 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
             }}
         >
             <AppShell.Header>
-                <Header onGroupChange={onGroupChange} />
+                <Header />
             </AppShell.Header>
 
             <AppShell.Navbar p="md">

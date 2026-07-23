@@ -6,11 +6,12 @@ import classes from './index.module.scss';
 
 interface ComponentProps {
     className?: string;
+    fullScreen?: boolean;
 }
 
-const Component: React.FC<ComponentProps> = ({ className }) => {
+const Component: React.FC<ComponentProps> = ({ className, fullScreen }) => {
     return (
-        <div className={clsx(classes.container, className)}>
+        <div className={clsx(classes.container, fullScreen && classes['full-screen'], className)}>
             <Loader />
         </div>
     );

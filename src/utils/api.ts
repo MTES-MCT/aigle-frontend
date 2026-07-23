@@ -1,6 +1,6 @@
 import { authEndpoints } from '@/api/endpoints';
 import { useAuth } from '@/store/slices/auth';
-import { getActiveScopedUserGroupUuid } from '@/utils/scope';
+import { clearStoredUserGroupUuid, recoverFromUnknownScope, resolveRequestScope } from '@/utils/scope';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
@@ -95,9 +95,14 @@ const doFetch = async (path: string, options: ApiFetchOptions): Promise<Response
     }
 
     if (auth && !headers['X-User-Group-Uuid']) {
-        const scopedUserGroupUuid = getActiveScopedUserGroupUuid();
-        if (scopedUserGroupUuid) {
-            headers['X-User-Group-Uuid'] = scopedUserGroupUuid;
+        const scope = resolveRequestScope(path, authState.userMe?.userRole);
+
+        if (scope.kind === 'send') {
+            headers['X-User-Group-Uuid'] = scope.uuid;
+        } else if (scope.kind === 'block') {
+            // An unheadered scoped request comes back as unrestricted super-admin data
+            // (ALL object types, ALL tile set years). Never let that reach a store.
+            throw new ApiError(`${path} blocked: no user group scope selected`, path, 0);
         }
     }
 
@@ -175,6 +180,7 @@ const fetchWithAuth = async (path: string, options: ApiFetchOptions): Promise<Re
                 refreshToken: undefined,
                 userMe: undefined,
             });
+            clearStoredUserGroupUuid();
 
             throw refreshError;
         }
@@ -225,6 +231,8 @@ export const apiFetchRaw = async (path: string, options: ApiFetchOptions = {}): 
 
     if (!response.ok) {
         const errorBody = await parseErrorBody(response);
+
+        recoverFromUnknownScope(response.status, errorBody);
 
         throw new ApiError(
             `${options.method ?? 'GET'} ${path} failed with status ${response.status}`,

@@ -4,6 +4,7 @@ import marianneImg from '@/assets/marianne.svg';
 import UserGroupSelector from '@/components/UserGroupSelector';
 import { useAuth } from '@/store/slices/auth';
 import { ENVIRONMENT } from '@/utils/constants';
+import { isScopeBoundaryCrossed } from '@/utils/scope';
 import { Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -25,15 +26,18 @@ const getSearchParamsForPath = (path: string) => {
     return window.location.search;
 };
 
-interface NavMenuProps {
-    onGroupChange: () => void;
-}
-
-const NavMenu: React.FC<NavMenuProps> = ({ onGroupChange }) => {
+const NavMenu: React.FC = () => {
     const { userMe, logout, getCanViewStatistics } = useAuth();
     const navigate = useNavigate();
 
     const handleNavigate = (path: string) => (e: React.MouseEvent) => {
+        // The admin section is unscoped, the rest of the app is scoped to the
+        // selected user group. Crossing that boundary is a scope change, so let
+        // the browser follow the href: a full load leaves no stale state behind.
+        if (userMe?.userRole === 'SUPER_ADMIN' && isScopeBoundaryCrossed(window.location.pathname, path)) {
+            return;
+        }
+
         e.preventDefault();
         navigate(`${path}${getSearchParamsForPath(path)}`);
     };
@@ -43,7 +47,7 @@ const NavMenu: React.FC<NavMenuProps> = ({ onGroupChange }) => {
             <ul className="fr-btns-group">
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <li className={classes['group-selector-li']}>
-                        <UserGroupSelector onGroupChange={onGroupChange} />
+                        <UserGroupSelector />
                     </li>
                 ) : null}
                 <li>
@@ -110,12 +114,9 @@ const NavMenu: React.FC<NavMenuProps> = ({ onGroupChange }) => {
     );
 };
 
-interface ComponentProps {
-    onGroupChange: () => void;
-}
-
-const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
+const Component: React.FC = () => {
     const navigate = useNavigate();
+    const { userMe } = useAuth();
 
     const [burgerOpened, { toggle: toggleBurgerOpened }] = useDisclosure();
 
@@ -146,6 +147,14 @@ const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
                                     href="/"
                                     title="Accueil - Aigle - Ministère de la transition écologique"
                                     onClick={(e) => {
+                                        // Leaving /admin flips the scope — reload instead.
+                                        if (
+                                            userMe?.userRole === 'SUPER_ADMIN' &&
+                                            isScopeBoundaryCrossed(window.location.pathname, '/')
+                                        ) {
+                                            return;
+                                        }
+
                                         e.preventDefault();
                                         navigate(`/${getSearchParamsForPath('/')}`);
                                     }}
@@ -176,7 +185,7 @@ const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
 
                         <div className="fr-header__tools">
                             <div className="fr-header__tools-links">
-                                <NavMenu onGroupChange={onGroupChange} />
+                                <NavMenu />
                             </div>
                         </div>
                     </div>
@@ -185,7 +194,7 @@ const Component: React.FC<ComponentProps> = ({ onGroupChange }) => {
 
             {burgerOpened ? (
                 <div className={classes['mobile-menu']}>
-                    <NavMenu onGroupChange={onGroupChange} />
+                    <NavMenu />
                 </div>
             ) : null}
         </header>
