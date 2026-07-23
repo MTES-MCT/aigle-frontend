@@ -30,3 +30,4 @@ dist-ssr
 
 .DS_Store
 **/.DS_Store
+.env.sentry-build-plugin

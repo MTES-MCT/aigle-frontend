@@ -1,54 +1,28 @@
 import { userGroupEndpoints } from '@/api/endpoints';
 import { UserGroupDetail } from '@/models/user-group';
-import { useAuth } from '@/store/slices/auth';
-import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
+import { getStoredUserGroupUuid, setScopedUserGroupUuid } from '@/utils/scope';
 import { Modal, Radio, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import classes from './index.module.scss';
 
 const MAX_DISPLAYED = 10;
 
 const fetchUserGroups = () => api<UserGroupDetail[]>(userGroupEndpoints.list);
 
-interface Props {
-    onGroupChange: () => void;
-}
-
-const UserGroupSelector: React.FC<Props> = ({ onGroupChange }) => {
+const UserGroupSelector: React.FC = () => {
     const [opened, { open, close }] = useDisclosure(false);
-    const { selectedUserGroupUuid, setSelectedUserGroupUuid } = useAuth();
     const [search, setSearch] = useState('');
+
+    // Fixed for the lifetime of the page: picking another group reloads the app.
+    const selectedUserGroupUuid = getStoredUserGroupUuid();
 
     const { data: userGroups, isLoading } = useQuery({
         queryKey: [userGroupEndpoints.list, 'super-admin-selector'],
         queryFn: fetchUserGroups,
     });
-
-    useEffect(() => {
-        if (!userGroups?.length) {
-            return;
-        }
-
-        if (!selectedUserGroupUuid || !userGroups.find((g) => g.uuid === selectedUserGroupUuid)) {
-            setSelectedUserGroupUuid(userGroups[0].uuid);
-        }
-
-        if (!useMap.getState().layers) {
-            onGroupChange();
-        }
-    }, [userGroups]);
-
-    const handleChange = useCallback(
-        (uuid: string) => {
-            setSelectedUserGroupUuid(uuid);
-            close();
-            onGroupChange();
-        },
-        [setSelectedUserGroupUuid, close, onGroupChange],
-    );
 
     const selectedGroup = userGroups?.find((g) => g.uuid === selectedUserGroupUuid);
 
@@ -114,7 +88,7 @@ const UserGroupSelector: React.FC<Props> = ({ onGroupChange }) => {
                 {isLoading ? (
                     <Text>Chargement...</Text>
                 ) : (
-                    <Radio.Group value={selectedUserGroupUuid} onChange={handleChange}>
+                    <Radio.Group value={selectedUserGroupUuid} onChange={setScopedUserGroupUuid}>
                         <Stack gap="sm">
                             {filteredGroups.map((group) => (
                                 <Radio

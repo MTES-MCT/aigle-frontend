@@ -1,6 +1,8 @@
 import { GeoZone, GeoZoneType } from '@/models/geo/geo-zone';
 import { User } from '@/models/user';
 import { UserGroupType } from '@/models/user-group';
+import { clearStoredUserGroupUuid } from '@/utils/scope';
+import * as Sentry from '@sentry/react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -8,12 +10,10 @@ interface AuthState {
     accessToken?: string;
     refreshToken?: string;
     userMe?: User;
-    selectedUserGroupUuid?: string;
 
     setAccessToken: (accessToken?: string) => void;
     setRefreshToken: (refreshToken: string) => void;
     setUser: (userMe?: User) => void;
-    setSelectedUserGroupUuid: (uuid?: string) => void;
     logout: () => void;
     getUserGroupType: () => UserGroupType;
     getCanViewStatistics: () => boolean;
@@ -39,19 +39,15 @@ const useAuth = create<AuthState>()(
                 set(() => ({
                     userMe,
                 }));
-            },
-            setSelectedUserGroupUuid: (uuid?: string) => {
-                set(() => ({
-                    selectedUserGroupUuid: uuid,
-                }));
+                Sentry.setUser(userMe ? { id: userMe.uuid, email: userMe.email, userRole: userMe.userRole } : null);
             },
             logout: () => {
                 set(() => ({
                     refreshToken: undefined,
                     accessToken: undefined,
                     userMe: undefined,
-                    selectedUserGroupUuid: undefined,
                 }));
+                clearStoredUserGroupUuid();
                 window.location.reload();
             },
             getUserGroupType: () => {
