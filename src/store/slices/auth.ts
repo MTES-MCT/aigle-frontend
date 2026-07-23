@@ -2,6 +2,7 @@ import { GeoZone, GeoZoneType } from '@/models/geo/geo-zone';
 import { User } from '@/models/user';
 import { UserGroupType } from '@/models/user-group';
 import { clearStoredUserGroupUuid } from '@/utils/scope';
+import * as Sentry from '@sentry/react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -38,6 +39,7 @@ const useAuth = create<AuthState>()(
                 set(() => ({
                     userMe,
                 }));
+                Sentry.setUser(userMe ? { id: userMe.uuid, email: userMe.email, userRole: userMe.userRole } : null);
             },
             logout: () => {
                 set(() => ({

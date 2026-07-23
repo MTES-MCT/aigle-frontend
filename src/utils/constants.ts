@@ -28,6 +28,8 @@ export const PASSWORD_MIN_LENGTH = 8;
 
 export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 export const ENVIRONMENT = import.meta.env.VITE_ENVIRONMENT;
+// Commit sha, set by the deploy workflow. Ties a Sentry event to a deploy.
+export const RELEASE = import.meta.env.VITE_RELEASE;
 
 export const PARCEL_COLOR = '#FF6F00';
 
