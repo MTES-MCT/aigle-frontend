@@ -23,8 +23,15 @@ export interface DdtmActivityUserGroup extends Uuided {
     deployedSinceWeeks: number | null;
 }
 
+export interface DdtmActivityCommuneOption extends Uuided {
+    name: string;
+}
+
 export interface DdtmActivityUserGroupOption extends Uuided {
     name: string;
+    // Communes this collectivity covers — backs the own-group dashboard's commune
+    // selector. Empty for a DDTM caller (their selector is over groups).
+    communes: DdtmActivityCommuneOption[];
 }
 
 export interface DdtmActivitySummary {

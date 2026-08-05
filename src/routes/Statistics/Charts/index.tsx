@@ -782,41 +782,84 @@ const DepartmentDashboard: React.FC<{ summary: DdtmActivitySummary }> = ({ summa
 
 // Everyone else: their own group's charts only — no department overview, and no per-user
 // detail (that one is DDTM-only, API included).
+//
+// The selector is over the COMMUNES the user can access, not the raw groups: a
+// collectivity thinks in communes. Each option resolves to the collectivity (user
+// group) responsible for that commune, and the charts are that collectivity's — so a
+// group spanning several communes shows the same charts under each of them (the caption
+// says so). A group with no commune zone (a department/EPCI-scoped collectivity) falls
+// back to a single option under its own name, so nothing is dropped.
+type ZoneOption = { value: string; label: string; groupUuid: string; groupName: string; groupCommuneCount: number };
+
+const buildZoneOptions = (groups: DdtmActivityUserGroupOption[]): ZoneOption[] =>
+    groups
+        .flatMap((group) =>
+            group.communes.length
+                ? group.communes.map((commune) => ({
+                      value: `${group.uuid}:${commune.uuid}`,
+                      label: commune.name,
+                      groupUuid: group.uuid,
+                      groupName: group.name,
+                      groupCommuneCount: group.communes.length,
+                  }))
+                : [
+                      {
+                          value: group.uuid,
+                          label: group.name,
+                          groupUuid: group.uuid,
+                          groupName: group.name,
+                          groupCommuneCount: 0,
+                      },
+                  ],
+        )
+        .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+
 const OwnGroupDashboard: React.FC<{ groups: DdtmActivityUserGroupOption[] }> = ({ groups }) => {
-    const [selectedGroupUuid, setSelectedGroupUuid] = useState<string | null>(groups[0]?.uuid ?? null);
+    const zoneOptions = buildZoneOptions(groups);
+    const [selectedValue, setSelectedValue] = useState<string | null>(zoneOptions[0]?.value ?? null);
     const [granularity, setGranularity] = useState<DdtmActivityGranularity>('MONTH');
 
-    if (!groups.length) {
+    if (!zoneOptions.length) {
         return <ErrorCard>Aucun groupe utilisateur ne vous est rattaché.</ErrorCard>;
     }
+
+    const selected = zoneOptions.find((option) => option.value === selectedValue) ?? zoneOptions[0];
 
     return (
         <Stack gap="lg">
             <LegendInfoCard />
 
-            {groups.length > 1 ? (
+            {zoneOptions.length > 1 ? (
                 <Select
                     className={classes['group-select']}
-                    label="Groupe utilisateur"
-                    data={groups.map((group) => ({ value: group.uuid, label: group.name }))}
-                    value={selectedGroupUuid}
-                    onChange={setSelectedGroupUuid}
+                    label="Commune"
+                    data={zoneOptions.map((option) => ({ value: option.value, label: option.label }))}
+                    value={selected.value}
+                    onChange={(value) => value && setSelectedValue(value)}
+                    searchable
                     allowDeselect={false}
                 />
             ) : (
-                <Text fw={600}>Activité du groupe : {groups[0].name}</Text>
+                <Text fw={600}>Activité : {selected.label}</Text>
             )}
+
+            {selected.groupCommuneCount > 1 ? (
+                <Text size="sm" c="dimmed">
+                    Ces statistiques couvrent l&apos;ensemble de la collectivité « {selected.groupName} », qui inclut{' '}
+                    {selected.groupCommuneCount} communes.
+                </Text>
+            ) : null}
 
             <GranularityControl granularity={granularity} onChange={setGranularity} />
 
-            {selectedGroupUuid ? (
-                <GroupCharts
-                    key={selectedGroupUuid}
-                    userGroupUuid={selectedGroupUuid}
-                    granularity={granularity}
-                    withUsersTable={false}
-                />
-            ) : null}
+            {/* Keyed by the group, not the commune: switching between communes of the same
+                collectivity keeps the same charts (and skips a refetch). */}
+            <GroupCharts
+                key={selected.groupUuid}
+                userGroupUuid={selected.groupUuid}
+                granularity={granularity}
+                withUsersTable={false}
+            />
         </Stack>
     );
 };
