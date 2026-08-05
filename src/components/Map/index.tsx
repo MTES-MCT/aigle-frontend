@@ -981,6 +981,10 @@ const Component: React.FC<ComponentProps> = ({
                 reuseMaps={true}
                 ref={handleMapRef}
                 mapboxAccessToken={MAPBOX_TOKEN}
+                // Required for Sentry replay canvas recording — WebGL only exposes
+                // its pixels for capture with this on. Costs a little GPU per frame;
+                // drop it if map perf regresses and canvas replay isn't worth it.
+                preserveDrawingBuffer={true}
                 initialViewState={getMapInitialViewState(
                     initialPosition,
                     initialDetectionObjectUuid,

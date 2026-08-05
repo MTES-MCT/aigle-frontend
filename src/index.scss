@@ -416,11 +416,15 @@ a.mantine-NavLink-root {
     margin: 0;
 }
 
-// The Sentry report button defaults to bottom-right at z-index 100000 — on the
-// map that is squarely on top of the scale/fullscreen/zoom control stack. Moved
-// bottom-left, offset to clear the mapbox attribution strip.
+// The Sentry report button (z-index 100000) owns the bottom-right corner on
+// every page. On the map that corner also holds the scale/fullscreen/zoom +
+// attribution stack, so lift that whole container to sit above the button.
 #sentry-feedback {
-    --inset: auto auto 2.25rem 1rem;
+    --inset: auto 1rem 1rem auto;
+}
+
+.mapboxgl-ctrl-bottom-right {
+    margin-bottom: 3.5rem;
 }
 
 // The Brevo chat button is fixed to the bottom-right corner of every page,

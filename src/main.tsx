@@ -61,7 +61,16 @@ Sentry.init({
             isEmailRequired: false,
         }),
         // Buffered only: the last 30s are attached when the form is opened.
-        Sentry.replayIntegration(),
+        // Internal-only app on gov data — unmask everything so replays and the
+        // feedback screenshot are actually readable (no grey boxes over text).
+        Sentry.replayIntegration({
+            maskAllText: false,
+            maskAllInputs: false,
+            blockAllMedia: false,
+        }),
+        // Records the Mapbox WebGL canvas into the replay — without this the map
+        // is blank in every recording.
+        Sentry.replayCanvasIntegration(),
     ],
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
