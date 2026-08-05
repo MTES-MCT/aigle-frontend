@@ -89,6 +89,22 @@ export const DETECTION_CONTROL_STATUSES_NAMES_MAP: {
     REHABILITATED: 'Remis en état',
 } as const;
 
+// Plain-language definitions for readers who never perform these actions themselves
+// (statistics viewers): shown in the /statistics legend.
+export const DETECTION_CONTROL_STATUSES_DESCRIPTIONS_MAP: {
+    [status in DetectionControlStatus]: string;
+} = {
+    NOT_CONTROLLED: "état initial : aucune action de contrôle n'a encore été menée sur l'objet",
+    TO_CONTROL: 'objet repéré comme devant faire l’objet d’un contrôle',
+    PRIOR_LETTER_SENT: 'un courrier préalable a été adressé au propriétaire',
+    CONTROLLED_FIELD: 'un agent s’est rendu sur place pour constater la situation',
+    OFFICIAL_REPORT_DRAWN_UP: 'un procès-verbal d’infraction a été dressé (l’objet n’est alors plus prescrit)',
+    ADMINISTRATIVE_CONSTRAINT: 'une astreinte administrative a été prononcée',
+    OBSERVARTION_REPORT_REDACTED: 'les constatations du contrôle ont été formalisées dans un rapport',
+    JUGEMENT: 'le dossier est porté devant la justice',
+    REHABILITATED: 'la situation a été régularisée et le terrain remis en état',
+} as const;
+
 export const DETECTION_CONTROL_STATUSES_COLORS_MAP: {
     [status in DetectionControlStatus]: string;
 } = {

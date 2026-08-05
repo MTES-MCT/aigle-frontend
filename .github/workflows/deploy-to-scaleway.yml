@@ -29,7 +29,9 @@ jobs:
                   touch .env
                   echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
                   echo "VITE_MAPBOX_TOKEN=${{ secrets.VITE_MAPBOX_TOKEN }}" >> .env
-                  echo "VITE_ENVIRONMENT=${{ secrets.VITE_ENVIRONMENT }}" >> .env
+                  # Derived from the branch, not a secret: an unset environment secret
+                  # silently ships an untagged build and preprod events look like prod.
+                  echo "VITE_ENVIRONMENT=${{ github.ref_name == 'main' && 'production' || 'preprod' }}" >> .env
 
             - name: Build
               run: npm run build

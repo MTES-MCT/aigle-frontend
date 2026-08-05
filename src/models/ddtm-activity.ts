@@ -6,7 +6,6 @@ export type DdtmActivityGranularity = 'MONTH' | 'QUARTER' | 'SEMESTER';
 // Mutually exclusive engagement tiers over a period (see the InfoCards in the UI).
 export type UserActivityStatus = 'PILOT' | 'RECURRENT' | 'ACTIVE' | 'INACTIVE';
 
-// Extends Uuided so it can back the shared DataTable (keyed by uuid).
 export interface DdtmActivityUser extends Uuided {
     email: string;
     operationalActionsCount: number;
@@ -29,9 +28,11 @@ export interface DdtmActivityUserGroupOption extends Uuided {
 }
 
 export interface DdtmActivitySummary {
-    departmentName: string;
+    // null for a non-DDTM user: they get the own-group dashboard, not the department one.
+    departmentName: string | null;
     userGroupsCount: number;
     activeUserGroupsCount: number;
+    // Every group the user may open: the department's groups, or their own.
     userGroups: DdtmActivityUserGroupOption[];
 }
 
@@ -61,10 +62,17 @@ export interface DdtmActivityCountPeriod {
     count: number;
 }
 
+// One group's tier per period. Periods where the group has no data yet are absent.
+export interface DdtmActivityGroupTiers extends Uuided {
+    name: string;
+    tierByPeriod: Record<string, UserActivityStatus>;
+}
+
 // Department-wide chart: each collectivity group classified per period.
 export interface DdtmActivityGroupsActivity {
     granularity: DdtmActivityGranularity;
     activityByPeriod: DdtmActivityPeriodTier[];
+    groups: DdtmActivityGroupTiers[];
 }
 
 // One group's per-period charts.
@@ -72,7 +80,9 @@ export interface DdtmActivityUserGroupActivity extends Uuided {
     name: string;
     granularity: DdtmActivityGranularity;
     deploymentDate: string | null;
-    // Last period key entirely before deployment (grey "not deployed" zone boundary).
+    // Period key containing the deployment date (the charts' deployment marker).
+    deploymentPeriod: string | null;
+    // Last period key entirely before deployment (periods with no activity to show).
     noDataUntilPeriod: string | null;
     activityByPeriod: DdtmActivityPeriodTier[];
     controlStatusChangesByPeriod: DdtmActivityControlStatusPeriod[];

@@ -97,6 +97,21 @@ body {
     overflow-x: hidden;
 }
 
+// printing a page (statistics report) should not carry the app chrome over
+@media print {
+    // landscape fits the 1000px-wide statistics content: charts are drawn at their
+    // on-screen pixel width and would be clipped on portrait paper
+    @page {
+        size: landscape;
+        margin: 10mm;
+    }
+
+    header.fr-header,
+    #brevo-conversations {
+        display: none !important;
+    }
+}
+
 body,
 html {
     height: 100%;
@@ -399,6 +414,13 @@ a.mantine-NavLink-root {
 
 .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl {
     margin: 0;
+}
+
+// The Sentry report button defaults to bottom-right at z-index 100000 — on the
+// map that is squarely on top of the scale/fullscreen/zoom control stack. Moved
+// bottom-left, offset to clear the mapbox attribution strip.
+#sentry-feedback {
+    --inset: auto auto 2.25rem 1rem;
 }
 
 .mapbox-gl-draw_point {

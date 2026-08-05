@@ -13,11 +13,18 @@
     align-self: center;
 }
 
-.bordered-table {
-    /* Thin outer border matching the table's own row lines (same 1px width and gray-3
-       color as Mantine's --table-border-color), with rounded corners. */
-    border: calc(0.0625rem * var(--mantine-scale)) solid var(--mantine-color-gray-3);
-    border-radius: constants.$border-radius-small;
-    /* clip the inner table's square corners to the rounded border */
-    overflow: hidden;
+/* "Rapport complet (PDF)" = the browser's own print-to-PDF on this page. */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .chart-section {
+        break-inside: avoid;
+    }
+
+    .container {
+        /* cancels the fixed-header offset LayoutBase reserves (header hidden in index.scss) */
+        margin-top: calc(-1 * constants.$header-height);
+    }
 }

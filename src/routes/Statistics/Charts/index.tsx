@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { ddtmActivityEndpoints } from '@/api/endpoints';
-import DataTable from '@/components/DataTable';
 import LayoutBase from '@/components/LayoutBase';
+import SoloAccordion from '@/components/SoloAccordion';
+import SortableTable, { SortableTableColumn } from '@/components/SortableTable';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
@@ -17,6 +18,7 @@ import {
     DdtmActivityUser,
     DdtmActivityUserGroup,
     DdtmActivityUserGroupActivity,
+    DdtmActivityUserGroupOption,
     UserActivityStatus,
 } from '@/models/ddtm-activity';
 import { DetectionControlStatus } from '@/models/detection';
@@ -24,20 +26,39 @@ import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
 import {
     DETECTION_CONTROL_STATUSES_COLORS_MAP,
+    DETECTION_CONTROL_STATUSES_DESCRIPTIONS_MAP,
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     HEADER_HEIGHT_PX,
 } from '@/utils/constants';
+import { downloadChartPng, toFileSlug } from '@/utils/download';
 import { formatDateOnly } from '@/utils/format';
 import { BarChart, ChartTooltip, CompositeChart } from '@mantine/charts';
-import { Anchor, Badge, List, SegmentedControl, Select, SimpleGrid, Stack, Table, Text, Tooltip } from '@mantine/core';
+import {
+    ActionIcon,
+    Anchor,
+    Badge,
+    Button,
+    Group,
+    List,
+    Paper,
+    SegmentedControl,
+    Select,
+    SimpleGrid,
+    Stack,
+    Text,
+    Tooltip,
+} from '@mantine/core';
 import { useScrollIntoView } from '@mantine/hooks';
-import { IconChartBar, IconUsersGroup } from '@tabler/icons-react';
+import { IconChartBar, IconDownload, IconListDetails, IconPrinter, IconUsersGroup } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
-import { ReferenceArea } from 'recharts';
+import { ReferenceLine } from 'recharts';
 import classes from './index.module.scss';
 
 const CHART_CURSOR_FILL = 'var(--mantine-color-gray-2)';
+
+const NOT_DEPLOYED_TOOLTIP = 'Groupe non déployé à cette période';
+const NO_GROUP_DEPLOYED_TOOLTIP = 'Aucun groupe déployé à cette période';
 
 type ChartSeriesItem = { name: string; label: string; color: string };
 
@@ -69,24 +90,17 @@ const formatPeriod = (key: string): string => {
     return `${MONTH_LABELS[Number(part) - 1]} ${year}`;
 };
 
-// Hover goes inert over no-data periods (nothing rendered); otherwise a plain grey band
-// (Mantine's default is a dashed outline). recharts only builds a band rect for BarChart;
-// for CompositeChart it passes a vertical-line cursor (`points`) + the full plot width, so
-// the band is rebuilt from the plot width / period count.
-const NoDataAwareCursor: React.FC<{
-    noDataLabels: Set<string>;
+// Plain grey band under the cursor (Mantine's default is a dashed outline). recharts only
+// builds a band rect for BarChart; for CompositeChart it passes a vertical-line cursor
+// (`points`) + the full plot width, so the band is rebuilt from plot width / period count.
+const BandCursor: React.FC<{
     periodCount: number;
     x?: number;
     y?: number;
     width?: number;
     height?: number;
     points?: { x: number; y: number }[];
-    payload?: { payload: { period: string } }[];
-}> = ({ noDataLabels, periodCount, x = 0, y = 0, width = 0, height = 0, points, payload }) => {
-    const period = payload?.[0]?.payload?.period;
-    if (period !== undefined && noDataLabels.has(period)) {
-        return null;
-    }
+}> = ({ periodCount, x = 0, y = 0, width = 0, height = 0, points }) => {
     if (points && points.length >= 2) {
         const bandWidth = width / periodCount;
         return (
@@ -102,9 +116,15 @@ const NoDataAwareCursor: React.FC<{
     return <rect x={x} y={y} width={width} height={height} fill={CHART_CURSOR_FILL} />;
 };
 
-// Tooltip + cursor that both suppress themselves over the no-data zone.
-const makeTooltipProps = (noDataLabels: Set<string>, series: ChartSeriesItem[], periodCount: number) => ({
-    cursor: <NoDataAwareCursor noDataLabels={noDataLabels} periodCount={periodCount} />,
+// Tooltip + cursor. Over a period with no deployment there is nothing to break down, so
+// the tooltip says so instead of showing a column of zeros.
+const makeTooltipProps = (
+    noDataLabels: Set<string>,
+    series: ChartSeriesItem[],
+    periodCount: number,
+    emptyMessage: string = NOT_DEPLOYED_TOOLTIP,
+) => ({
+    cursor: <BandCursor periodCount={periodCount} />,
     content: ({
         label,
         payload,
@@ -112,7 +132,13 @@ const makeTooltipProps = (noDataLabels: Set<string>, series: ChartSeriesItem[], 
         label?: string;
         payload?: React.ComponentProps<typeof ChartTooltip>['payload'];
     }) =>
-        label !== undefined && noDataLabels.has(label) ? null : (
+        label !== undefined && noDataLabels.has(label) ? (
+            <Paper px="md" py="xs" radius="md" shadow="md" withBorder>
+                <Text size="sm" c="dimmed">
+                    {emptyMessage}
+                </Text>
+            </Paper>
+        ) : (
             <ChartTooltip label={label} payload={payload} series={series} />
         ),
 });
@@ -123,88 +149,31 @@ const CHART_BAR_PROPS = { stroke: 'var(--mantine-color-black)', strokeWidth: 1, 
 // stackId stacks the four tier bars of the activity chart into one column.
 const ACTIVITY_BAR_PROPS = { ...CHART_BAR_PROPS, stackId: 'activity' };
 
-// Diagonal grey hatch marking the "not deployed" (no data) periods.
-const STRIPE_PATTERN_ID = 'ddtm-no-data-stripes';
-
-// Raw <defs> element (NOT a component: recharts renders SVG-tag children but drops
-// custom components). The pattern is referenced by the ReferenceArea's fill.
-const STRIPE_DEFS = (
-    <defs>
-        <pattern
-            id={STRIPE_PATTERN_ID}
-            width={6}
-            height={6}
-            patternTransform="rotate(45)"
-            patternUnits="userSpaceOnUse"
-        >
-            <rect width={6} height={6} fill="var(--mantine-color-gray-1)" />
-            <line x1={0} y1={0} x2={0} y2={6} stroke="var(--mantine-color-gray-4)" strokeWidth={2} />
-        </pattern>
-    </defs>
-);
-
-// Centered label with a solid grey box behind it (SVG has no text background) so it
-// stays readable over the diagonal stripes. recharts clones this with the area viewBox.
-const NO_DATA_LABEL_TEXT = 'Groupe non-déployé';
-const NoDataLabel: React.FC<{ viewBox?: { x: number; y: number; width: number; height: number } }> = ({ viewBox }) => {
-    if (!viewBox) {
-        return null;
-    }
-    const cx = viewBox.x + viewBox.width / 2;
-    const cy = viewBox.y + viewBox.height / 2;
-    const boxWidth = NO_DATA_LABEL_TEXT.length * 6.6 + 16;
-    const boxHeight = 22;
-    return (
-        <g>
-            <rect
-                x={cx - boxWidth / 2}
-                y={cy - boxHeight / 2}
-                width={boxWidth}
-                height={boxHeight}
-                rx={4}
-                fill="var(--mantine-color-gray-2)"
-            />
-            <text
-                x={cx}
-                y={cy}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={12}
-                fill="var(--mantine-color-gray-7)"
-            >
-                {NO_DATA_LABEL_TEXT}
-            </text>
-        </g>
-    );
-};
-
-// A single striped zone covering every period up to (and including) `untilPeriod` — the
-// last pre-deployment column. Passed as chart children; null when there is nothing to
-// grey out (already deployed, or department-wide chart with no single deployment).
-const noDataZone = (untilPeriod: string | null) =>
-    untilPeriod === null ? null : (
-        <>
-            {STRIPE_DEFS}
-            {/* yAxisId must match Mantine's YAxis ("left"), else recharts can't place it. */}
-            <ReferenceArea
-                yAxisId="left"
-                x2={untilPeriod}
-                fill={`url(#${STRIPE_PATTERN_ID})`}
-                fillOpacity={1}
-                stroke="none"
-                label={<NoDataLabel />}
-            />
-        </>
+// A dashed line on the deployment period rather than a striped block over everything
+// before it: the pre-deployment span is often most of the chart and drowned the real
+// data. Null when the deployment falls outside the displayed periods.
+// yAxisId must match Mantine's YAxis ("left"), else recharts can't place it.
+const deploymentMarker = (deploymentPeriod: string | null, periodKeys: string[]) =>
+    deploymentPeriod === null || !periodKeys.includes(deploymentPeriod) ? null : (
+        <ReferenceLine
+            yAxisId="left"
+            x={formatPeriod(deploymentPeriod)}
+            stroke="var(--mantine-color-gray-6)"
+            strokeDasharray="4 4"
+            label={{
+                value: 'Déploiement',
+                position: 'top',
+                fontSize: 11,
+                fill: 'var(--mantine-color-gray-7)',
+            }}
+        />
     );
 
-// { noDataUntil: last pre-deploy period label, noDataLabels: all pre-deploy labels }.
-const buildNoData = (noDataUntilPeriod: string | null, periodKeys: string[]) =>
+// Labels of the periods entirely before deployment (nothing to break down there).
+const buildNoDataLabels = (noDataUntilPeriod: string | null, periodKeys: string[]) =>
     noDataUntilPeriod === null
-        ? { noDataUntil: null as string | null, noDataLabels: new Set<string>() }
-        : {
-              noDataUntil: formatPeriod(noDataUntilPeriod),
-              noDataLabels: new Set(periodKeys.filter((key) => key <= noDataUntilPeriod).map(formatPeriod)),
-          };
+        ? new Set<string>()
+        : new Set(periodKeys.filter((key) => key <= noDataUntilPeriod).map(formatPeriod));
 
 const ACTIVITY_TIERS: Record<UserActivityStatus, { label: string; color: string }> = {
     PILOT: { label: 'Pilote', color: 'blue.7' },
@@ -212,6 +181,9 @@ const ACTIVITY_TIERS: Record<UserActivityStatus, { label: string; color: string 
     ACTIVE: { label: 'Actif', color: 'yellow.6' },
     INACTIVE: { label: 'Inactif', color: 'gray.5' },
 };
+
+// Most to least engaged: stacking order, sort order and detail-column order.
+const ACTIVITY_TIER_ORDER: UserActivityStatus[] = ['PILOT', 'RECURRENT', 'ACTIVE', 'INACTIVE'];
 
 // Bottom-to-top: pilots, recurrents, actives, inactives (all stacked bars).
 const ACTIVITY_CHART_SERIES = [
@@ -242,57 +214,74 @@ const GRANULARITY_OPTIONS: { label: string; value: DdtmActivityGranularity }[] =
     { label: 'Semestriel', value: 'SEMESTER' },
 ];
 
+const sumBy = <T,>(items: T[], getValue: (item: T) => number) =>
+    items.reduce((total, item) => total + getValue(item), 0);
+
 const ActivityBadge: React.FC<{ status: UserActivityStatus }> = ({ status }) => (
     <Badge variant="light" radius="sm" color={ACTIVITY_TIERS[status].color}>
         {ACTIVITY_TIERS[status].label}
     </Badge>
 );
 
-const GroupUsersTable: React.FC<{ userGroupUuid: string }> = ({ userGroupUuid }) => (
-    <DataTable<DdtmActivityUser, undefined>
-        endpoint={ddtmActivityEndpoints.userGroupUsers(userGroupUuid)}
-        paginated={false}
-        striped={false}
-        highlightOnHover={false}
-        showRefresh={false}
-        layout="auto"
-        tableContainerClassName={classes['bordered-table']}
-        tableHeader={[
-            <Table.Th key="email">Adresse email</Table.Th>,
-            <Table.Th key="operationalActionsCount">Actions opérationnelles (30 j)</Table.Th>,
-            <Table.Th key="connectionsCount">Connexions (30 j)</Table.Th>,
-            <Table.Th key="activityStatus">Type</Table.Th>,
-        ]}
-        tableBodyRenderFns={[
-            (user: DdtmActivityUser) => user.email,
-            (user: DdtmActivityUser) => user.operationalActionsCount,
-            (user: DdtmActivityUser) => user.connectionsCount,
-            (user: DdtmActivityUser) => <ActivityBadge status={user.activityStatus} />,
-        ]}
-    />
+const CountBadge: React.FC<{ count: number; color: string }> = ({ count, color }) => (
+    <Badge variant="light" radius="sm" color={color}>
+        {count}
+    </Badge>
 );
 
 // Stable stacking order for the control-status chart, following the shared names map.
 const CONTROL_STATUS_ORDER = Object.keys(DETECTION_CONTROL_STATUSES_NAMES_MAP) as DetectionControlStatus[];
 
-const ChartSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <Stack gap="xs">
-        <Text fw={600}>{title}</Text>
-        {children}
-    </Stack>
-);
+// Chart block: title + a PNG export of the rendered chart (for slides and reports).
+const ChartSection: React.FC<{ title: string; fileNameContext?: string; children: React.ReactNode }> = ({
+    title,
+    fileNameContext,
+    children,
+}) => {
+    const chartRef = useRef<HTMLDivElement>(null);
 
-// Stacked tier bars + a "Total" line. Used both per-user (group detail) and per-group
-// (department-wide). `noDataUntil` greys out pre-deployment periods; hover is suppressed
-// on any period with no entity (totalCount 0) — pre-deployment or not-yet-existing group.
+    return (
+        <Stack gap="xs" className={classes['chart-section']}>
+            <Group justify="space-between" wrap="nowrap">
+                <Text fw={600}>{title}</Text>
+                <Tooltip label="Télécharger le graphique (PNG)">
+                    <ActionIcon
+                        className={classes['no-print']}
+                        variant="subtle"
+                        size="lg"
+                        aria-label="Télécharger le graphique (PNG)"
+                        onClick={() =>
+                            chartRef.current &&
+                            downloadChartPng(
+                                chartRef.current,
+                                `${toFileSlug(`${fileNameContext || ''} ${title}`)}.png`,
+                                fileNameContext ? `${fileNameContext} — ${title}` : title,
+                            )
+                        }
+                    >
+                        <IconDownload size={18} />
+                    </ActionIcon>
+                </Tooltip>
+            </Group>
+            <div ref={chartRef}>{children}</div>
+        </Stack>
+    );
+};
+
+// Stacked tier bars, one column per period. Used both per-user (group detail) and
+// per-group (department-wide). Hover on a period with no entity (totalCount 0) explains
+// the gap instead of showing zeros — pre-deployment or not-yet-existing group.
 const ActivityChart: React.FC<{
     title: string;
     data: DdtmActivityPeriodTier[];
-    noDataUntil: string | null;
-}> = ({ title, data, noDataUntil }) => {
+    deploymentPeriod: string | null;
+    fileNameContext?: string;
+    emptyMessage?: string;
+}> = ({ title, data, deploymentPeriod, fileNameContext, emptyMessage }) => {
     const noDataLabels = new Set(data.filter((tier) => tier.totalCount === 0).map((tier) => formatPeriod(tier.period)));
+
     return (
-        <ChartSection title={title}>
+        <ChartSection title={title} fileNameContext={fileNameContext}>
             <CompositeChart
                 h={320}
                 data={data.map((tier) => ({
@@ -306,10 +295,13 @@ const ActivityChart: React.FC<{
                 series={ACTIVITY_CHART_SERIES}
                 withLegend
                 yAxisProps={{ allowDecimals: false }}
-                tooltipProps={makeTooltipProps(noDataLabels, ACTIVITY_CHART_SERIES, data.length)}
+                tooltipProps={makeTooltipProps(noDataLabels, ACTIVITY_CHART_SERIES, data.length, emptyMessage)}
                 barProps={ACTIVITY_BAR_PROPS}
             >
-                {noDataZone(noDataUntil)}
+                {deploymentMarker(
+                    deploymentPeriod,
+                    data.map((tier) => tier.period),
+                )}
             </CompositeChart>
         </ChartSection>
     );
@@ -317,9 +309,10 @@ const ActivityChart: React.FC<{
 
 const ControlStatusChart: React.FC<{
     data: DdtmActivityControlStatusPeriod[];
-    noDataUntil: string | null;
+    deploymentPeriod: string | null;
     noDataLabels: Set<string>;
-}> = ({ data, noDataUntil, noDataLabels }) => {
+    fileNameContext: string;
+}> = ({ data, deploymentPeriod, noDataLabels, fileNameContext }) => {
     // Only chart the control statuses that actually occurred, reusing the app's status
     // colors/labels so the chart matches the rest of the app.
     const presentStatuses = new Set(data.flatMap((period) => period.counts.map((count) => count.status)));
@@ -330,7 +323,7 @@ const ControlStatusChart: React.FC<{
     }));
 
     return (
-        <ChartSection title="Changements de statut de contrôle par période">
+        <ChartSection title="Changements de statut de contrôle par période" fileNameContext={fileNameContext}>
             {series.length ? (
                 <BarChart
                     h={320}
@@ -346,7 +339,10 @@ const ControlStatusChart: React.FC<{
                     tooltipProps={makeTooltipProps(noDataLabels, series, data.length)}
                     barProps={CHART_BAR_PROPS}
                 >
-                    {noDataZone(noDataUntil)}
+                    {deploymentMarker(
+                        deploymentPeriod,
+                        data.map((period) => period.period),
+                    )}
                 </BarChart>
             ) : (
                 <Text c="dimmed" size="sm">
@@ -362,12 +358,14 @@ const CountBarChart: React.FC<{
     periods: DdtmActivityCountPeriod[];
     label: string;
     color: string;
-    noDataUntil: string | null;
+    deploymentPeriod: string | null;
     noDataLabels: Set<string>;
-}> = ({ title, periods, label, color, noDataUntil, noDataLabels }) => {
+    fileNameContext: string;
+}> = ({ title, periods, label, color, deploymentPeriod, noDataLabels, fileNameContext }) => {
     const series = [{ name: 'count', label, color }];
+
     return (
-        <ChartSection title={title}>
+        <ChartSection title={title} fileNameContext={fileNameContext}>
             <BarChart
                 h={280}
                 data={periods.map((period) => ({ period: formatPeriod(period.period), count: period.count }))}
@@ -377,9 +375,107 @@ const CountBarChart: React.FC<{
                 tooltipProps={makeTooltipProps(noDataLabels, series, periods.length)}
                 barProps={CHART_BAR_PROPS}
             >
-                {noDataZone(noDataUntil)}
+                {deploymentMarker(
+                    deploymentPeriod,
+                    periods.map((period) => period.period),
+                )}
             </BarChart>
         </ChartSection>
+    );
+};
+
+// One row per period, one column per category, listing the groups it holds — the counts
+// of the chart above, named.
+type PeriodDetailRow = { period: string; namesByTier: Record<UserActivityStatus, string[]> };
+
+const buildPeriodDetailRows = (activity: DdtmActivityGroupsActivity): PeriodDetailRow[] =>
+    activity.activityByPeriod.map(({ period }) => ({
+        period,
+        namesByTier: Object.fromEntries(
+            ACTIVITY_TIER_ORDER.map((tier) => [
+                tier,
+                activity.groups
+                    .filter((group) => group.tierByPeriod[period] === tier)
+                    .map((group) => group.name)
+                    .sort((a, b) => a.localeCompare(b, 'fr')),
+            ]),
+        ) as Record<UserActivityStatus, string[]>,
+    }));
+
+const PERIOD_DETAIL_COLUMNS: SortableTableColumn<PeriodDetailRow>[] = [
+    {
+        key: 'period',
+        label: 'Période',
+        value: (row) => formatPeriod(row.period),
+        sortValue: (row) => row.period,
+    },
+    ...ACTIVITY_TIER_ORDER.map((tier) => ({
+        key: tier,
+        label: ACTIVITY_TIERS[tier].label,
+        value: (row: PeriodDetailRow) => row.namesByTier[tier].join(', '),
+        render: (row: PeriodDetailRow) =>
+            row.namesByTier[tier].length ? (
+                row.namesByTier[tier].join(', ')
+            ) : (
+                <Text c="dimmed" size="sm">
+                    —
+                </Text>
+            ),
+    })),
+];
+
+const GroupsPeriodDetailTable: React.FC<{ activity: DdtmActivityGroupsActivity }> = ({ activity }) => (
+    <SoloAccordion title="Détail des groupes par catégorie" icon={<IconListDetails />}>
+        <SortableTable<PeriodDetailRow>
+            columns={PERIOD_DETAIL_COLUMNS}
+            items={buildPeriodDetailRows(activity)}
+            getItemKey={(row) => row.period}
+            initialSort={{ key: 'period', order: 'desc' }}
+            csvFileName={`groupes-par-categorie-${activity.granularity.toLowerCase()}.csv`}
+        />
+    </SoloAccordion>
+);
+
+const USER_COLUMNS: SortableTableColumn<DdtmActivityUser>[] = [
+    { key: 'email', label: 'Adresse email', value: (user) => user.email },
+    {
+        key: 'operationalActionsCount',
+        label: 'Actions opérationnelles (30 j)',
+        value: (user) => user.operationalActionsCount,
+    },
+    { key: 'connectionsCount', label: 'Connexions (30 j)', value: (user) => user.connectionsCount },
+    {
+        key: 'activityStatus',
+        label: 'Type',
+        value: (user) => ACTIVITY_TIERS[user.activityStatus].label,
+        sortValue: (user) => ACTIVITY_TIER_ORDER.indexOf(user.activityStatus),
+        render: (user) => <ActivityBadge status={user.activityStatus} />,
+    },
+];
+
+const GroupUsersTable: React.FC<{ userGroupUuid: string; groupName: string }> = ({ userGroupUuid, groupName }) => {
+    const { data, isLoading, error } = useQuery({
+        queryKey: [ddtmActivityEndpoints.userGroupUsers(userGroupUuid)],
+        queryFn: ({ signal }) =>
+            api<DdtmActivityUser[]>(ddtmActivityEndpoints.userGroupUsers(userGroupUuid), { signal }),
+    });
+
+    if (isLoading) {
+        return <Loader />;
+    }
+    if (error || !data) {
+        return <ErrorCard>{error ? error.message : 'Aucune donnée'}</ErrorCard>;
+    }
+
+    return (
+        <SortableTable<DdtmActivityUser>
+            columns={USER_COLUMNS}
+            items={data}
+            getItemKey={(user) => user.uuid}
+            initialSort={{ key: 'operationalActionsCount', order: 'desc' }}
+            searchPlaceholder="Rechercher un utilisateur"
+            csvFileName={`utilisateurs-${toFileSlug(groupName)}.csv`}
+        />
     );
 };
 
@@ -400,13 +496,26 @@ const GroupsActivityChart: React.FC<{ granularity: DdtmActivityGranularity }> = 
         return <ErrorCard>{error ? error.message : 'Aucune donnée'}</ErrorCard>;
     }
 
-    return <ActivityChart title="Activité des groupes par période" data={data.activityByPeriod} noDataUntil={null} />;
+    return (
+        <Stack gap="xs">
+            <ActivityChart
+                title="Activité des groupes par période"
+                data={data.activityByPeriod}
+                deploymentPeriod={null}
+                emptyMessage={NO_GROUP_DEPLOYED_TOOLTIP}
+            />
+            <GroupsPeriodDetailTable activity={data} />
+        </Stack>
+    );
 };
 
-const GroupCharts: React.FC<{ userGroupUuid: string; granularity: DdtmActivityGranularity }> = ({
-    userGroupUuid,
-    granularity,
-}) => {
+// `withUsersTable`: the per-user detail (emails) is reserved for DDTM members — the API
+// serves it on a DDTM-only route.
+const GroupCharts: React.FC<{
+    userGroupUuid: string;
+    granularity: DdtmActivityGranularity;
+    withUsersTable?: boolean;
+}> = ({ userGroupUuid, granularity, withUsersTable = true }) => {
     const { data, isLoading, error } = useQuery({
         queryKey: [ddtmActivityEndpoints.userGroupActivity(userGroupUuid), granularity],
         queryFn: ({ signal }) =>
@@ -423,46 +532,60 @@ const GroupCharts: React.FC<{ userGroupUuid: string; granularity: DdtmActivityGr
         return <ErrorCard>{error ? error.message : 'Aucune donnée'}</ErrorCard>;
     }
 
-    const { noDataUntil, noDataLabels } = buildNoData(
-        data.noDataUntilPeriod,
-        data.activityByPeriod.map((period) => period.period),
-    );
+    const periodKeys = data.activityByPeriod.map((period) => period.period);
+    const noDataLabels = buildNoDataLabels(data.noDataUntilPeriod, periodKeys);
+    // The marker is only drawn when the deployment falls inside the displayed periods.
+    const deploymentMarkerShown = data.deploymentPeriod !== null && periodKeys.includes(data.deploymentPeriod);
 
     return (
         <Stack gap="xl">
+            {data.deploymentDate ? (
+                <Text size="sm" c="dimmed">
+                    Groupe déployé le {formatDateOnly(data.deploymentDate)}
+                    {deploymentMarkerShown ? ' (trait pointillé)' : ''} : avant cette date, le groupe n&apos;utilisait
+                    pas AIGLE.
+                </Text>
+            ) : null}
             <ActivityChart
                 title="Activité des utilisateurs par période"
                 data={data.activityByPeriod}
-                noDataUntil={noDataUntil}
+                deploymentPeriod={data.deploymentPeriod}
+                fileNameContext={data.name}
             />
             <ControlStatusChart
                 data={data.controlStatusChangesByPeriod}
-                noDataUntil={noDataUntil}
+                deploymentPeriod={data.deploymentPeriod}
                 noDataLabels={noDataLabels}
+                fileNameContext={data.name}
             />
             <CountBarChart
                 title="Téléchargements de rapport par période"
                 periods={data.reportDownloadsByPeriod}
                 label="Téléchargements"
                 color="blue.6"
-                noDataUntil={noDataUntil}
+                deploymentPeriod={data.deploymentPeriod}
                 noDataLabels={noDataLabels}
+                fileNameContext={data.name}
             />
             <CountBarChart
                 title="Connexions par période"
                 periods={data.connectionsByPeriod}
                 label="Connexions"
                 color="green.6"
-                noDataUntil={noDataUntil}
+                deploymentPeriod={data.deploymentPeriod}
                 noDataLabels={noDataLabels}
+                fileNameContext={data.name}
             />
-            <GroupUsersTable userGroupUuid={userGroupUuid} />
+            {withUsersTable ? <GroupUsersTable userGroupUuid={userGroupUuid} groupName={data.name} /> : null}
         </Stack>
     );
 };
 
-const ActivityDefinitionsInfoCard: React.FC = () => (
-    <InfoCard title="Comment sont calculées les catégories d'activité">
+const LegendInfoCard: React.FC = () => (
+    <InfoCard title="Légende">
+        <Text size="sm" fw={600}>
+            Catégories d&apos;activité
+        </Text>
         <Text size="sm">
             Chaque groupe (ou utilisateur) est classé dans une seule catégorie par période. Une « action opérationnelle
             » correspond à un changement de statut de contrôle.
@@ -482,13 +605,115 @@ const ActivityDefinitionsInfoCard: React.FC = () => (
             </List.Item>
         </List>
         <Text size="sm" mt="xs">
-            Les périodes précédant le déploiement d&apos;un groupe sont grisées.
+            Dans le tableau des groupes, « utilisateurs actifs » regroupe tous les utilisateurs qui ne sont pas inactifs
+            : pilotes, récurrents et actifs confondus.
         </Text>
+
+        <Text size="sm" fw={600} mt="md">
+            Statuts de contrôle
+        </Text>
+        <Text size="sm">
+            Statut du suivi d&apos;un objet détecté par les agents. C&apos;est son changement qui compte comme action
+            opérationnelle.
+        </Text>
+        <List size="sm" mt="xs" spacing={4}>
+            {CONTROL_STATUS_ORDER.map((status) => (
+                <List.Item key={status}>
+                    <b>{DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}</b> :{' '}
+                    {DETECTION_CONTROL_STATUSES_DESCRIPTIONS_MAP[status]}
+                </List.Item>
+            ))}
+        </List>
     </InfoCard>
 );
 
-const Component: React.FC = () => {
-    const { getCanViewStatistics } = useAuth();
+const buildGroupColumns = (onGroupSelected: (uuid: string) => void): SortableTableColumn<DdtmActivityUserGroup>[] => [
+    {
+        key: 'name',
+        label: 'Groupe utilisateur',
+        value: (group) => group.name,
+        render: (group) => (
+            <Anchor component="button" type="button" ta="left" onClick={() => onGroupSelected(group.uuid)}>
+                {group.name}
+            </Anchor>
+        ),
+        footer: (groups) => `Total (${groups.length} groupes)`,
+    },
+    {
+        key: 'deploymentDate',
+        label: 'Déployé le',
+        // Deployment = the group's earliest member first login (see the API service).
+        value: (group) => group.deploymentDate,
+        render: (group) => (group.deploymentDate ? formatDateOnly(group.deploymentDate) : '—'),
+    },
+    {
+        key: 'deployedSinceWeeks',
+        label: 'Déployé depuis (semaines)',
+        value: (group) => (group.deploymentDate === null ? null : group.deployedSinceWeeks ?? 0),
+    },
+    {
+        key: 'usersCount',
+        label: 'Utilisateurs',
+        value: (group) => group.usersCount,
+        render: (group) => <CountBadge count={group.usersCount} color="gray" />,
+        footer: (groups) => sumBy(groups, (group) => group.usersCount),
+    },
+    {
+        key: 'activeUsersCount',
+        label: 'Utilisateurs actifs (30 j)',
+        value: (group) => group.activeUsersCount,
+        render: (group) => <CountBadge count={group.activeUsersCount} color={ACTIVITY_TIERS.ACTIVE.color} />,
+        footer: (groups) => sumBy(groups, (group) => group.activeUsersCount),
+    },
+    {
+        key: 'pilotUsersCount',
+        label: 'Utilisateurs pilotes (30 j)',
+        value: (group) => group.pilotUsersCount,
+        render: (group) => <CountBadge count={group.pilotUsersCount} color={ACTIVITY_TIERS.PILOT.color} />,
+        footer: (groups) => sumBy(groups, (group) => group.pilotUsersCount),
+    },
+];
+
+const GroupsTable: React.FC<{ onGroupSelected: (uuid: string) => void }> = ({ onGroupSelected }) => {
+    const { data, isLoading, error } = useQuery({
+        queryKey: [ddtmActivityEndpoints.userGroups],
+        queryFn: ({ signal }) => api<DdtmActivityUserGroup[]>(ddtmActivityEndpoints.userGroups, { signal }),
+    });
+
+    if (isLoading) {
+        return <Loader />;
+    }
+    if (error || !data) {
+        return <ErrorCard>{error ? error.message : 'Aucune donnée'}</ErrorCard>;
+    }
+
+    return (
+        <SortableTable<DdtmActivityUserGroup>
+            columns={buildGroupColumns(onGroupSelected)}
+            items={data}
+            getItemKey={(group) => group.uuid}
+            initialSort={{ key: 'name', order: 'asc' }}
+            searchPlaceholder="Rechercher un groupe"
+            csvFileName="groupes-utilisateurs.csv"
+        />
+    );
+};
+
+const GranularityControl: React.FC<{
+    granularity: DdtmActivityGranularity;
+    onChange: (granularity: DdtmActivityGranularity) => void;
+}> = ({ granularity, onChange }) => (
+    <SegmentedControl
+        className={classes['granularity-control']}
+        value={granularity}
+        onChange={(value) => onChange(value as DdtmActivityGranularity)}
+        data={GRANULARITY_OPTIONS}
+    />
+);
+
+// DDTM users: the whole department — overview, every collectivity group, then one group
+// in detail (per-user table included).
+const DepartmentDashboard: React.FC<{ summary: DdtmActivitySummary }> = ({ summary }) => {
     const [selectedGroupUuid, setSelectedGroupUuid] = useState<string | null>(null);
     const [granularity, setGranularity] = useState<DdtmActivityGranularity>('MONTH');
     // Scrolls the body (the real scroll container: `body { overflow-x: hidden }` promotes
@@ -498,7 +723,112 @@ const Component: React.FC = () => {
         duration: 500,
     });
 
+    // Select the group, then bring section 2 up under the fixed header (offset = HEADER_HEIGHT_PX).
+    const selectGroup = (uuid: string) => {
+        setSelectedGroupUuid(uuid);
+        scrollIntoView({ alignment: 'start' });
+    };
+
+    return (
+        <Stack gap="xl">
+            <Stack gap="lg">
+                <Text c="dimmed">Activité des groupes utilisateurs du département : {summary.departmentName}</Text>
+
+                <LegendInfoCard />
+
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                    <StatTile
+                        icon={<IconUsersGroup size={20} />}
+                        label="Groupes utilisateurs"
+                        value={summary.userGroupsCount}
+                    />
+                    <StatTile
+                        icon={<IconChartBar size={20} />}
+                        label="Groupes actifs (30 derniers jours)"
+                        value={summary.activeUserGroupsCount}
+                    />
+                </SimpleGrid>
+
+                <GroupsTable onGroupSelected={selectGroup} />
+
+                {/* Right above the charts it drives — the tables above are not affected. */}
+                <GranularityControl granularity={granularity} onChange={setGranularity} />
+
+                <GroupsActivityChart granularity={granularity} />
+            </Stack>
+
+            <Stack gap="md" ref={targetRef}>
+                <Text fw={600}>Activité d&apos;un groupe utilisateur</Text>
+                <Select
+                    className={classes['group-select']}
+                    placeholder="Sélectionner un groupe utilisateur"
+                    data={summary.userGroups.map((group) => ({ value: group.uuid, label: group.name }))}
+                    value={selectedGroupUuid}
+                    onChange={setSelectedGroupUuid}
+                    searchable
+                    clearable
+                />
+                {selectedGroupUuid ? (
+                    <GroupCharts key={selectedGroupUuid} userGroupUuid={selectedGroupUuid} granularity={granularity} />
+                ) : (
+                    <Text c="dimmed" size="sm">
+                        Sélectionnez un groupe utilisateur pour afficher son activité.
+                    </Text>
+                )}
+            </Stack>
+        </Stack>
+    );
+};
+
+// Everyone else: their own group's charts only — no department overview, and no per-user
+// detail (that one is DDTM-only, API included).
+const OwnGroupDashboard: React.FC<{ groups: DdtmActivityUserGroupOption[] }> = ({ groups }) => {
+    const [selectedGroupUuid, setSelectedGroupUuid] = useState<string | null>(groups[0]?.uuid ?? null);
+    const [granularity, setGranularity] = useState<DdtmActivityGranularity>('MONTH');
+
+    if (!groups.length) {
+        return <ErrorCard>Aucun groupe utilisateur ne vous est rattaché.</ErrorCard>;
+    }
+
+    return (
+        <Stack gap="lg">
+            <LegendInfoCard />
+
+            {groups.length > 1 ? (
+                <Select
+                    className={classes['group-select']}
+                    label="Groupe utilisateur"
+                    data={groups.map((group) => ({ value: group.uuid, label: group.name }))}
+                    value={selectedGroupUuid}
+                    onChange={setSelectedGroupUuid}
+                    allowDeselect={false}
+                />
+            ) : (
+                <Text fw={600}>Activité du groupe : {groups[0].name}</Text>
+            )}
+
+            <GranularityControl granularity={granularity} onChange={setGranularity} />
+
+            {selectedGroupUuid ? (
+                <GroupCharts
+                    key={selectedGroupUuid}
+                    userGroupUuid={selectedGroupUuid}
+                    granularity={granularity}
+                    withUsersTable={false}
+                />
+            ) : null}
+        </Stack>
+    );
+};
+
+const Component: React.FC = () => {
+    const { getCanViewStatistics } = useAuth();
     const canViewStatistics = getCanViewStatistics();
+
+    // Which dashboard the user may see is the API's call, not ours: a super-admin is
+    // scoped to a user group (X-User-Group-Uuid) that the client cannot classify on its
+    // own, and only the server knows which groups are readable. A department name means
+    // "DDTM caller".
     const {
         data: summary,
         isLoading,
@@ -513,131 +843,31 @@ const Component: React.FC = () => {
         return <Navigate to="/" />;
     }
 
-    // Select the group, then bring section 2 up under the fixed header (offset = HEADER_HEIGHT_PX).
-    const selectGroup = (uuid: string) => {
-        setSelectedGroupUuid(uuid);
-        scrollIntoView({ alignment: 'start' });
-    };
-
     return (
         <LayoutBase title="Statistiques">
             <div className={classes.container}>
-                {isLoading ? <Loader /> : null}
-                {error ? <ErrorCard>{error.message}</ErrorCard> : null}
-                {summary ? (
-                    <Stack gap="xl">
-                        <Stack gap="lg">
-                            <Text c="dimmed">
-                                Activité des groupes utilisateurs du département : {summary.departmentName}
-                            </Text>
+                <Stack gap="lg">
+                    <Group justify="flex-end">
+                        <Button
+                            className={classes['no-print']}
+                            variant="default"
+                            leftSection={<IconPrinter size={16} />}
+                            onClick={() => window.print()}
+                        >
+                            Rapport complet (PDF)
+                        </Button>
+                    </Group>
 
-                            <ActivityDefinitionsInfoCard />
-
-                            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                                <StatTile
-                                    icon={<IconUsersGroup size={20} />}
-                                    label="Groupes utilisateurs"
-                                    value={summary.userGroupsCount}
-                                />
-                                <StatTile
-                                    icon={<IconChartBar size={20} />}
-                                    label="Groupes actifs (30 derniers jours)"
-                                    value={summary.activeUserGroupsCount}
-                                />
-                            </SimpleGrid>
-
-                            <SegmentedControl
-                                className={classes['granularity-control']}
-                                value={granularity}
-                                onChange={(value) => setGranularity(value as DdtmActivityGranularity)}
-                                data={GRANULARITY_OPTIONS}
-                            />
-
-                            <DataTable<DdtmActivityUserGroup, undefined>
-                                endpoint={ddtmActivityEndpoints.userGroups}
-                                paginated={false}
-                                striped={false}
-                                highlightOnHover={false}
-                                showRefresh={false}
-                                layout="auto"
-                                tableContainerClassName={classes['bordered-table']}
-                                tableHeader={[
-                                    <Table.Th key="name">Groupe utilisateur</Table.Th>,
-                                    <Table.Th key="deployedSinceWeeks">Déployé depuis</Table.Th>,
-                                    <Table.Th key="usersCount">Utilisateurs</Table.Th>,
-                                    <Table.Th key="activeUsersCount">Utilisateurs actifs</Table.Th>,
-                                    <Table.Th key="pilotUsersCount">Utilisateurs pilotes</Table.Th>,
-                                ]}
-                                tableBodyRenderFns={[
-                                    (group: DdtmActivityUserGroup) => (
-                                        <Anchor
-                                            component="button"
-                                            type="button"
-                                            ta="left"
-                                            onClick={() => selectGroup(group.uuid)}
-                                        >
-                                            {group.name}
-                                        </Anchor>
-                                    ),
-                                    (group: DdtmActivityUserGroup) => {
-                                        if (group.deploymentDate === null) {
-                                            return '—';
-                                        }
-                                        const weeks = group.deployedSinceWeeks ?? 0;
-                                        return (
-                                            <Tooltip label={`Déployé le ${formatDateOnly(group.deploymentDate)}`}>
-                                                <span>
-                                                    {weeks} semaine{weeks > 1 ? 's' : ''}
-                                                </span>
-                                            </Tooltip>
-                                        );
-                                    },
-                                    (group: DdtmActivityUserGroup) => (
-                                        <Badge variant="light" radius="sm" color="gray">
-                                            {group.usersCount}
-                                        </Badge>
-                                    ),
-                                    (group: DdtmActivityUserGroup) => (
-                                        <Badge variant="light" radius="sm" color={ACTIVITY_TIERS.ACTIVE.color}>
-                                            {group.activeUsersCount}
-                                        </Badge>
-                                    ),
-                                    (group: DdtmActivityUserGroup) => (
-                                        <Badge variant="light" radius="sm" color={ACTIVITY_TIERS.PILOT.color}>
-                                            {group.pilotUsersCount}
-                                        </Badge>
-                                    ),
-                                ]}
-                            />
-
-                            <GroupsActivityChart granularity={granularity} />
-                        </Stack>
-
-                        <Stack gap="md" ref={targetRef}>
-                            <Text fw={600}>Activité d&apos;un groupe utilisateur</Text>
-                            <Select
-                                className={classes['group-select']}
-                                placeholder="Sélectionner un groupe utilisateur"
-                                data={summary.userGroups.map((group) => ({ value: group.uuid, label: group.name }))}
-                                value={selectedGroupUuid}
-                                onChange={setSelectedGroupUuid}
-                                searchable
-                                clearable
-                            />
-                            {selectedGroupUuid ? (
-                                <GroupCharts
-                                    key={selectedGroupUuid}
-                                    userGroupUuid={selectedGroupUuid}
-                                    granularity={granularity}
-                                />
-                            ) : (
-                                <Text c="dimmed" size="sm">
-                                    Sélectionnez un groupe utilisateur pour afficher son activité.
-                                </Text>
-                            )}
-                        </Stack>
-                    </Stack>
-                ) : null}
+                    {isLoading ? <Loader /> : null}
+                    {error ? <ErrorCard>{error.message}</ErrorCard> : null}
+                    {summary ? (
+                        summary.departmentName !== null ? (
+                            <DepartmentDashboard summary={summary} />
+                        ) : (
+                            <OwnGroupDashboard groups={summary.userGroups} />
+                        )
+                    ) : null}
+                </Stack>
             </div>
         </LayoutBase>
     );
