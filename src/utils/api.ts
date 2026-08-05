@@ -1,5 +1,6 @@
 import { authEndpoints } from '@/api/endpoints';
 import { useAuth } from '@/store/slices/auth';
+import { resetBrevo } from '@/utils/brevo';
 import { clearStoredUserGroupUuid, recoverFromUnknownScope, resolveRequestScope } from '@/utils/scope';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
@@ -181,6 +182,9 @@ const fetchWithAuth = async (path: string, options: ApiFetchOptions): Promise<Re
                 userMe: undefined,
             });
             clearStoredUserGroupUuid();
+            // ponytail: clears the persisted visitor; this soft-logout doesn't reload, so a
+            // loaded widget lingers until the next navigation — the deliberate logout() reloads
+            resetBrevo();
 
             throw refreshError;
         }

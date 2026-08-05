@@ -8,6 +8,7 @@ import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { useStatistics } from '@/store/slices/statistics';
 import api, { ApiError } from '@/utils/api';
+import { setupBrevo } from '@/utils/brevo';
 import { DEFAULT_ROUTE } from '@/utils/constants';
 import { setupMatomo } from '@/utils/matomo';
 import ProtectedRoute from '@/utils/ProtectedRoute';
@@ -78,6 +79,7 @@ const App: React.FC = () => {
 
         setUser(user);
         setupMatomo(user);
+        setupBrevo(user);
 
         // The admin section is deliberately unscoped, and never reads the map stores.
         if (isScopeDisabledPath(window.location.pathname)) {

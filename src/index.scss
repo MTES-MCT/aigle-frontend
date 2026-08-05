@@ -423,6 +423,29 @@ a.mantine-NavLink-root {
     --inset: auto auto 2.25rem 1rem;
 }
 
+// The Brevo chat button is fixed to the bottom-right corner of every page,
+// offset left to clear the map's zoom/fullscreen column.
+$brevo-button-width: 60px;
+$brevo-button-offset-right: 64px;
+
+#brevo-conversations {
+    margin-right: $brevo-button-offset-right;
+    margin-bottom: -8px;
+}
+
+// The scale bar shares that corner and grows leftwards as the zoom drops, so it
+// ends up under the button — Brevo has a z-index, the mapbox control container
+// does not. Park the bar past the button rather than fight the stacking order.
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-scale {
+    margin-right: $brevo-button-offset-right + $brevo-button-width + constants.$margin-map-elements;
+}
+
+// the button hangs off <body>, so fullscreen (which renders the map subtree
+// only) hides it — the bar can have the corner back
+:fullscreen .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-scale {
+    margin-right: constants.$margin-map-elements;
+}
+
 .mapbox-gl-draw_point {
     background-image: url('@/assets/pencil.svg');
 }
@@ -476,9 +499,4 @@ $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
     .admin-tab {
         text-transform: capitalize;
     }
-}
-
-#brevo-conversations {
-    margin-right: 64px;
-    margin-bottom: -8px;
 }
