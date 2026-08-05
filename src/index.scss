@@ -416,32 +416,21 @@ a.mantine-NavLink-root {
     margin: 0;
 }
 
-// The Sentry report button (z-index 100000) owns the bottom-right corner on
-// every page. On the map that corner also holds the scale/fullscreen/zoom +
-// attribution stack, so lift that whole container to sit above the button.
-#sentry-feedback {
-    --inset: auto 1rem 1rem auto;
-}
-
-.mapboxgl-ctrl-bottom-right {
-    margin-bottom: 3.5rem;
-}
-
 // The Brevo chat button is fixed to the bottom-right corner of every page,
 // offset left to clear the map's zoom/fullscreen column.
 $brevo-button-width: 60px;
-$brevo-button-offset-right: 64px;
+$brevo-button-offset-right: 100px;
 
 #brevo-conversations {
     margin-right: $brevo-button-offset-right;
     margin-bottom: -8px;
 }
 
-// The scale bar shares that corner and grows leftwards as the zoom drops, so it
-// ends up under the button — Brevo has a z-index, the mapbox control container
-// does not. Park the bar past the button rather than fight the stacking order.
-.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-scale {
-    margin-right: $brevo-button-offset-right + $brevo-button-width + constants.$margin-map-elements;
+// The Sentry report button (z-index 100000) owns the bottom-right corner on
+// every page. On the map that corner also holds the scale/fullscreen/zoom +
+// attribution stack, so lift that whole container to sit above the button.
+#sentry-feedback {
+    --inset: auto #{$brevo-button-width + $brevo-button-offset-right + 8px} 0 auto;
 }
 
 // the button hangs off <body>, so fullscreen (which renders the map subtree
