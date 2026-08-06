@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 
 import SelectItem from '@/components/ui/SelectItem';
-import { detectionControlStatuses, detectionValidationStatuses } from '@/models/detection';
+import { detectionControlStatuses, detectionValidationStatusesSelectable } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
@@ -346,16 +346,14 @@ const Component: React.FC<ComponentProps> = ({
                             {...form.getInputProps('detectionValidationStatuses')}
                         >
                             <Stack gap="xs" mt="sm">
-                                {detectionValidationStatuses
-                                    .filter((status) => status !== 'ILLEGAL')
-                                    .map((status) => (
-                                        <Checkbox
-                                            key={status}
-                                            value={status}
-                                            label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
-                                            color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
-                                        />
-                                    ))}
+                                {detectionValidationStatusesSelectable.map((status) => (
+                                    <Checkbox
+                                        key={status}
+                                        value={status}
+                                        label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
+                                        color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
+                                    />
+                                ))}
                             </Stack>
                         </Checkbox.Group>
 

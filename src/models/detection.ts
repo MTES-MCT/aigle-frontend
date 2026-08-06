@@ -29,6 +29,11 @@ export const detectionValidationStatuses = [
 ] as const;
 export type DetectionValidationStatus = (typeof detectionValidationStatuses)[number];
 
+// ILLEGAL still exists in data and is displayed, but users can't select it anymore
+export const detectionValidationStatusesSelectable: DetectionValidationStatus[] = detectionValidationStatuses.filter(
+    (status) => status !== 'ILLEGAL',
+);
+
 export const detectionValidationStatusChangeReasons = ['SITADEL'] as const;
 export type DetectionValidationStatusChangeReason = (typeof detectionValidationStatusChangeReasons)[number];
 

@@ -1,0 +1,38 @@
+@use '@/constants.scss' as constants;
+
+.container {
+    /* Thin outer border matching the table's own row lines (same 1px width and gray-3
+       color as Mantine's --table-border-color), with rounded corners. */
+    border: calc(0.0625rem * var(--mantine-scale)) solid var(--mantine-color-gray-3);
+    border-radius: constants.$border-radius-small;
+    /* clip the inner table's square corners to the rounded border */
+    overflow: hidden;
+}
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--mantine-spacing-sm);
+
+    margin-bottom: var(--mantine-spacing-xs);
+}
+
+.search {
+    max-width: 280px;
+    /* keeps the export button on the right when there is no search input */
+    margin-right: auto;
+}
+
+.footer {
+    font-weight: 600;
+
+    background-color: var(--mantine-color-gray-0);
+}
+
+/* search + export are controls, not report content */
+@media print {
+    .table-actions {
+        display: none;
+    }
+}

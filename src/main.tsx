@@ -45,6 +45,35 @@ Sentry.init({
     // Setting this option to true will send default PII data to Sentry.
     // For example, automatic IP address collection on events
     sendDefaultPii: true,
+    integrations: [
+        // autoInject: false — App mounts the button only for the aigle team.
+        Sentry.feedbackIntegration({
+            autoInject: false,
+            colorScheme: 'light',
+            showBranding: false,
+            triggerLabel: 'Signaler',
+            formTitle: 'Signaler un bug ou une amélioration',
+            messagePlaceholder: 'Que s’est-il passé ? Qu’attendiez-vous ?',
+            submitButtonLabel: 'Envoyer',
+            cancelButtonLabel: 'Annuler',
+            addScreenshotButtonLabel: 'Ajouter une capture',
+            isNameRequired: false,
+            isEmailRequired: false,
+        }),
+        // Buffered only: the last 30s are attached when the form is opened.
+        // Internal-only app on gov data — unmask everything so replays and the
+        // feedback screenshot are actually readable (no grey boxes over text).
+        Sentry.replayIntegration({
+            maskAllText: false,
+            maskAllInputs: false,
+            blockAllMedia: false,
+        }),
+        // Records the Mapbox WebGL canvas into the replay — without this the map
+        // is blank in every recording.
+        Sentry.replayCanvasIntegration(),
+    ],
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 1.0,
     ignoreErrors: [
         'AbortError', // request cancelled by the user navigating/panning away
         'ResizeObserver loop', // benign browser warning, no impact

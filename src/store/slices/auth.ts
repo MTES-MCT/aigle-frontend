@@ -1,6 +1,7 @@
 import { GeoZone, GeoZoneType } from '@/models/geo/geo-zone';
 import { User } from '@/models/user';
 import { UserGroupType } from '@/models/user-group';
+import { resetBrevo } from '@/utils/brevo';
 import { clearStoredUserGroupUuid } from '@/utils/scope';
 import * as Sentry from '@sentry/react';
 import { create } from 'zustand';
@@ -48,6 +49,7 @@ const useAuth = create<AuthState>()(
                     userMe: undefined,
                 }));
                 clearStoredUserGroupUuid();
+                resetBrevo();
                 window.location.reload();
             },
             getUserGroupType: () => {

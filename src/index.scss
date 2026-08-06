@@ -97,6 +97,21 @@ body {
     overflow-x: hidden;
 }
 
+// printing a page (statistics report) should not carry the app chrome over
+@media print {
+    // landscape fits the 1000px-wide statistics content: charts are drawn at their
+    // on-screen pixel width and would be clipped on portrait paper
+    @page {
+        size: landscape;
+        margin: 10mm;
+    }
+
+    header.fr-header,
+    #brevo-conversations {
+        display: none !important;
+    }
+}
+
 body,
 html {
     height: 100%;
@@ -401,6 +416,29 @@ a.mantine-NavLink-root {
     margin: 0;
 }
 
+// The Brevo chat button is fixed to the bottom-right corner of every page,
+// offset left to clear the map's zoom/fullscreen column.
+$brevo-button-width: 60px;
+$brevo-button-offset-right: 100px;
+
+#brevo-conversations {
+    margin-right: $brevo-button-offset-right;
+    margin-bottom: -8px;
+}
+
+// The Sentry report button (z-index 100000) owns the bottom-right corner on
+// every page. On the map that corner also holds the scale/fullscreen/zoom +
+// attribution stack, so lift that whole container to sit above the button.
+#sentry-feedback {
+    --inset: auto #{$brevo-button-width + $brevo-button-offset-right + 8px} 0 auto;
+}
+
+// the button hangs off <body>, so fullscreen (which renders the map subtree
+// only) hides it — the bar can have the corner back
+:fullscreen .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-scale {
+    margin-right: constants.$margin-map-elements;
+}
+
 .mapbox-gl-draw_point {
     background-image: url('@/assets/pencil.svg');
 }
@@ -454,9 +492,4 @@ $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
     .admin-tab {
         text-transform: capitalize;
     }
-}
-
-#brevo-conversations {
-    margin-right: 64px;
-    margin-bottom: -8px;
 }

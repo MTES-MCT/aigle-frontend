@@ -8,10 +8,12 @@ import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { useStatistics } from '@/store/slices/statistics';
 import api, { ApiError } from '@/utils/api';
+import { setupBrevo } from '@/utils/brevo';
 import { DEFAULT_ROUTE } from '@/utils/constants';
 import { setupMatomo } from '@/utils/matomo';
 import ProtectedRoute from '@/utils/ProtectedRoute';
 import { getStoredUserGroupUuid, isScopeDisabledPath, setScopedUserGroupUuid } from '@/utils/scope';
+import * as Sentry from '@sentry/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
@@ -43,7 +45,7 @@ const resolveSuperAdminScope = async (): Promise<boolean> => {
 };
 
 const App: React.FC = () => {
-    const { isAuthenticated, setUser, logout } = useAuth();
+    const { isAuthenticated, setUser, logout, userMe } = useAuth();
     const { setMapSettings } = useMap();
     const { setMapSettings: setStatisticsMapSettings } = useStatistics();
     const [bootstrapped, setBootstrapped] = useState(false);
@@ -77,6 +79,7 @@ const App: React.FC = () => {
 
         setUser(user);
         setupMatomo(user);
+        setupBrevo(user);
 
         // The admin section is deliberately unscoped, and never reads the map stores.
         if (isScopeDisabledPath(window.location.pathname)) {
@@ -104,6 +107,23 @@ const App: React.FC = () => {
             bootstrap();
         }
     }, [isAuthenticated_, bootstrap]);
+
+    // The Sentry report button is for the aigle team only — DDTM and collectivity
+    // users report through their referent. getFeedback() is undefined when Sentry
+    // is disabled (local dev), so this no-ops there.
+    useEffect(() => {
+        if (userMe?.userRole !== 'SUPER_ADMIN') {
+            return;
+        }
+
+        // A super admin browses scoped to one group; which one changes what they
+        // see, so a report is barely reproducible without it.
+        Sentry.setTag('scopedUserGroup', getStoredUserGroupUuid());
+
+        const widget = Sentry.getFeedback()?.createWidget();
+
+        return () => widget?.removeFromDom();
+    }, [userMe?.userRole]);
 
     if (isAuthenticated_ && !bootstrapped) {
         return <Loader fullScreen />;
