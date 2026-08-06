@@ -12,7 +12,7 @@ import {
     DetectionValidationStatusChangeReason,
     DetectionWithTile,
     detectionControlStatuses,
-    detectionValidationStatuses,
+    detectionValidationStatusesSelectable,
 } from '@/models/detection';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
@@ -236,8 +236,8 @@ const Form: React.FC<FormProps> = ({
                         disabled || form.getValues().detectionValidationStatusChangeReason === 'SITADEL',
                 })}
             >
-                {detectionValidationStatuses
-                    .filter((status) => status !== 'DETECTED_NOT_VERIFIED' && status !== 'ILLEGAL')
+                {detectionValidationStatusesSelectable
+                    .filter((status) => status !== 'DETECTED_NOT_VERIFIED')
                     .map((status) => (
                         <Button
                             variant={form.getValues().detectionValidationStatus === status ? 'filled' : 'outline'}

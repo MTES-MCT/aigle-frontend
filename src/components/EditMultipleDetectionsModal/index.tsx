@@ -6,7 +6,7 @@ import {
     DetectionControlStatus,
     DetectionValidationStatus,
     detectionControlStatuses,
-    detectionValidationStatuses,
+    detectionValidationStatusesSelectable,
 } from '@/models/detection';
 import { ObjectType } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
@@ -141,7 +141,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
                 allowDeselect={false}
                 mt="md"
                 label="Statut de validation"
-                data={detectionValidationStatuses.map((status) => ({
+                data={detectionValidationStatusesSelectable.map((status) => ({
                     value: status,
                     label: DETECTION_VALIDATION_STATUSES_NAMES_MAP[status],
                 }))}
