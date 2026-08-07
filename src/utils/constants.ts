@@ -1,10 +1,5 @@
 import { geoEndpoints } from '@/api/endpoints';
-import {
-    DetectionControlStatus,
-    DetectionPrescriptionStatus,
-    DetectionSource,
-    DetectionValidationStatus,
-} from '@/models/detection';
+import { DetectionControlStatus, DetectionPrescriptionStatus, DetectionValidationStatus } from '@/models/detection';
 import { CollectivityType } from '@/models/geo/_common';
 import { GeoCustomZoneStatus, GeoCustomZoneType } from '@/models/geo/geo-custom-zone';
 import { ObjectTypeMinimal } from '@/models/object-type';
@@ -18,9 +13,6 @@ export const DEFAULT_ROUTE = '/';
 
 // Must match $header-height in constants.scss — used to offset scroll targets under the fixed header.
 export const HEADER_HEIGHT_PX = 116.5;
-
-export const AUTH_ACCESS_TOKEN_STORAGE_KEY = 'auth_access_token';
-export const AUTH_REFRESH_TOKEN_STORAGE_KEY = 'auth_refresh_token';
 
 export const TILES_URL_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
@@ -176,13 +168,6 @@ export const OBJECT_TYPE_CATEGROY_OBJECT_TYPE_STATUSES_NAMES_MAP: {
     VISIBLE: 'Visible par défaut',
     HIDDEN: 'Caché par défaut',
     OTHER_CATEGORY: 'Visible dans la catégorie "autres"',
-} as const;
-
-export const DETECTION_SOURCE_NAMES_MAP: {
-    [source in DetectionSource]: string;
-} = {
-    INTERFACE_DRAWN: 'Dessin interface',
-    ANALYSIS: 'Analyse',
 } as const;
 
 export const COLLECTIVITY_TYPES_ENDPOINTS_MAP: {

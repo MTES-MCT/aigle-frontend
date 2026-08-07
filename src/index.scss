@@ -481,15 +481,3 @@ $tile-margin: calc(-1 * ($tile-size * (1 - $tile-scale)) / 2);
 .detection-tile-preview-title {
     width: constants.$tile-preview-detail-size;
 }
-
-.admin-tabs {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    margin-bottom: 16px;
-
-    .admin-tab {
-        text-transform: capitalize;
-    }
-}

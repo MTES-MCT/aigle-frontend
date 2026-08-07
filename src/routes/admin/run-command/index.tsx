@@ -1,44 +1,26 @@
 import React from 'react';
 
+import AdminTabs, { AdminTab } from '@/components/admin/AdminTabs';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
-import { Section } from '@/models/ui/section';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import RunCommandExecute from '@/routes/admin/run-command/RunCommandExecute';
 import RunCommandTasks from '@/routes/admin/run-command/RunCommandTasks';
-import { Button } from '@mantine/core';
 
-const SECTIONS_DISPLAYED: Section[] = [
-    {
-        title: 'Executer une commande',
-        titleCompact: 'Exécuter',
-        id: 'RUN_COMMAND_EXECUTE',
-    },
-    {
-        title: 'Liste des tâches',
-        titleCompact: 'Tâches',
-        id: 'RUN_COMMAND_TASKS',
-    },
+// title = the page heading, label = the tab
+const TABS: (AdminTab & { title: string })[] = [
+    { value: 'execute', label: 'Exécuter', title: 'Exécuter une commande', content: <RunCommandExecute /> },
+    { value: 'tasks', label: 'Tâches', title: 'Liste des tâches', content: <RunCommandTasks /> },
 ];
 
+const TAB_INITIAL_VALUE = { tab: TABS[0].value };
+
 const Component: React.FC = () => {
-    const [sectionSelected, setSectionSelected] = React.useState<Section>(SECTIONS_DISPLAYED[0]);
+    const [{ tab }, setTab] = useUrlFilter(TAB_INITIAL_VALUE);
+    const tabSelected = TABS.find(({ value }) => value === tab) ?? TABS[0];
 
     return (
-        <LayoutAdminBase title={sectionSelected.title}>
-            <Button.Group className="admin-tabs">
-                {SECTIONS_DISPLAYED.map((section) => (
-                    <Button
-                        className="admin-tab"
-                        key={section.id}
-                        variant={sectionSelected.id === section.id ? 'filled' : 'outline'}
-                        onClick={() => setSectionSelected(section)}
-                    >
-                        {section.titleCompact}
-                    </Button>
-                ))}
-            </Button.Group>
-
-            {sectionSelected.id === 'RUN_COMMAND_EXECUTE' ? <RunCommandExecute /> : null}
-            {sectionSelected.id === 'RUN_COMMAND_TASKS' ? <RunCommandTasks /> : null}
+        <LayoutAdminBase title={tabSelected.title}>
+            <AdminTabs tabs={TABS} value={tab} onChange={(tab) => setTab({ tab })} />
         </LayoutAdminBase>
     );
 };

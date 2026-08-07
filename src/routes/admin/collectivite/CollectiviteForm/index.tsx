@@ -225,7 +225,7 @@ const Component: React.FC = () => {
         return;
     }
 
-    const backUrl = `/admin/collectivites?collectivityType=${collectivityType}`;
+    const backUrl = `/admin/collectivites?tab=${collectivityType}`;
 
     return (
         <LayoutAdminForm title="Formulaire collectivité" backText="Liste des collectivités" backUrl={backUrl}>

@@ -18,6 +18,22 @@ export interface DataDeploymentZaeLayer {
     deployStatus: DataDeploymentStatus;
 }
 
+// flat "Batches" listing: a batch plus the geozone of its run (null = not deployable)
+export interface DataDeploymentBatchItem extends DataDeploymentBatch {
+    uuid: string;
+    geozoneId: number | null;
+    geozoneName: string | null;
+}
+
+// "Zones à enjeux" listing, one row per department
+export interface DataDeploymentZaeGroup {
+    uuid: string;
+    departmentCode: string;
+    departmentName: string | null;
+    geozoneId: number | null;
+    zaeLayers: DataDeploymentZaeLayer[];
+}
+
 export interface DataDeploymentRun {
     uuid: string;
     geozoneName: string | null;
