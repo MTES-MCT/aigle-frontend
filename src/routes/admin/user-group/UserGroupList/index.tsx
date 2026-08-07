@@ -109,7 +109,7 @@ const Component: React.FC = () => {
                     ),
                     (item: UserGroupDetail) => (
                         <PillsDataCell<GeoZone>
-                            items={[...item.regions, ...item.departments, ...item.communes]}
+                            items={[...item.regions, ...item.departments, ...item.epcis, ...item.communes]}
                             getLabel={(geo) => geo.name}
                         />
                     ),

@@ -3,6 +3,7 @@ import React from 'react';
 import { DownloadOutputFormat, detectionEndpoints } from '@/api/endpoints';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import { ObjectsFilter } from '@/models/detection-filter';
+import { FormValues } from '@/routes/Table/utils';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import api, { ApiError } from '@/utils/api';
@@ -14,11 +15,11 @@ import { format } from 'date-fns';
 const getFileName = (outputFormat: DownloadOutputFormat) =>
     `detections_${format(new Date(), 'dd-MM-yyyy-HH_mm')}.${outputFormat}`;
 
+// Collectivities travel as one object, never as positional lists: a misplaced
+// argument would silently download another perimeter's data.
 const download = async (
     outputFormat: DownloadOutputFormat,
-    communesUuids: string[],
-    departmentsUuids: string[],
-    regionsUuids: string[],
+    collectivities: FormValues,
     objectsFilter?: ObjectsFilter,
     ordering?: string,
 ) => {
@@ -29,9 +30,10 @@ const download = async (
     return api<Blob>(detectionEndpoints.download(outputFormat), {
         params: {
             ...objectsFilter,
-            communesUuids: communesUuids.join(','),
-            departmentsUuids: departmentsUuids.join(','),
-            regionsUuids: regionsUuids.join(','),
+            communesUuids: collectivities.communesUuids.join(','),
+            epcisUuids: collectivities.epcisUuids.join(','),
+            departmentsUuids: collectivities.departmentsUuids.join(','),
+            regionsUuids: collectivities.regionsUuids.join(','),
             ...(ordering
                 ? {
                       ordering,
@@ -42,18 +44,10 @@ const download = async (
     });
 };
 
-interface ComponentProps {
-    communesUuids: string[];
-    departmentsUuids: string[];
-    regionsUuids: string[];
+interface ComponentProps extends FormValues {
     ordering?: string;
 }
-const Component: React.FC<ComponentProps> = ({
-    communesUuids,
-    departmentsUuids,
-    regionsUuids,
-    ordering,
-}: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ ordering, ...collectivities }: ComponentProps) => {
     const { objectsFilter } = useObjectsFilter();
     const { otherObjectTypesUuids } = useStatistics();
 
@@ -62,9 +56,9 @@ const Component: React.FC<ComponentProps> = ({
             ? objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids)
             : objectsFilter;
 
-    const mutation: UseMutationResult<void, ApiError, DownloadOutputFormat> = useMutation({
+    const mutation: UseMutationResult<Blob, ApiError, DownloadOutputFormat> = useMutation({
         mutationFn: (outputFormat: DownloadOutputFormat) =>
-            download(outputFormat, communesUuids, departmentsUuids, regionsUuids, apiObjectsFilter, ordering),
+            download(outputFormat, collectivities, apiObjectsFilter, ordering),
         onSuccess: (data, outputFormat) => {
             const blob = new Blob([data], { type: data.type });
             const url = window.URL.createObjectURL(blob);

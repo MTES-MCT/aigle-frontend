@@ -25,6 +25,7 @@ const COLLECTIVITY_TYPE_CODE_NAME_MAP: {
 } = {
     region: 'Code ISO',
     department: 'Code INSEE',
+    epci: 'Code SIREN',
     commune: 'Code INSEE',
 } as const;
 

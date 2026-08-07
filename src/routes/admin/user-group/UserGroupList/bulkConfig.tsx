@@ -30,6 +30,12 @@ export const userGroupBulkConfig: BulkConfig = {
             example: '34',
         },
         {
+            name: 'EPCI (code SIREN)',
+            label: 'EPCI',
+            description: 'Liste de codes SIREN d’EPCI',
+            example: '243400017',
+        },
+        {
             name: 'communes (code ISO)',
             label: 'Communes',
             description: 'Liste de codes ISO de communes',

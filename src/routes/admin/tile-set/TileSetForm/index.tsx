@@ -118,6 +118,7 @@ interface FormValues {
     minZoom: number | null;
     maxZoom: number | null;
     communesUuids: string[];
+    epcisUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
     date?: Date;
@@ -378,6 +379,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                         onChange={(geoSelectedValues: GeoValues) => {
                             const collectivitiesNames = [
                                 ...geoSelectedValues.commune.map((commune) => commune.label),
+                                ...geoSelectedValues.epci.map((epci) => epci.label),
                                 ...geoSelectedValues.department.map((department) => department.label),
                                 ...geoSelectedValues.region.map((region) => region.label),
                             ];
@@ -560,6 +562,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     date: undefined,
     years: '',
     communesUuids: [],
+    epcisUuids: [],
     departmentsUuids: [],
     regionsUuids: [],
 };
@@ -591,12 +594,14 @@ const ComponentInner: React.FC = () => {
             ...data,
             date: parse(data.date, 'yyyy-MM-dd', new Date()),
             communesUuids: data.communes.map((commune) => commune.uuid),
+            epcisUuids: data.epcis.map((epci) => epci.uuid),
             departmentsUuids: data.departments.map((department) => department.uuid),
             regionsUuids: data.regions.map((region) => region.uuid),
         };
         const initialGeoSelectedValues: GeoValues = {
             region: data.regions.map((region) => geoZoneToGeoOption(region)),
             department: data.departments.map((department) => geoZoneToGeoOption(department)),
+            epci: data.epcis.map((epci) => geoZoneToGeoOption(epci)),
             commune: data.communes.map((commune) => geoZoneToGeoOption(commune)),
         };
 

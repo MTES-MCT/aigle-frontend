@@ -6,6 +6,7 @@ import InfoBubble from '@/components/ui/InfoBubble';
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { ParcelOverview } from '@/models/parcel';
+import { FormValues } from '@/routes/Table/utils';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
@@ -33,21 +34,22 @@ interface ParcelOverviewWithPercentage {
     total: number;
 }
 
+// Collectivities travel as one object, never as positional lists: a misplaced
+// argument would silently report another perimeter's figures.
 const fetchData = async (
     signal: AbortSignal,
     objectsFilter: ObjectsFilter,
-    communesUuids: string[],
-    departmentsUuids: string[],
-    regionsUuids: string[],
+    collectivities: FormValues,
     otherObjectTypesUuids: Set<string>,
 ): Promise<ParcelOverviewWithPercentage> => {
     const data = await api<ParcelOverview>(parcelEndpoints.overview, {
         signal,
         params: {
             ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
-            communesUuids: communesUuids.join(','),
-            departmentsUuids: departmentsUuids.join(','),
-            regionsUuids: regionsUuids.join(','),
+            communesUuids: collectivities.communesUuids.join(','),
+            epcisUuids: collectivities.epcisUuids.join(','),
+            departmentsUuids: collectivities.departmentsUuids.join(','),
+            regionsUuids: collectivities.regionsUuids.join(','),
         },
     });
 
@@ -118,32 +120,27 @@ const DetectionListOverviewItem: React.FC<ParcelOverviewItem> = ({
     );
 };
 
-interface ComponentInnerProps {
+interface ComponentInnerProps extends FormValues {
     objectsFilter: ObjectsFilter;
-    communesUuids: string[];
-    departmentsUuids: string[];
-    regionsUuids: string[];
     otherObjectTypesUuids: Set<string>;
 }
 const ComponentInner: React.FC<ComponentInnerProps> = ({
     objectsFilter,
-    communesUuids,
-    departmentsUuids,
-    regionsUuids,
     otherObjectTypesUuids,
+    ...collectivities
 }: ComponentInnerProps) => {
-    const queryEnabled = communesUuids.length > 0;
+    const queryEnabled = collectivities.communesUuids.length > 0 || collectivities.epcisUuids.length > 0;
     const { data, isFetching } = useQuery({
         queryKey: [
             parcelEndpoints.overview,
             Object.values(objectsFilter),
-            communesUuids.join(','),
-            departmentsUuids.join(','),
-            regionsUuids.join(','),
+            collectivities.communesUuids.join(','),
+            collectivities.epcisUuids.join(','),
+            collectivities.departmentsUuids.join(','),
+            collectivities.regionsUuids.join(','),
         ],
         placeholderData: keepPreviousData,
-        queryFn: ({ signal }) =>
-            fetchData(signal, objectsFilter, communesUuids, departmentsUuids, regionsUuids, otherObjectTypesUuids),
+        queryFn: ({ signal }) => fetchData(signal, objectsFilter, collectivities, otherObjectTypesUuids),
         enabled: queryEnabled,
     });
 
@@ -173,13 +170,9 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     );
 };
 
-interface ComponentProps {
-    communesUuids: string[];
-    departmentsUuids: string[];
-    regionsUuids: string[];
-}
+type ComponentProps = FormValues;
 
-const Component: React.FC<ComponentProps> = ({ communesUuids, departmentsUuids, regionsUuids }) => {
+const Component: React.FC<ComponentProps> = (collectivities: ComponentProps) => {
     const { otherObjectTypesUuids } = useStatistics();
     const { objectsFilter } = useObjectsFilter();
 
@@ -190,9 +183,7 @@ const Component: React.FC<ComponentProps> = ({ communesUuids, departmentsUuids, 
     return (
         <ComponentInner
             objectsFilter={objectsFilter}
-            communesUuids={communesUuids}
-            departmentsUuids={departmentsUuids}
-            regionsUuids={regionsUuids}
+            {...collectivities}
             otherObjectTypesUuids={otherObjectTypesUuids}
         />
     );

@@ -3,6 +3,7 @@ import { Paginated } from '@/models/data';
 import { CollectivityType, GeoCollectivity, collectivityTypes } from '@/models/geo/_common';
 import { GeoCommune } from '@/models/geo/geo-commune';
 import { GeoDepartment } from '@/models/geo/geo-department';
+import { GeoEpci } from '@/models/geo/geo-epci';
 import { GeoRegion } from '@/models/geo/geo-region';
 import { SelectOption } from '@/models/ui/select-option';
 import api from '@/utils/api';
@@ -20,6 +21,7 @@ const GEO_COLLECTIVITIES_LIMIT = 10;
 interface GeoCollectivitiesFormValues {
     regionsUuids: string[];
     departmentsUuids: string[];
+    epcisUuids: string[];
     communesUuids: string[];
 }
 
@@ -28,7 +30,16 @@ const FIELD_CONFIG: {
 } = {
     region: { label: 'Regions', placeholder: 'Rechercher une région', formKey: 'regionsUuids' },
     department: { label: 'Départements', placeholder: 'Rechercher un département', formKey: 'departmentsUuids' },
+    epci: { label: 'EPCI', placeholder: 'Rechercher un EPCI', formKey: 'epcisUuids' },
     commune: { label: 'Communes', placeholder: 'Rechercher une commune', formKey: 'communesUuids' },
+};
+
+// Example shown in the raw-paste textarea — the code differs per level (SIREN vs INSEE).
+const RAW_PLACEHOLDER: { [key in CollectivityType]: string } = {
+    region: 'Codes séparés par des virgules, ex : 76,84',
+    department: 'Codes séparés par des virgules, ex : 34,30',
+    epci: 'Codes SIREN séparés par des virgules, ex : 243400017',
+    commune: 'Codes séparés par des virgules, ex : 34172,34032',
 };
 
 const parseCodes = (raw: string): string[] =>
@@ -66,6 +77,7 @@ const getGeoSelectedUuids = (
     return {
         region: geoSelectedValues.region.map((geo) => geo.value),
         department: geoSelectedValues.department.map((geo) => geo.value),
+        epci: geoSelectedValues.epci.map((geo) => geo.value),
         commune: geoSelectedValues.commune.map((geo) => geo.value),
     };
 };
@@ -85,6 +97,7 @@ const getGeoMultiSelectValues = (
     } = {
         region: [],
         department: [],
+        epci: [],
         commune: [],
     };
 
@@ -115,7 +128,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     initialGeoSelectedValues,
     className,
     onChange,
-    displayedCollectivityTypes = new Set(['region', 'department', 'commune']),
+    displayedCollectivityTypes = new Set(['region', 'department', 'epci', 'commune']),
     disabledCollectivityTypes = {},
 }: ComponentProps<T>) => {
     const [geoInputValues, setGeoInputValues] = useState<{
@@ -123,6 +136,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     }>({
         region: '',
         department: '',
+        epci: '',
         commune: '',
     });
     const [debouncedGeoInputValues] = useDebouncedValue(geoInputValues, 250);
@@ -138,6 +152,11 @@ const Component = <T extends GeoCollectivitiesFormValues>({
         queryFn: ({ signal }) =>
             fetchGeoCollectivities<GeoDepartment>('department', debouncedGeoInputValues.department, signal),
     });
+    const { data: epcis, isLoading: epcisIsLoading } = useQuery<GeoEpci[]>({
+        queryKey: ['epcis', debouncedGeoInputValues.epci],
+        enabled: !!debouncedGeoInputValues.epci,
+        queryFn: ({ signal }) => fetchGeoCollectivities<GeoEpci>('epci', debouncedGeoInputValues.epci, signal),
+    });
     const { data: communes, isLoading: communesIsLoading } = useQuery<GeoCommune[]>({
         queryKey: ['communes', debouncedGeoInputValues.commune],
         enabled: !!debouncedGeoInputValues.commune,
@@ -148,6 +167,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({
         initialGeoSelectedValues || {
             region: [],
             department: [],
+            epci: [],
             commune: [],
         },
     );
@@ -156,27 +176,32 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     const [rawModes, setRawModes] = useState<Record<CollectivityType, boolean>>({
         region: false,
         department: false,
+        epci: false,
         commune: false,
     });
     const [rawInputs, setRawInputs] = useState<Record<CollectivityType, string>>({
         region: '',
         department: '',
+        epci: '',
         commune: '',
     });
     const [rawLoading, setRawLoading] = useState<Record<CollectivityType, boolean>>({
         region: false,
         department: false,
+        epci: false,
         commune: false,
     });
 
     const geoResultsByType: { [key in CollectivityType]: GeoCollectivity[] | undefined } = {
         region: regions,
         department: departments,
+        epci: epcis,
         commune: communes,
     };
     const isLoadingByType: Record<CollectivityType, boolean> = {
         region: regionsIsLoading,
         department: departmentsIsLoading,
+        epci: epcisIsLoading,
         commune: communesIsLoading,
     };
 
@@ -186,11 +211,12 @@ const Component = <T extends GeoCollectivitiesFormValues>({
                 {
                     region: regions || [],
                     department: departments || [],
+                    epci: epcis || [],
                     commune: communes || [],
                 },
                 geoSelectedValues,
             ),
-        [regions, departments, communes, geoSelectedValues],
+        [regions, departments, epcis, communes, geoSelectedValues],
     );
 
     const setSelected = (collectivityType: CollectivityType, options: SelectOption[]) => {
@@ -350,7 +376,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({
 
                 {isRaw ? (
                     <Textarea
-                        placeholder="Codes séparés par des virgules, ex : 33100,33200"
+                        placeholder={RAW_PLACEHOLDER[collectivityType]}
                         autosize
                         minRows={2}
                         disabled={!!disabledReason}

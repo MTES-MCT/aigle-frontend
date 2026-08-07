@@ -44,6 +44,7 @@ export const COLLECTIVITY_TYPES_NAMES_MAP: {
 } = {
     region: 'région',
     department: 'département',
+    epci: 'EPCI',
     commune: 'commune',
 } as const;
 export const TILE_SET_STATUSES_NAMES_MAP: {
@@ -189,6 +190,7 @@ export const COLLECTIVITY_TYPES_ENDPOINTS_MAP: {
 } = {
     region: geoEndpoints.region.list,
     department: geoEndpoints.department.list,
+    epci: geoEndpoints.epci.list,
     commune: geoEndpoints.commune.list,
 } as const;
 

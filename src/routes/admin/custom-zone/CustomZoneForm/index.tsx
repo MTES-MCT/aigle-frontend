@@ -37,6 +37,7 @@ interface FormValues {
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
     communesUuids: string[];
+    epcisUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
     geoCustomZoneCategoryUuid?: string;
@@ -224,6 +225,7 @@ const getEmptyFormValues = (userRole: UserRole): FormValues => {
         geoCustomZoneStatus: 'ACTIVE',
         geoCustomZoneType: 'COLLECTIVITY_MANAGED',
         communesUuids: [],
+        epcisUuids: [],
         departmentsUuids: [],
         regionsUuids: [],
         geoCustomZoneCategoryUuid: undefined,
@@ -260,6 +262,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             geoCustomZoneStatus: data.geoCustomZoneStatus,
             geoCustomZoneType: data.geoCustomZoneType,
             communesUuids: data.communes.map((commune) => commune.uuid),
+            epcisUuids: data.epcis.map((epci) => epci.uuid),
             departmentsUuids: data.departments.map((department) => department.uuid),
             regionsUuids: data.regions.map((region) => region.uuid),
             geoCustomZoneCategoryUuid: data.geoCustomZoneCategory?.uuid,
@@ -267,6 +270,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
         const initialGeoSelectedValues: GeoValues = {
             region: data.regions.map((region) => geoZoneToGeoOption(region)),
             department: data.departments.map((department) => geoZoneToGeoOption(department)),
+            epci: data.epcis.map((epci) => geoZoneToGeoOption(epci)),
             commune: data.communes.map((commune) => geoZoneToGeoOption(commune)),
         };
 

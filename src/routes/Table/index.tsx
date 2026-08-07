@@ -76,6 +76,9 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             communesUuids: getAccessibleGeozones('COMMUNE').map((zone) => zone.uuid),
+            // Seeded too: a group scoped to an EPCI holds no COMMUNE zone, so without
+            // this its table would open permanently empty.
+            epcisUuids: getAccessibleGeozones('EPCI').map((zone) => zone.uuid),
             departmentsUuids: [] as string[],
             regionsUuids: [] as string[],
         },
@@ -93,7 +96,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
             <DataTable<ParcelListItem, DataTableFilter>
                 endpoint={ENDPOINT}
                 filter={filter}
-                queryEnabled={form.getValues().communesUuids.length > 0}
+                queryEnabled={form.getValues().communesUuids.length > 0 || form.getValues().epcisUuids.length > 0}
                 layout="auto"
                 getExpandedContent={(item: ParcelListItem) => (
                     <DetectionsTable
@@ -112,13 +115,16 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             form={form}
                             initialGeoSelectedValues={{
                                 commune: getAccessibleGeozones('COMMUNE').map((com) => geoZoneToGeoOption(com)),
+                                epci: getAccessibleGeozones('EPCI').map((epci) => geoZoneToGeoOption(epci)),
                                 region: [],
                                 department: [],
                             }}
-                            displayedCollectivityTypes={new Set(['commune'])}
+                            displayedCollectivityTypes={new Set(['epci', 'commune'])}
                         />
 
-                        <InfoCard>Vous devez sélectionner au moins une commune pour afficher les parcelles.</InfoCard>
+                        <InfoCard>
+                            Vous devez sélectionner au moins une commune ou un EPCI pour afficher les parcelles.
+                        </InfoCard>
 
                         <FilterObjects
                             objectTypes={allObjectTypes}

@@ -29,17 +29,20 @@ export interface DdtmActivityCommuneOption extends Uuided {
 
 export interface DdtmActivityUserGroupOption extends Uuided {
     name: string;
-    // Communes this collectivity covers — backs the own-group dashboard's commune
-    // selector. Empty for a DDTM caller (their selector is over groups).
+    // Communes this collectivity covers — backs the commune selector of the own-group
+    // and EPCI dashboards. Empty for a DDTM caller (their selector is over groups).
     communes: DdtmActivityCommuneOption[];
 }
 
 export interface DdtmActivitySummary {
-    // null for a non-DDTM user: they get the own-group dashboard, not the department one.
+    // At most one of these two is set, and it says which dashboard to render: a caller
+    // SUPERVISING a territory gets the overview (department for a DDTM, EPCI for an
+    // intercommunalité); both null means the own-group dashboard.
     departmentName: string | null;
+    epciName: string | null;
     userGroupsCount: number;
     activeUserGroupsCount: number;
-    // Every group the user may open: the department's groups, or their own.
+    // Every group the user may open: the supervised territory's groups, or their own.
     userGroups: DdtmActivityUserGroupOption[];
 }
 

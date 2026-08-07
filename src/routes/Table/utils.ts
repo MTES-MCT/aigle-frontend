@@ -2,6 +2,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 
 export interface FormValues {
     communesUuids: string[];
+    epcisUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
 }

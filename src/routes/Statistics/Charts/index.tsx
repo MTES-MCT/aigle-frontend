@@ -711,6 +711,44 @@ const GranularityControl: React.FC<{
     />
 );
 
+// The top part of every SUPERVISOR dashboard: what the territory is, the legend, the two
+// stat tiles, the groups table and the territory-wide activity chart. Identical for a DDTM
+// (its department) and an EPCI (its member communes) — the API scopes the two tables and
+// the chart to the caller's own territory, so this component needs no notion of which.
+const TerritoryOverview: React.FC<{
+    summary: DdtmActivitySummary;
+    caption: string;
+    granularity: DdtmActivityGranularity;
+    onGranularityChange: (granularity: DdtmActivityGranularity) => void;
+    onGroupSelected: (uuid: string) => void;
+}> = ({ summary, caption, granularity, onGranularityChange, onGroupSelected }) => (
+    <Stack gap="lg">
+        <Text c="dimmed">{caption}</Text>
+
+        <LegendInfoCard />
+
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+            <StatTile
+                icon={<IconUsersGroup size={20} />}
+                label="Groupes utilisateurs"
+                value={summary.userGroupsCount}
+            />
+            <StatTile
+                icon={<IconChartBar size={20} />}
+                label="Groupes actifs (30 derniers jours)"
+                value={summary.activeUserGroupsCount}
+            />
+        </SimpleGrid>
+
+        <GroupsTable onGroupSelected={onGroupSelected} />
+
+        {/* Right above the charts it drives — the tables above are not affected. */}
+        <GranularityControl granularity={granularity} onChange={onGranularityChange} />
+
+        <GroupsActivityChart granularity={granularity} />
+    </Stack>
+);
+
 // DDTM users: the whole department — overview, every collectivity group, then one group
 // in detail (per-user table included).
 const DepartmentDashboard: React.FC<{ summary: DdtmActivitySummary }> = ({ summary }) => {
@@ -731,31 +769,13 @@ const DepartmentDashboard: React.FC<{ summary: DdtmActivitySummary }> = ({ summa
 
     return (
         <Stack gap="xl">
-            <Stack gap="lg">
-                <Text c="dimmed">Activité des groupes utilisateurs du département : {summary.departmentName}</Text>
-
-                <LegendInfoCard />
-
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                    <StatTile
-                        icon={<IconUsersGroup size={20} />}
-                        label="Groupes utilisateurs"
-                        value={summary.userGroupsCount}
-                    />
-                    <StatTile
-                        icon={<IconChartBar size={20} />}
-                        label="Groupes actifs (30 derniers jours)"
-                        value={summary.activeUserGroupsCount}
-                    />
-                </SimpleGrid>
-
-                <GroupsTable onGroupSelected={selectGroup} />
-
-                {/* Right above the charts it drives — the tables above are not affected. */}
-                <GranularityControl granularity={granularity} onChange={setGranularity} />
-
-                <GroupsActivityChart granularity={granularity} />
-            </Stack>
+            <TerritoryOverview
+                summary={summary}
+                caption={`Activité des groupes utilisateurs du département : ${summary.departmentName}`}
+                granularity={granularity}
+                onGranularityChange={setGranularity}
+                onGroupSelected={selectGroup}
+            />
 
             <Stack gap="md" ref={targetRef}>
                 <Text fw={600}>Activité d&apos;un groupe utilisateur</Text>
@@ -864,6 +884,100 @@ const OwnGroupDashboard: React.FC<{ groups: DdtmActivityUserGroupOption[] }> = (
     );
 };
 
+// An EPCI supervises its member communes the way a DDTM supervises its department, so it
+// gets the same overview on top. The bottom differs on purpose: a DDTM picks a GROUP,
+// an intercommunalité thinks in COMMUNES, so the selector is over the communes of the
+// EPCI and resolves each to the collectivity responsible for it.
+const EpciDashboard: React.FC<{ summary: DdtmActivitySummary }> = ({ summary }) => {
+    const zoneOptions = buildZoneOptions(summary.userGroups);
+    const [selectedValue, setSelectedValue] = useState<string | null>(zoneOptions[0]?.value ?? null);
+    const [granularity, setGranularity] = useState<DdtmActivityGranularity>('MONTH');
+    const { scrollIntoView, targetRef } = useScrollIntoView<HTMLDivElement>({
+        offset: HEADER_HEIGHT_PX,
+        duration: 500,
+    });
+
+    // Clicking a row of the groups table drives the same bottom section as the selector,
+    // so both entry points stay in sync.
+    const selectGroup = (groupUuid: string) => {
+        const option = zoneOptions.find((zoneOption) => zoneOption.groupUuid === groupUuid);
+
+        if (!option) {
+            return;
+        }
+
+        setSelectedValue(option.value);
+        scrollIntoView({ alignment: 'start' });
+    };
+
+    const selected = zoneOptions.find((option) => option.value === selectedValue) ?? zoneOptions[0];
+
+    return (
+        <Stack gap="xl">
+            <TerritoryOverview
+                summary={summary}
+                caption={`Activité des groupes utilisateurs de l'EPCI : ${summary.epciName}`}
+                granularity={granularity}
+                onGranularityChange={setGranularity}
+                onGroupSelected={selectGroup}
+            />
+
+            <Stack gap="md" ref={targetRef}>
+                <Text fw={600}>Activité d&apos;une commune</Text>
+
+                {selected ? (
+                    <>
+                        <Select
+                            className={classes['group-select']}
+                            label="Commune"
+                            data={zoneOptions.map((option) => ({ value: option.value, label: option.label }))}
+                            value={selected.value}
+                            onChange={(value) => value && setSelectedValue(value)}
+                            searchable
+                            allowDeselect={false}
+                        />
+
+                        {selected.groupCommuneCount > 1 ? (
+                            <Text size="sm" c="dimmed">
+                                Ces statistiques couvrent l&apos;ensemble de la collectivité « {selected.groupName} »,
+                                qui inclut {selected.groupCommuneCount} communes.
+                            </Text>
+                        ) : null}
+
+                        {/* Keyed by the group, not the commune: switching between communes of the
+                            same collectivity keeps the same charts (and skips a refetch). */}
+                        <GroupCharts
+                            key={selected.groupUuid}
+                            userGroupUuid={selected.groupUuid}
+                            granularity={granularity}
+                            withUsersTable={false}
+                        />
+                    </>
+                ) : (
+                    <Text c="dimmed" size="sm">
+                        Aucune commune n&apos;est rattachée à cet EPCI.
+                    </Text>
+                )}
+            </Stack>
+        </Stack>
+    );
+};
+
+// Which dashboard the user may see is the API's call, not ours (see the query below):
+// a department name means "DDTM caller", an EPCI name means "intercommunalité", and
+// neither means "own groups only".
+const Dashboard: React.FC<{ summary: DdtmActivitySummary }> = ({ summary }) => {
+    if (summary.departmentName !== null) {
+        return <DepartmentDashboard summary={summary} />;
+    }
+
+    if (summary.epciName !== null) {
+        return <EpciDashboard summary={summary} />;
+    }
+
+    return <OwnGroupDashboard groups={summary.userGroups} />;
+};
+
 const Component: React.FC = () => {
     const { getCanViewStatistics } = useAuth();
     const canViewStatistics = getCanViewStatistics();
@@ -903,13 +1017,7 @@ const Component: React.FC = () => {
 
                     {isLoading ? <Loader /> : null}
                     {error ? <ErrorCard>{error.message}</ErrorCard> : null}
-                    {summary ? (
-                        summary.departmentName !== null ? (
-                            <DepartmentDashboard summary={summary} />
-                        ) : (
-                            <OwnGroupDashboard groups={summary.userGroups} />
-                        )
-                    ) : null}
+                    {summary ? <Dashboard summary={summary} /> : null}
                 </Stack>
             </div>
         </LayoutBase>
