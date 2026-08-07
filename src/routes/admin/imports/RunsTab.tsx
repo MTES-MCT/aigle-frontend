@@ -29,7 +29,7 @@ import { IconChevronDown, IconRocket, IconSearch } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isValid, parse } from 'date-fns';
 import isEqual from 'lodash/isEqual';
-import { DeployStatusBadge, ItemDeployButton } from './shared';
+import { DeployStatusBadge, ItemDeployButton, OVERRIDE_DESCRIPTION } from './shared';
 
 interface DataFilter {
     q: string;
@@ -48,10 +48,15 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
     // Checkbox.Group works in strings; ids are numbers. Default: everything checked.
     const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
     const [selectedZaeIds, setSelectedZaeIds] = useState<string[]>([]);
+    const [overrideCustomZones, setOverrideCustomZones] = useState(false);
+
+    // an already-deployed zae layer is skipped by the import unless it is overridden
+    const someZaeAlreadyDeployed = run.zaeLayers.some((zae) => zae.deployStatus === 'DEPLOYED');
 
     const openModal = () => {
         setSelectedBatchIds(run.batches.map((batch) => String(batch.id)));
         setSelectedZaeIds(run.zaeLayers.map((zae) => String(zae.id)));
+        setOverrideCustomZones(someZaeAlreadyDeployed);
         open();
     };
 
@@ -63,6 +68,7 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
                 body: {
                     batchIds: selectedBatchIds.map(Number),
                     zaeLayerIds: selectedZaeIds.map(Number),
+                    overrideCustomZones,
                 },
             }),
         onSuccess: (result) => {
@@ -76,8 +82,11 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
                 color: 'green',
             });
             // imports run async on the queue, so statuses won't flip yet; refetch
-            // anyway so a DEPLOYMENT_RUNNING already in flight is reflected
-            queryClient.invalidateQueries({ queryKey: [dataDeploymentEndpoints.list] });
+            // anyway so a DEPLOYMENT_RUNNING already in flight is reflected. The three
+            // listings all derive their statuses from the same data.
+            [dataDeploymentEndpoints.list, dataDeploymentEndpoints.batches, dataDeploymentEndpoints.zae].forEach(
+                (endpoint) => queryClient.invalidateQueries({ queryKey: [endpoint] }),
+            );
         },
         onError: (error) => {
             notifications.show({
@@ -130,17 +139,33 @@ const DeployButton: React.FC<{ run: DataDeploymentRun }> = ({ run }) => {
                     ) : null}
 
                     {run.zaeLayers.length ? (
-                        <Checkbox.Group label="Zones à enjeux" value={selectedZaeIds} onChange={setSelectedZaeIds}>
-                            <Stack gap="xs" mt="xs">
-                                {run.zaeLayers.map((zae) => (
-                                    <Checkbox
-                                        key={zae.id}
-                                        value={String(zae.id)}
-                                        label={zae.name ?? `Zone à enjeux ${zae.id}`}
-                                    />
-                                ))}
-                            </Stack>
-                        </Checkbox.Group>
+                        <>
+                            <Checkbox.Group label="Zones à enjeux" value={selectedZaeIds} onChange={setSelectedZaeIds}>
+                                <Stack gap="xs" mt="xs">
+                                    {run.zaeLayers.map((zae) => (
+                                        <Checkbox
+                                            key={zae.id}
+                                            value={String(zae.id)}
+                                            label={zae.name ?? `Zone à enjeux ${zae.id}`}
+                                            // a deployed layer needs the override below to
+                                            // be redeployed — say so before they confirm
+                                            description={
+                                                zae.deployStatus === 'DEPLOYED'
+                                                    ? 'Déjà déployée : nécessite l’écrasement'
+                                                    : undefined
+                                            }
+                                        />
+                                    ))}
+                                </Stack>
+                            </Checkbox.Group>
+
+                            <Checkbox
+                                label="Écraser les zones personnalisées existantes"
+                                description={OVERRIDE_DESCRIPTION}
+                                checked={overrideCustomZones}
+                                onChange={(event) => setOverrideCustomZones(event.currentTarget.checked)}
+                            />
+                        </>
                     ) : null}
 
                     <Text size="xs" c="dimmed">
@@ -187,8 +212,11 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {run.batches.map((batch, index) => (
-                                <Table.Tr key={index}>
+                            {/* keyed by id, not index: the deploy button holds per-row
+                                state (override choice, "already launched") that a
+                                refetch reordering the rows would otherwise transplant */}
+                            {run.batches.map((batch) => (
+                                <Table.Tr key={batch.id}>
                                     <Table.Td>{batch.createdAt ? <DateInfo date={batch.createdAt} /> : '—'}</Table.Td>
                                     <Table.Td>{batch.name ?? '—'}</Table.Td>
                                     <Table.Td>
@@ -248,8 +276,8 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {run.zaeLayers.map((zaeLayer, index) => (
-                                <Table.Tr key={index}>
+                            {run.zaeLayers.map((zaeLayer) => (
+                                <Table.Tr key={zaeLayer.id}>
                                     <Table.Td>
                                         {zaeLayer.createdAt ? <DateInfo date={zaeLayer.createdAt} /> : '—'}
                                     </Table.Td>
@@ -265,7 +293,11 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                                                 endpoint={dataDeploymentEndpoints.runZae(run.uuid, zaeLayer.id)}
                                                 kind="zae"
                                                 name={zaeLayer.name}
-                                                deployable={zaeLayer.deployStatus === 'NOT_DEPLOYED'}
+                                                // zae layers are always deployable — an
+                                                // already-deployed one is redeployed by
+                                                // overriding the zone it produced
+                                                deployable
+                                                alreadyDeployed={zaeLayer.deployStatus === 'DEPLOYED'}
                                             />
                                         </Group>
                                     </Table.Td>

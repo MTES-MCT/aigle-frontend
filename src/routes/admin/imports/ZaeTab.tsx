@@ -61,7 +61,13 @@ const ExpandedContent: React.FC<{ group: DataDeploymentZaeGroup }> = ({ group })
                                             }
                                             kind="zae"
                                             name={zaeLayer.name}
-                                            deployable={zaeLayer.deployStatus === 'NOT_DEPLOYED'}
+                                            // zae layers are always deployable — an
+                                            // already-deployed one is redeployed by
+                                            // overriding the zone it produced. (The API
+                                            // never reports DEPLOYMENT_RUNNING for them:
+                                            // the import is queued, not tracked.)
+                                            deployable
+                                            alreadyDeployed={zaeLayer.deployStatus === 'DEPLOYED'}
                                         />
                                     </Group>
                                 </Table.Td>
