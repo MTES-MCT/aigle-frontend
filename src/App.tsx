@@ -15,7 +15,7 @@ import ProtectedRoute from '@/utils/ProtectedRoute';
 import { getStoredUserGroupUuid, isScopeDisabledPath, setScopedUserGroupUuid } from '@/utils/scope';
 import * as Sentry from '@sentry/react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
 
 declare global {
     interface Window {
@@ -42,6 +42,18 @@ const resolveSuperAdminScope = async (): Promise<boolean> => {
     setScopedUserGroupUuid(userGroups[0].uuid);
 
     return false;
+};
+
+// Hide the Brevo support chat and Sentry report buttons in the admin section.
+// Both hang off <body>, so a body class + CSS reaches them from outside React.
+const SupportWidgetsVisibility: React.FC = () => {
+    const { pathname } = useLocation();
+
+    useEffect(() => {
+        document.body.classList.toggle('hide-support-widgets', isScopeDisabledPath(pathname));
+    }, [pathname]);
+
+    return null;
 };
 
 const App: React.FC = () => {
@@ -131,6 +143,7 @@ const App: React.FC = () => {
 
     return (
         <Router>
+            <SupportWidgetsVisibility />
             <Routes>
                 <Route index element={<Navigate to="/map" replace />} />
                 <Route path="/admin" element={<Navigate to="/admin/users" replace />} />

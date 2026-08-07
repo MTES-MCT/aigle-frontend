@@ -426,6 +426,13 @@ $brevo-button-offset-right: 100px;
     margin-bottom: -8px;
 }
 
+// The support/report buttons are irrelevant in the admin section — hide both
+// there. Toggled by SupportWidgetsVisibility in App.tsx on the /admin boundary.
+body.hide-support-widgets #brevo-conversations,
+body.hide-support-widgets #sentry-feedback {
+    display: none;
+}
+
 // The Sentry report button (z-index 100000) owns the bottom-right corner on
 // every page. On the map that corner also holds the scale/fullscreen/zoom +
 // attribution stack, so lift that whole container to sit above the button.
