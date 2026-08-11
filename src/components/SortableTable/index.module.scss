@@ -30,9 +30,32 @@
     background-color: var(--mantine-color-gray-0);
 }
 
+.pagination {
+    display: flex;
+    justify-content: center;
+
+    margin-top: var(--mantine-spacing-sm);
+}
+
 /* search + export are controls, not report content */
 @media print {
     .table-actions {
+        display: none;
+    }
+
+    .container {
+        /* the corner-clipping overflow also clips the rows Chrome pushes to the next page */
+        overflow: visible;
+        border-radius: 0;
+    }
+
+    /* tfoot repeats at the bottom of every page by default — "Total (N groupes)" belongs
+       at the end of the table, once */
+    .footer {
+        display: table-row-group;
+    }
+
+    .pagination {
         display: none;
     }
 }

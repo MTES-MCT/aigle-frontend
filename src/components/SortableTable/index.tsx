@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 import DataTableSortableHeaderColumn, { SortOrder } from '@/components/DataTable/DataTableSortableHeaderColumn';
 import { downloadCsv } from '@/utils/download';
-import { ActionIcon, Table, TextInput, Tooltip } from '@mantine/core';
+import { ActionIcon, Pagination, Table, TextInput, Tooltip } from '@mantine/core';
 import { IconDownload, IconSearch } from '@tabler/icons-react';
 import classes from './index.module.scss';
 
@@ -14,6 +14,8 @@ export interface SortableTableColumn<T> {
     render?: (item: T) => React.ReactNode;
     /** Overrides `value` for sorting only (ranked categories, dates behind a formatted label...). */
     sortValue?: (item: T) => string | number | null;
+    /** Overrides `value` where the cell is read by a human rather than by a spreadsheet (the PDF report). */
+    displayValue?: (item: T) => string | number | null;
     /** Totals row cell. The row appears as soon as one column defines it. */
     footer?: (items: T[]) => React.ReactNode;
 }
@@ -37,6 +39,8 @@ interface ComponentProps<T> {
     searchPlaceholder?: string;
     /** Renders the CSV export button. */
     csvFileName?: string;
+    /** Renders one page at a time, with a pager below the table. */
+    pageSize?: number;
 }
 
 const Component = <T,>({
@@ -46,9 +50,11 @@ const Component = <T,>({
     initialSort,
     searchPlaceholder,
     csvFileName,
+    pageSize,
 }: ComponentProps<T>) => {
     const [sort, setSort] = useState<{ key: string; order: SortOrder } | undefined>(initialSort);
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
 
     const rows = useMemo(() => {
         const query = normalize(search.trim());
@@ -75,6 +81,11 @@ const Component = <T,>({
     }, [items, columns, sort, search]);
 
     const hasFooter = columns.some((column) => !!column.footer);
+    const pageCount = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+    // Clamped rather than reset in an effect: searching down to fewer pages while sitting on
+    // the last one would otherwise show an empty table for a render.
+    const currentPage = Math.min(page, pageCount);
+    const pageRows = pageSize ? rows.slice((currentPage - 1) * pageSize, currentPage * pageSize) : rows;
 
     return (
         <>
@@ -125,14 +136,14 @@ const Component = <T,>({
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                        {rows.length ? null : (
+                        {pageRows.length ? null : (
                             <Table.Tr>
                                 <Table.Td className="empty-results-cell" colSpan={columns.length}>
                                     Aucun résultat
                                 </Table.Td>
                             </Table.Tr>
                         )}
-                        {rows.map((item) => (
+                        {pageRows.map((item) => (
                             <Table.Tr key={getItemKey(item)}>
                                 {columns.map((column) => (
                                     <Table.Td key={column.key}>
@@ -153,6 +164,12 @@ const Component = <T,>({
                     ) : null}
                 </Table>
             </div>
+
+            {pageSize && pageCount > 1 ? (
+                <div className={classes.pagination}>
+                    <Pagination total={pageCount} value={currentPage} onChange={setPage} size="sm" />
+                </div>
+            ) : null}
         </>
     );
 };

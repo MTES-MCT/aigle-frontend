@@ -11,7 +11,9 @@ interface ComponentProps {
     indicatorShown?: boolean;
     className?: string;
     opened?: boolean;
-    title?: string;
+    /** Makes `opened` a controlled prop — without it the accordion owns its own state. */
+    onOpenedChange?: (opened: boolean) => void;
+    title?: React.ReactNode;
     icon?: React.ReactNode;
 }
 
@@ -20,15 +22,19 @@ const Component: React.FC<PropsWithChildren<ComponentProps>> = ({
     indicatorShown,
     className,
     opened,
+    onOpenedChange,
     title = 'Filtres',
     icon = <IconAdjustments />,
 }: PropsWithChildren<ComponentProps>) => {
+    const controlled = onOpenedChange
+        ? {
+              value: opened ? ACCORDION_ITEM_VALUE : null,
+              onChange: (value: string | null) => onOpenedChange(value === ACCORDION_ITEM_VALUE),
+          }
+        : { defaultValue: opened ? ACCORDION_ITEM_VALUE : undefined };
+
     return (
-        <Accordion
-            className={clsx(classes.container, className)}
-            variant="contained"
-            defaultValue={opened ? ACCORDION_ITEM_VALUE : undefined}
-        >
+        <Accordion className={clsx(classes.container, className)} variant="contained" {...controlled}>
             <Accordion.Item key={ACCORDION_ITEM_VALUE} value={ACCORDION_ITEM_VALUE}>
                 <Accordion.Control icon={<Indicator disabled={!indicatorShown}>{icon}</Indicator>}>
                     {title}

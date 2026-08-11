@@ -97,18 +97,71 @@ body {
     overflow-x: hidden;
 }
 
-// printing a page (statistics report) should not carry the app chrome over
+// Ad-hoc Ctrl+P only. The statistics report is a real PDF built with @react-pdf/renderer
+// (routes/Statistics/Charts/report) — the browser is never asked to paginate it, because
+// WebKit has no block fragmentation for flex or grid and produced blank pages and cards
+// whose border printed a page before their content. What is left here just keeps an
+// improvised print of any page of the app readable.
 @media print {
     // landscape fits the 1000px-wide statistics content: charts are drawn at their
-    // on-screen pixel width and would be clipped on portrait paper
+    // on-screen pixel width and would be clipped on portrait paper. A4 is pinned because
+    // a bare `landscape` keeps the machine's default paper, and US Letter is 38mm
+    // narrower — enough to cut the right edge off every chart.
     @page {
-        size: landscape;
-        margin: 10mm;
+        size: A4 landscape;
+        margin: 12mm 10mm;
+    }
+
+    // Chrome drops every background and background-color when printing. Without this
+    // the chart bars, the legend swatches, the badges and the table header all come
+    // out blank — the report is unreadable.
+    *,
+    *::before,
+    *::after {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+
+    // On screen the body is the scroll container (height: 100% + overflow-x: hidden).
+    // Left as-is the print layout has a viewport-tall body and Chrome renders the
+    // first page only.
+    html,
+    body {
+        height: auto !important;
+        overflow: visible !important;
     }
 
     header.fr-header,
-    #brevo-conversations {
+    #brevo-conversations,
+    #sentry-feedback,
+    .mantine-Notifications-root,
+    // an alert is a report note on paper — its dismiss button is not
+    .mantine-Alert-closeButton {
         display: none !important;
+    }
+
+    // long tables span pages: repeat the header, never cut a row in half
+    thead {
+        display: table-header-group;
+    }
+
+    tr {
+        break-inside: avoid;
+    }
+
+    // a heading stranded at the foot of a page has lost the thing it names
+    h1,
+    h2,
+    h3,
+    h4 {
+        break-after: avoid;
+        break-inside: avoid;
+    }
+
+    // Mantine cards (StatTile, the tier columns) and alerts read as one block
+    .mantine-Paper-root,
+    .mantine-Alert-root {
+        break-inside: avoid;
     }
 }
 
@@ -127,6 +180,18 @@ html {
     align-items: center;
     justify-content: flex-end;
     gap: var(--mantine-spacing-md);
+}
+
+// A chart whose bars are a picker. recharts pins `cursor: default` inline on its own
+// wrapper, so the pointer has to be taken back from there — a rule on the Mantine chart
+// root would lose to that inline style.
+.chart-clickable .recharts-wrapper {
+    cursor: pointer;
+}
+
+// picking a period fades the others out; without this it snaps
+.chart-clickable .recharts-bar-rectangle path {
+    transition: fill-opacity 200ms ease;
 }
 
 .form-sub-title {

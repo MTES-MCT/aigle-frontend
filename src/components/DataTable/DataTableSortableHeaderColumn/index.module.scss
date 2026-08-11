@@ -29,3 +29,25 @@
         transform: rotate(180deg);
     }
 }
+
+/* On paper the header is a label, not a sort control — and it has to survive being
+   repeated: Chrome repeats <thead> on every page but does not paint form controls inside
+   the repeated copy, so the header came out as a blank band from page 2 on. Unwrapping the
+   button makes its label ordinary cell text, which does repeat; the padding it carried
+   then has to move back to the cell. */
+@media print {
+    .icon-container {
+        display: none;
+    }
+
+    .button {
+        display: contents;
+    }
+
+    .th {
+        padding: var(--table-vertical-spacing) var(--table-horizontal-spacing, var(--mantine-spacing-xs)) !important;
+
+        text-align: left;
+        vertical-align: bottom;
+    }
+}

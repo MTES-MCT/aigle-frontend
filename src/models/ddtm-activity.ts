@@ -23,15 +23,12 @@ export interface DdtmActivityUserGroup extends Uuided {
     deployedSinceWeeks: number | null;
 }
 
-export interface DdtmActivityCommuneOption extends Uuided {
-    name: string;
-}
-
 export interface DdtmActivityUserGroupOption extends Uuided {
     name: string;
-    // Communes this collectivity covers — backs the commune selector of the own-group
-    // and EPCI dashboards. Empty for a DDTM caller (their selector is over groups).
-    communes: DdtmActivityCommuneOption[];
+    // The API also sends the communes this collectivity covers. The dashboards deliberately
+    // ignore them: activity is computed for the collectivity as a whole, so a per-commune
+    // selector offered a breakdown that does not exist — every commune of a group showed the
+    // same numbers.
 }
 
 export interface DdtmActivitySummary {

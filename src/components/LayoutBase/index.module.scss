@@ -4,3 +4,11 @@
     padding: constants.$content-padding;
     padding-top: calc(constants.$header-height + constants.$content-padding);
 }
+
+/* the header is hidden when printing and @page supplies the physical margin, so the
+   offset it reserves has nothing left to clear */
+@media print {
+    .content {
+        padding: 0;
+    }
+}
