@@ -25,6 +25,7 @@ const COLLECTIVITY_TYPE_CODE_NAME_MAP: {
 } = {
     region: 'Code ISO',
     department: 'Code INSEE',
+    epci: 'Code SIREN',
     commune: 'Code INSEE',
 } as const;
 
@@ -224,7 +225,7 @@ const Component: React.FC = () => {
         return;
     }
 
-    const backUrl = `/admin/collectivites?collectivityType=${collectivityType}`;
+    const backUrl = `/admin/collectivites?tab=${collectivityType}`;
 
     return (
         <LayoutAdminForm title="Formulaire collectivité" backText="Liste des collectivités" backUrl={backUrl}>

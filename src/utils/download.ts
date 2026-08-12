@@ -62,16 +62,19 @@ export const downloadCsv = (fileName: string, rows: (string | number | null)[][]
         fileName,
     );
 
-// Mantine renders the chart legend as HTML next to the <svg>, so it is absent from the
-// serialized markup and has to be re-drawn on the canvas. Static Mantine class names.
+// A chart legend is HTML next to the <svg>, so it is absent from the serialized markup and
+// has to be re-drawn on the canvas. Two selectors: Mantine's own legend, and the toggleable
+// one the statistics charts render in its place. A category switched off is left out.
 const readLegendItems = (container: HTMLElement) =>
-    Array.from(container.querySelectorAll('.mantine-ChartLegend-legendItem')).map((item) => ({
-        label: item.textContent || '',
-        color:
-            [item, ...Array.from(item.querySelectorAll('*'))]
-                .map((element) => getComputedStyle(element).backgroundColor)
-                .find((color) => color && color !== 'rgba(0, 0, 0, 0)') || '#000000',
-    }));
+    Array.from(container.querySelectorAll('.mantine-ChartLegend-legendItem, [data-chart-legend-item]'))
+        .filter((item) => !item.hasAttribute('data-hidden'))
+        .map((item) => ({
+            label: item.textContent || '',
+            color:
+                [item, ...Array.from(item.querySelectorAll('*'))]
+                    .map((element) => getComputedStyle(element).backgroundColor)
+                    .find((color) => color && color !== 'rgba(0, 0, 0, 0)') || '#000000',
+        }));
 
 const drawLegend = (
     context: CanvasRenderingContext2D,
@@ -97,12 +100,15 @@ const drawLegend = (
     });
 };
 
-/** Saves the <svg> rendered inside `container`, titled and with its Mantine legend, as a PNG. */
-export const downloadChartPng = (container: HTMLElement, fileName: string, title?: string) => {
+/**
+ * Rasterises the <svg> rendered inside `container` — titled, and with the Mantine legend
+ * re-drawn — onto a canvas. Resolves to null when the container holds no chart.
+ */
+const renderChartToCanvas = (container: HTMLElement, title?: string): Promise<HTMLCanvasElement | null> => {
     const svg = container.querySelector('svg');
 
     if (!svg) {
-        return;
+        return Promise.resolve(null);
     }
 
     const { width, height } = svg.getBoundingClientRect();
@@ -116,12 +122,28 @@ export const downloadChartPng = (container: HTMLElement, fileName: string, title
             RENDERED_STYLE_PROPS.map((property) => `${property}:${computed.getPropertyValue(property)}`).join(';'),
         );
     });
+
+    // The <svg> box is not the painted area: Mantine sets `svg { overflow: visible }`, so
+    // anything recharts draws above y=0 — a ReferenceLine label, for one — shows on screen
+    // but sits outside the viewport. Grow the viewBox to the ink rather than clip it.
+    // getBBox() has to run on the live node: a detached clone measures zero.
+    let inkTop = 0;
+    let svgHeight = height;
+    try {
+        const ink = svg.getBBox();
+        inkTop = Math.min(0, Math.floor(ink.y));
+        svgHeight = Math.max(height, Math.ceil(ink.y + ink.height)) - inkTop;
+    } catch {
+        // not rendered — fall back to the layout box
+    }
+
     // recharts sizes its <svg> with an inline width/height of 100%, which has no meaning
     // in a standalone file — the inline style has to be overwritten, not just the attributes.
+    clone.setAttribute('viewBox', `0 ${inkTop} ${width} ${svgHeight}`);
     clone.setAttribute('width', String(width));
-    clone.setAttribute('height', String(height));
+    clone.setAttribute('height', String(svgHeight));
     clone.style.width = `${width}px`;
-    clone.style.height = `${height}px`;
+    clone.style.height = `${svgHeight}px`;
 
     const legendItems = readLegendItems(container);
     const legendHeight = legendItems.length ? LEGEND_HEIGHT : 0;
@@ -130,32 +152,51 @@ export const downloadChartPng = (container: HTMLElement, fileName: string, title
         new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }),
     );
 
-    const image = new Image();
-    image.onload = () => {
-        const canvas = document.createElement('canvas');
-        const totalHeight = titleHeight + height + legendHeight;
-        canvas.width = width * PNG_SCALE;
-        canvas.height = totalHeight * PNG_SCALE;
+    return new Promise((resolve) => {
+        const image = new Image();
 
-        const context = canvas.getContext('2d');
-        if (context) {
-            context.scale(PNG_SCALE, PNG_SCALE);
-            context.fillStyle = '#ffffff';
-            context.fillRect(0, 0, width, totalHeight);
-            if (title) {
-                context.font = TITLE_FONT;
-                context.textBaseline = 'alphabetic';
-                context.fillStyle = '#000000';
-                context.fillText(title, 0, TITLE_HEIGHT - 10);
-            }
-            context.drawImage(image, 0, titleHeight, width, height);
-            if (legendItems.length) {
-                drawLegend(context, legendItems, width, totalHeight - 8);
-            }
-            canvas.toBlob((blob) => blob && triggerDownload(blob, fileName));
-        }
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            const totalHeight = titleHeight + svgHeight + legendHeight;
+            canvas.width = width * PNG_SCALE;
+            canvas.height = totalHeight * PNG_SCALE;
 
-        URL.revokeObjectURL(svgUrl);
-    };
-    image.src = svgUrl;
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.scale(PNG_SCALE, PNG_SCALE);
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, width, totalHeight);
+                if (title) {
+                    context.font = TITLE_FONT;
+                    context.textBaseline = 'alphabetic';
+                    context.fillStyle = '#000000';
+                    context.fillText(title, 0, TITLE_HEIGHT - 10);
+                }
+                context.drawImage(image, 0, titleHeight, width, svgHeight);
+                if (legendItems.length) {
+                    drawLegend(context, legendItems, width, totalHeight - 8);
+                }
+            }
+
+            URL.revokeObjectURL(svgUrl);
+            resolve(canvas);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(svgUrl);
+            resolve(null);
+        };
+        image.src = svgUrl;
+    });
+};
+
+/** Saves the <svg> rendered inside `container`, titled and with its Mantine legend, as a PNG. */
+export const downloadChartPng = async (container: HTMLElement, fileName: string, title?: string) => {
+    const canvas = await renderChartToCanvas(container, title);
+    canvas?.toBlob((blob) => blob && triggerDownload(blob, fileName));
+};
+
+/** The same rendering as a data URL: how a live chart gets into a generated PDF. */
+export const chartToPngDataUrl = async (container: HTMLElement, title?: string) => {
+    const canvas = await renderChartToCanvas(container, title);
+    return canvas ? canvas.toDataURL('image/png') : null;
 };

@@ -5,6 +5,7 @@ const BASE_GEO = `${BASE_API}geo/`;
 
 const BASE_GEO_REGION = `${BASE_GEO}region/`;
 const BASE_GEO_DEPARTMENT = `${BASE_GEO}department/`;
+const BASE_GEO_EPCI = `${BASE_GEO}epci/`;
 const BASE_GEO_COMMUNE = `${BASE_GEO}commune/`;
 
 export const geoEndpoints = {
@@ -17,6 +18,11 @@ export const geoEndpoints = {
         list: BASE_GEO_DEPARTMENT,
         create: BASE_GEO_DEPARTMENT,
         detail: (uuid: string) => `${BASE_GEO_DEPARTMENT}${uuid}/`,
+    },
+    epci: {
+        list: BASE_GEO_EPCI,
+        create: BASE_GEO_EPCI,
+        detail: (uuid: string) => `${BASE_GEO_EPCI}${uuid}/`,
     },
     commune: {
         list: BASE_GEO_COMMUNE,
@@ -31,6 +37,8 @@ export const getGeoListEndpoint = (collectivityType: CollectivityType) => {
             return geoEndpoints.region.list;
         case 'department':
             return geoEndpoints.department.list;
+        case 'epci':
+            return geoEndpoints.epci.list;
         case 'commune':
             return geoEndpoints.commune.list;
         default:
@@ -44,6 +52,8 @@ export const getGeoCreateEndpoint = (collectivityType: CollectivityType) => {
             return geoEndpoints.region.create;
         case 'department':
             return geoEndpoints.department.create;
+        case 'epci':
+            return geoEndpoints.epci.create;
         case 'commune':
             return geoEndpoints.commune.create;
         default:
@@ -57,6 +67,8 @@ export const getGeoDetailEndpoint = (collectivityType: CollectivityType, uuid: s
             return geoEndpoints.region.detail(uuid);
         case 'department':
             return geoEndpoints.department.detail(uuid);
+        case 'epci':
+            return geoEndpoints.epci.detail(uuid);
         case 'commune':
             return geoEndpoints.commune.detail(uuid);
         default:

@@ -18,6 +18,7 @@ export interface Uuided {
 
 export interface WithCollectivities {
     communes: GeoZone[];
+    epcis: GeoZone[];
     departments: GeoZone[];
     regions: GeoZone[];
 }

@@ -23,23 +23,23 @@ export interface DdtmActivityUserGroup extends Uuided {
     deployedSinceWeeks: number | null;
 }
 
-export interface DdtmActivityCommuneOption extends Uuided {
-    name: string;
-}
-
 export interface DdtmActivityUserGroupOption extends Uuided {
     name: string;
-    // Communes this collectivity covers — backs the own-group dashboard's commune
-    // selector. Empty for a DDTM caller (their selector is over groups).
-    communes: DdtmActivityCommuneOption[];
+    // The API also sends the communes this collectivity covers. The dashboards deliberately
+    // ignore them: activity is computed for the collectivity as a whole, so a per-commune
+    // selector offered a breakdown that does not exist — every commune of a group showed the
+    // same numbers.
 }
 
 export interface DdtmActivitySummary {
-    // null for a non-DDTM user: they get the own-group dashboard, not the department one.
+    // At most one of these two is set, and it says which dashboard to render: a caller
+    // SUPERVISING a territory gets the overview (department for a DDTM, EPCI for an
+    // intercommunalité); both null means the own-group dashboard.
     departmentName: string | null;
+    epciName: string | null;
     userGroupsCount: number;
     activeUserGroupsCount: number;
-    // Every group the user may open: the department's groups, or their own.
+    // Every group the user may open: the supervised territory's groups, or their own.
     userGroups: DdtmActivityUserGroupOption[];
 }
 

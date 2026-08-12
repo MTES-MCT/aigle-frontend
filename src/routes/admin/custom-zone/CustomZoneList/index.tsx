@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 
+import AdminTabs, { AdminTab } from '@/components/admin/AdminTabs';
 import BulkImportExportButtons from '@/components/admin/BulkImportExport';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
-import { Section } from '@/models/ui/section';
+import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { customZoneBulkConfig } from '@/routes/admin/custom-zone/CustomZoneList/bulkConfig';
 import CustomZoneCategoryDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneCategoryDataTable';
 import CustomZoneDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneDataTable';
@@ -12,29 +13,36 @@ import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 import { CUSTOM_ZONE_DATA_FILTER_INITIAL_VALUE, CustomZoneDataFilter } from './types';
 
-const SECTIONS_DISPLAYED: Section[] = [
-    {
-        title: 'Liste des zones à enjeux',
-        titleCompact: 'Zones à enjeux',
-        id: 'CUSTOM_ZONES',
-    },
-    {
-        title: 'Liste des catégories de zones à enjeux',
-        titleCompact: 'Catégories',
-        id: 'CUSTOM_ZONE_CATEGORIES',
-    },
-];
+const CUSTOM_ZONES_TAB = 'custom-zones';
+const TAB_INITIAL_VALUE = { tab: CUSTOM_ZONES_TAB };
 
 const Component: React.FC = () => {
-    const [sectionSelected, setSectionSelected] = useState<Section>(SECTIONS_DISPLAYED[0]);
+    const [{ tab }, setTab] = useUrlFilter(TAB_INITIAL_VALUE);
     const [filter, setFilter] = useState<CustomZoneDataFilter>(CUSTOM_ZONE_DATA_FILTER_INITIAL_VALUE);
+
+    // title = the page heading, label = the tab
+    const tabs: (AdminTab & { title: string })[] = [
+        {
+            value: CUSTOM_ZONES_TAB,
+            label: 'Zones à enjeux',
+            title: 'Liste des zones à enjeux',
+            content: <CustomZoneDataTable filter={filter} onFilterChange={setFilter} />,
+        },
+        {
+            value: 'categories',
+            label: 'Catégories',
+            title: 'Liste des catégories de zones à enjeux',
+            content: <CustomZoneCategoryDataTable />,
+        },
+    ];
+    const tabSelected = tabs.find(({ value }) => value === tab) ?? tabs[0];
 
     return (
         <LayoutAdminBase
-            title={sectionSelected.title}
+            title={tabSelected.title}
             actions={
                 <div className={classes.actions}>
-                    {sectionSelected.id === 'CUSTOM_ZONES' ? (
+                    {tabSelected.value === CUSTOM_ZONES_TAB ? (
                         <BulkImportExportButtons config={customZoneBulkConfig} exportParams={filter} />
                     ) : null}
                     <Button
@@ -52,23 +60,7 @@ const Component: React.FC = () => {
                 </div>
             }
         >
-            <Button.Group className="admin-tabs">
-                {SECTIONS_DISPLAYED.map((section) => (
-                    <Button
-                        className="admin-tab"
-                        key={section.id}
-                        variant={sectionSelected.id === section.id ? 'filled' : 'outline'}
-                        onClick={() => setSectionSelected(section)}
-                    >
-                        {section.titleCompact}
-                    </Button>
-                ))}
-            </Button.Group>
-
-            {sectionSelected.id === 'CUSTOM_ZONES' ? (
-                <CustomZoneDataTable filter={filter} onFilterChange={setFilter} />
-            ) : null}
-            {sectionSelected.id === 'CUSTOM_ZONE_CATEGORIES' ? <CustomZoneCategoryDataTable /> : null}
+            <AdminTabs tabs={tabs} value={tab} onChange={(tab) => setTab({ tab })} />
         </LayoutAdminBase>
     );
 };

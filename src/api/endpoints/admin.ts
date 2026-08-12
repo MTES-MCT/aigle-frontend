@@ -50,6 +50,8 @@ export const deployedDataEndpoints = {
 
 export const dataDeploymentEndpoints = {
     list: BASE_DATA_DEPLOYMENT,
+    batches: `${BASE_DATA_DEPLOYMENT}batches/`,
+    zae: `${BASE_DATA_DEPLOYMENT}zae/`,
     run: (geozoneId: string) => `${BASE_DATA_DEPLOYMENT}${geozoneId}/run/`,
     runBatch: (geozoneId: string, batchId: number) => `${BASE_DATA_DEPLOYMENT}${geozoneId}/batch/${batchId}/run/`,
     runZae: (geozoneId: string, zaeId: number) => `${BASE_DATA_DEPLOYMENT}${geozoneId}/zae/${zaeId}/run/`,

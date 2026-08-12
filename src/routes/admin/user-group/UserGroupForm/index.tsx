@@ -24,15 +24,16 @@ import { Link, useParams } from 'react-router-dom';
 
 const BACK_URL = '/admin/user-groups';
 
-// A user-group is scoped to departments OR communes, never both — regions are not supported for now.
-const COLLECTIVITY_TYPES_DISPLAYED = new Set<CollectivityType>(['department', 'commune']);
-const DEPARTMENTS_OR_COMMUNES_MESSAGE =
-    'Un groupe utilisateurs ne peut être assigné qu’à des départements OU des communes, pas les deux.';
+// A user-group is scoped to exactly ONE collectivity level — regions are not supported for now.
+const COLLECTIVITY_TYPES_DISPLAYED = new Set<CollectivityType>(['department', 'epci', 'commune']);
+const SINGLE_LEVEL_MESSAGE =
+    'Un groupe utilisateurs ne peut être assigné qu’à un seul niveau de collectivité : des départements, des EPCI OU des communes.';
 
 interface FormValues {
     name: string;
     userGroupType: UserGroupType;
     communesUuids: string[];
+    epcisUuids: string[];
     departmentsUuids: string[];
     regionsUuids: string[];
     objectTypeCategoriesUuids: string[];
@@ -63,14 +64,19 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
     // The form is uncontrolled (Mantine default), so mirror the geo selection here to react to it live.
     const [geoSelected, setGeoSelected] = useState<GeoValues>(
-        initialGeoSelectedValues || { region: [], department: [], commune: [] },
+        initialGeoSelectedValues || { region: [], department: [], epci: [], commune: [] },
     );
+    // One group => one collectivity level: once a level holds a selection, lock the
+    // others. A legacy group already spanning several levels stays fully editable, so
+    // the rule can never trap an existing selection behind a disabled field.
+    const populatedTypes = [...COLLECTIVITY_TYPES_DISPLAYED].filter((type) => geoSelected[type].length);
     const disabledCollectivityTypes: Partial<Record<CollectivityType, string>> = {};
-    if (geoSelected.department.length && !geoSelected.commune.length) {
-        disabledCollectivityTypes.commune = DEPARTMENTS_OR_COMMUNES_MESSAGE;
-    }
-    if (geoSelected.commune.length && !geoSelected.department.length) {
-        disabledCollectivityTypes.department = DEPARTMENTS_OR_COMMUNES_MESSAGE;
+    if (populatedTypes.length === 1) {
+        COLLECTIVITY_TYPES_DISPLAYED.forEach((type) => {
+            if (type !== populatedTypes[0]) {
+                disabledCollectivityTypes[type] = SINGLE_LEVEL_MESSAGE;
+            }
+        });
     }
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -172,16 +178,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
             <InfoCard title="Droits d'accès">
                 <p>
-                    Un groupe peut être assigné soit à des départements, soit à des communes, mais pas aux deux à la
-                    fois.
+                    Un groupe peut être assigné à des départements, à des EPCI ou à des communes, mais à un seul de ces
+                    niveaux à la fois.
                 </p>
                 <p>
                     Les droits d&apos;accès sont cumulatifs : ajouter un département donne accès à l&apos;ensemble de
-                    ses communes.
+                    ses communes, et ajouter un EPCI donne accès à l&apos;ensemble de ses communes membres.
                 </p>
                 <p>
                     Si le groupe ne doit accéder qu&apos;à certaines communes, sélectionnez uniquement ces communes sans
-                    ajouter leur département.
+                    ajouter leur EPCI ni leur département.
                 </p>
             </InfoCard>
 
@@ -221,6 +227,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     name: '',
     userGroupType: 'COLLECTIVITY',
     communesUuids: [],
+    epcisUuids: [],
     departmentsUuids: [],
     regionsUuids: [],
     objectTypeCategoriesUuids: [],
@@ -239,6 +246,7 @@ const ComponentInner: React.FC = () => {
         const initialValues = {
             ...userGroup,
             communesUuids: userGroup.communes.map((commune) => commune.uuid),
+            epcisUuids: userGroup.epcis.map((epci) => epci.uuid),
             departmentsUuids: userGroup.departments.map((department) => department.uuid),
             regionsUuids: userGroup.regions.map((region) => region.uuid),
             objectTypeCategoriesUuids: userGroup.objectTypeCategories.map(
@@ -249,6 +257,7 @@ const ComponentInner: React.FC = () => {
         const initialGeoSelectedValues: GeoValues = {
             region: userGroup.regions.map((region) => geoZoneToGeoOption(region)),
             department: userGroup.departments.map((department) => geoZoneToGeoOption(department)),
+            epci: userGroup.epcis.map((epci) => geoZoneToGeoOption(epci)),
             commune: userGroup.communes.map((commune) => geoZoneToGeoOption(commune)),
         };
 

@@ -1,5 +1,5 @@
 import { Timestamped, Uuided } from '@/models/data';
-import { DetectionWithTile, DetectionWithTileMinimal } from '@/models/detection';
+import { DetectionWithTile } from '@/models/detection';
 import { GeoCustomZoneWithSubZones } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ParcelWithCommuneSerializer } from '@/models/parcel';
@@ -26,18 +26,4 @@ export interface DetectionObjectDetail extends DetectionObjectMinimal {
     userGroupRights: UserGroupRight[];
     geoCustomZones: GeoCustomZoneWithSubZones[];
     userGroupLastUpdate: UserGroup | null;
-}
-
-export interface DetectionObjectHistoryItem {
-    detection?: DetectionWithTileMinimal;
-    tileSet: TileSet;
-}
-
-export interface DetectionObjectHistory extends Uuided, Timestamped {
-    detections: DetectionObjectHistoryItem[];
-    id: number;
-    address: string;
-    comment: string;
-    objectType: ObjectType;
-    tileSets: TileSet[];
 }

@@ -1,5 +1,3 @@
-@use '@/constants.scss' as constants;
-
 .container {
     max-width: 1000px;
     margin: 0 auto;
@@ -13,18 +11,102 @@
     align-self: center;
 }
 
-/* "Rapport complet (PDF)" = the browser's own print-to-PDF on this page. */
+.period-breakdown {
+    background-color: var(--mantine-color-gray-0);
+}
+
+/* one collapsible section per activity category */
+.tier-section {
+    background-color: var(--mantine-color-white);
+}
+
+.tier-swatch {
+    /* a bare span is inline, so it would have no box to paint */
+    display: block;
+
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+
+    border-radius: 2px;
+    background-color: var(--tier-color);
+}
+
+/* clickable legend: a category can be switched out of the stack */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--mantine-spacing-md);
+
+    padding-bottom: var(--mantine-spacing-xs);
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    font-size: var(--mantine-font-size-sm);
+
+    transition: opacity 150ms ease;
+
+    &:hover {
+        opacity: 0.7;
+    }
+
+    &[data-hidden] {
+        opacity: 0.45;
+
+        text-decoration: line-through;
+    }
+}
+
+.chart-legend-swatch {
+    display: block;
+
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+
+    border-radius: 2px;
+    background-color: var(--series-color);
+}
+
+.print-only {
+    display: none;
+}
+
+/* "Rapport complet (PDF)" builds a real PDF (see ./report) — the browser is no longer asked
+   to paginate this page. These rules only make an ad-hoc Ctrl+P bearable.
+   Deliberately NO `break-inside: avoid` on the chart sections: they are flex columns taller
+   than a page, and WebKit — which has never implemented block fragmentation for flex or grid
+   — answers that by pushing the box to the next page and leaving the current one blank. */
 @media print {
     .no-print {
         display: none !important;
     }
 
-    .chart-section {
-        break-inside: avoid;
+    .print-only {
+        display: block;
     }
 
-    .container {
-        /* cancels the fixed-header offset LayoutBase reserves (header hidden in index.scss) */
-        margin-top: calc(-1 * constants.$header-height);
+    .group-select {
+        display: none;
+    }
+
+    .page-break {
+        break-before: page;
+    }
+
+    /* a wrapping flex row is the worst WebKit fragmentation case — it prints its container's
+       border on one page and its children on the next */
+    .chart-legend {
+        display: block;
+    }
+
+    .chart-legend-item {
+        display: inline-flex;
+        margin: 0 8px 4px 0;
     }
 }
