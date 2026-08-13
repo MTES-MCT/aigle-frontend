@@ -9,6 +9,7 @@ import MapControlBackgroundSlider from '@/components/Map/controls/MapControlBack
 import MapControlFilterDetection from '@/components/Map/controls/MapControlFilterDetection';
 import MapControlLayerDisplay from '@/components/Map/controls/MapControlLayerDisplay';
 import MapControlLegend from '@/components/Map/controls/MapControlLegend';
+import MapControlSearchAddress from '@/components/Map/controls/MapControlSearchAddress';
 import MapControlSearchParcel from '@/components/Map/controls/MapControlSearchParcel';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import { processDetections } from '@/components/Map/utils/process-detections';
@@ -18,20 +19,18 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { GeoCustomZoneResponse } from '@/models/geo/geo-custom-zone';
 import { MapTileSetLayer } from '@/models/map-layer';
-import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api, { ApiError } from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
-import { LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
+import { Button, LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
+import { IconCancel } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
 import { FeatureCollection, Polygon } from 'geojson';
@@ -41,13 +40,6 @@ import classes from './index.module.scss';
 
 const ZOOM_LIMIT_TO_DISPLAY_DETECTIONS = 9;
 const ZOOM_LIMIT_TO_DISPLAY_ANNOTATION_GRID = 13;
-
-// Corsica departments 2A/2B map to postcode prefix "20"; overseas (97x) use 3-digit prefixes.
-const getDepartmentPostcodePrefix = (code: string): string => {
-    if (code.startsWith('97')) return code.substring(0, 3);
-    if (code.startsWith('2A') || code.startsWith('2B')) return '20';
-    return code.substring(0, 2);
-};
 
 const getMapInitialViewState = (
     initialPosition?: GeoJSON.Position | null,
@@ -77,57 +69,97 @@ const getMapInitialViewState = (
           : {}),
 });
 
-const DRAW_MODE_ADD_DETECTION = 'draw_rectangle';
-const DRAW_MODE_MULTIPOLYGON = 'draw_polygon';
+type DrawMode = 'MULTIPLE_EDIT' | 'ADD_DETECTION' | 'MULTIPLE_DOWNLOAD';
 
-const MAPBOX_DRAW_CONTROL = new MapboxDraw({
-    userProperties: true,
-    displayControlsDefault: false,
-    styles: DrawStyles,
-    modes: Object.assign(MapboxDraw.modes, {
-        [DRAW_MODE_ADD_DETECTION]: DrawRectangle,
-    }),
-    controls: {
-        point: true,
-        polygon: true,
-        line_string: true,
+// Each toolbar button always enters its own built-in mode name. Remapping the behaviour
+// onto those names (instead of calling changeMode() after the fact) is what keeps
+// mapbox-gl-draw highlighting the button the user actually pressed, and what makes
+// clicking that same button again cancel the draw.
+const DRAW_MODE_ADD_DETECTION = 'draw_point';
+const DRAW_MODE_MULTIPLE_DOWNLOAD = 'draw_line_string';
+const DRAW_MODE_MULTIPLE_EDIT = 'draw_polygon';
+
+const DRAW_MODES_MAP: Record<string, DrawMode> = {
+    [DRAW_MODE_ADD_DETECTION]: 'ADD_DETECTION',
+    [DRAW_MODE_MULTIPLE_DOWNLOAD]: 'MULTIPLE_DOWNLOAD',
+    [DRAW_MODE_MULTIPLE_EDIT]: 'MULTIPLE_EDIT',
+};
+
+const DRAW_MODE_TITLES_MAP: Record<DrawMode, string> = {
+    MULTIPLE_EDIT: 'Edition multiple',
+    ADD_DETECTION: 'Dessiner un objet',
+    MULTIPLE_DOWNLOAD: 'Téléchargement multiple de rapports',
+};
+
+// mapbox-gl-draw modes highlight a button from their own onSetup, so a mode reused under
+// another button's name would light up the wrong one
+const withActiveButton = (
+    mode: MapboxDraw.DrawCustomMode,
+    buttonType: string,
+    defaultOptions: Record<string, unknown> = {},
+): MapboxDraw.DrawCustomMode => ({
+    ...mode,
+    onSetup(options) {
+        const state = mode.onSetup?.call(this, { ...defaultOptions, ...options });
+        this.activateUIButton(buttonType);
+        return state;
     },
 });
-const MAPBOX_GEOCODER = new MapboxGeocoder({
-    accessToken: MAPBOX_TOKEN,
-    mapboxgl,
-    placeholder: 'Rechercher par adresse',
-    countries: 'fr',
-});
-const MAP_CONTROLS: {
-    control: mapboxgl.IControl;
-    position: 'top-left' | 'bottom-right' | 'top-right' | 'bottom-left';
-    hideWhenNoDetection?: boolean;
-    needsWritePermission?: boolean;
-}[] = [
-    {
-        control: MAPBOX_GEOCODER,
-        position: 'top-left',
-    },
-    {
-        control: new mapboxgl.ScaleControl(),
-        position: 'bottom-right',
-    },
-    { control: new mapboxgl.FullscreenControl(), position: 'bottom-right' },
-    {
-        control: new mapboxgl.NavigationControl({
-            showCompass: false,
-            showZoom: true,
-            visualizePitch: false,
-        }),
-        position: 'bottom-right',
-    },
-    {
-        control: MAPBOX_DRAW_CONTROL,
-        position: 'top-right',
-        hideWhenNoDetection: true,
-    },
-] as const;
+
+// one instance per map: mapbox-gl-draw nulls its own context on removal, so a shared
+// instance silently follows whichever map added it last
+const buildDrawControl = () =>
+    new MapboxDraw({
+        userProperties: true,
+        displayControlsDefault: false,
+        // without this, pressing 1/2/3 anywhere on the map silently enters a draw mode.
+        // It also takes the modes' own Escape handling down with it, which the component
+        // reimplements (see cancelDraw).
+        keybindings: false,
+        styles: DrawStyles,
+        modes: {
+            ...MapboxDraw.modes,
+            [DRAW_MODE_ADD_DETECTION]: withActiveButton(
+                DrawRectangle as MapboxDraw.DrawCustomMode,
+                MapboxDraw.constants.types.POINT,
+                {
+                    allowCreateExceeded: false,
+                    exceedCallsOnEachMove: false,
+                },
+            ),
+            [DRAW_MODE_MULTIPLE_DOWNLOAD]: withActiveButton(
+                MapboxDraw.modes.draw_polygon,
+                MapboxDraw.constants.types.LINE,
+            ),
+            [DRAW_MODE_MULTIPLE_EDIT]: withActiveButton(
+                MapboxDraw.modes.draw_polygon,
+                MapboxDraw.constants.types.POLYGON,
+            ),
+        },
+        controls: {
+            point: true,
+            polygon: true,
+            line_string: true,
+        },
+    });
+
+// mapbox ships these in english and exposes no option to translate them
+const MAP_CONTROLS_TITLES: { querySelector: string; title: string }[] = [
+    { querySelector: '.mapbox-gl-draw_point', title: DRAW_MODE_TITLES_MAP.ADD_DETECTION },
+    { querySelector: '.mapbox-gl-draw_polygon', title: DRAW_MODE_TITLES_MAP.MULTIPLE_EDIT },
+    { querySelector: '.mapbox-gl-draw_line', title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD },
+    { querySelector: '.mapboxgl-ctrl-fullscreen', title: 'Plein écran' },
+    { querySelector: '.mapboxgl-ctrl-fullscreen > .mapboxgl-ctrl-icon', title: 'Plein écran' },
+    { querySelector: '.mapboxgl-ctrl-zoom-in', title: 'Zoomer' },
+    { querySelector: '.mapboxgl-ctrl-zoom-in > .mapboxgl-ctrl-icon', title: 'Zoomer' },
+    { querySelector: '.mapboxgl-ctrl-zoom-out', title: 'Dézoomer' },
+    { querySelector: '.mapboxgl-ctrl-zoom-out > .mapboxgl-ctrl-icon', title: 'Dézoomer' },
+    { querySelector: '.mapboxgl-ctrl-compass', title: 'Boussole' },
+    { querySelector: '.mapboxgl-ctrl-compass > .mapboxgl-ctrl-icon', title: 'Boussole' },
+    { querySelector: '.mapboxgl-ctrl-geolocate', title: 'Ma position' },
+    { querySelector: '.mapboxgl-ctrl-geolocate > .mapboxgl-ctrl-icon', title: 'Ma position' },
+];
+
 const MAP_PADDINGS = {
     detailSectionShowed: {
         top: 0,
@@ -167,6 +199,59 @@ const GEOJSON_LAYER_EXTRA_COLOR = '#FF0000';
 
 const MULTIPLE_SELECTION_MAX = 500;
 
+interface MultipleDownloadPage {
+    detectionObjectUuid: string;
+    parcelUuid: string;
+}
+
+interface MultipleDownloadState {
+    runId: number;
+    nbrDetections: number;
+    // undefined while the details of the selected detections are still being fetched
+    pages?: MultipleDownloadPage[];
+    nbrProcessed: number;
+}
+
+const MultipleDownloadBlocker: React.FC<{ state: MultipleDownloadState; onCancel: () => void }> = ({
+    state,
+    onCancel,
+}) => {
+    const total = state.pages?.length;
+    const fetching = total === undefined;
+    const assembling = total !== undefined && state.nbrProcessed >= total;
+
+    return (
+        <>
+            <h2>Génération des rapports...</h2>
+            <p>
+                {fetching
+                    ? `Récupération des ${state.nbrDetections} détections sélectionnées...`
+                    : assembling
+                      ? 'Assemblage du document PDF...'
+                      : `Fiche ${state.nbrProcessed + 1} / ${total}`}
+            </p>
+            <p>Cette opération peut prendre quelques minutes</p>
+            <p>Veuillez ne pas fermer cette fenêtre</p>
+            <Progress
+                aria-label="Progression de la génération des rapports"
+                mt="md"
+                value={fetching || assembling ? 100 : 100 * (state.nbrProcessed / (total || 1))}
+                animated={fetching || assembling}
+            />
+            <Button
+                mt="md"
+                fullWidth
+                variant="outline"
+                color="red"
+                leftSection={<IconCancel size={20} />}
+                onClick={onCancel}
+            >
+                Annuler
+            </Button>
+        </>
+    );
+};
+
 type LeftSection = 'SEARCH_ADDRESS' | 'FILTER_DETECTION' | 'LEGEND' | 'LAYER_DISPLAY' | 'SEARCH_PARCEL';
 
 const EMPTY_GEOJSON_FEATURE_COLLECTION: FeatureCollection = {
@@ -180,13 +265,6 @@ interface MapBounds {
     swLat: number;
     swLng: number;
 }
-
-type DrawMode = 'MULTIPLE_EDIT' | 'ADD_DETECTION' | 'MULTIPLE_DOWNLOAD';
-const DRAW_MODE_TITLES_MAP: Record<DrawMode, string> = {
-    MULTIPLE_EDIT: 'Edition multiple',
-    ADD_DETECTION: 'Dessiner un objet',
-    MULTIPLE_DOWNLOAD: 'Téléchargement multiple de rapports',
-};
 
 const getAnnotationGridFilters = (objectsFilter: ObjectsFilter) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -237,6 +315,7 @@ const Component: React.FC<ComponentProps> = ({
     boundLayers = true,
     skipProcessDetections = false,
     displayLayersSelection = true,
+    displayDrawControl = true,
     initialPosition,
     syncViewStateToUrl = false,
 }) => {
@@ -276,13 +355,24 @@ const Component: React.FC<ComponentProps> = ({
         isDetailFetching,
     } = useMap();
     const { objectsFilter } = useObjectsFilter();
-    const { userMe } = useAuth();
 
     const [cursor, setCursor] = useState<string>();
     const [mapRef, setMapRef] = useState<mapboxgl.Map>();
+    const drawControlRef = useRef<MapboxDraw | null>(null);
 
-    const [detectionObjectsToDownload, setDetectionObjectsToDownload] = useState<DetectionObjectDetail[]>();
-    const [detectionObjectsNbrToDownloadProcessed, setDetectionObjectsNbrToDownloadProcessed] = useState(0);
+    // draw handlers are registered once and read these, so they never observe a stale
+    // render: re-registering them on every detections refetch would leave a window where
+    // a draw.create fires with no listener attached
+    const drawModeRef = useRef<DrawMode | null>(null);
+    // mapbox-gl-draw acts on mouseup, so by the time the browser dispatches the trailing
+    // click the mode is already back to simple_select. This latch swallows that one click.
+    const drawEndedGestureRef = useRef(false);
+
+    const [multipleDownload, setMultipleDownload] = useState<MultipleDownloadState>();
+    // continuations compare against this instead of a flag: aborting the request cannot reach
+    // an already-buffered response, a queued rAF or a generation callback in flight
+    const multipleDownloadRunIdRef = useRef(0);
+    const multipleDownloadAbortRef = useRef<AbortController | null>(null);
 
     const { width } = useViewportSize();
 
@@ -333,81 +423,58 @@ const Component: React.FC<ComponentProps> = ({
         // keep pinch-zoom but forbid pinch-rotate, and undo any bearing a prior gesture left behind
         (node as unknown as MapRef).getMap().touchZoomRotate.disableRotation();
         node.setBearing(0);
+    }, []);
 
-        MAP_CONTROLS.forEach(({ control, position, hideWhenNoDetection }) => {
-            if (!displayDetections && hideWhenNoDetection) {
-                return;
-            }
+    const layersDisplayed = layers.filter((layer) => layer.displayed);
 
-            if (!node.hasControl(control)) {
-                node.addControl(control, position);
-            }
-        });
-
-        if (fitBoundsFirstLayer) {
-            const layer = layersDisplayed.find((layer) => layer.tileSet.geometryBbox);
-
-            if (layer) {
-                node.fitBounds(bbox(layer.tileSet.geometryBbox), { padding: 20, animate: false });
-            }
+    useEffect(() => {
+        if (!mapRef || !fitBoundsFirstLayer) {
+            return;
         }
 
-        setTimeout(() => {
-            for (const { querySelector, title } of [
-                {
-                    querySelector: `.mapbox-gl-${DRAW_MODE_MULTIPOLYGON}`,
-                    title: DRAW_MODE_TITLES_MAP.MULTIPLE_EDIT,
-                },
-                {
-                    querySelector: '.mapbox-gl-draw_point',
-                    title: DRAW_MODE_TITLES_MAP.ADD_DETECTION,
-                },
-                {
-                    querySelector: '.mapbox-gl-draw_line',
-                    title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD,
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-fullscreen',
-                    title: 'Plein écran',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-fullscreen > .mapboxgl-ctrl-icon',
-                    title: 'Plein écran',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-zoom-in',
-                    title: 'Zoomer',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-zoom-in > .mapboxgl-ctrl-icon',
-                    title: 'Zoomer',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-zoom-out',
-                    title: 'Dézoomer',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-zoom-out > .mapboxgl-ctrl-icon',
-                    title: 'Dézoomer',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-compass',
-                    title: 'Boussole',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-compass > .mapboxgl-ctrl-icon',
-                    title: 'Boussole',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-geolocate',
-                    title: 'Ma position',
-                },
-                {
-                    querySelector: '.mapboxgl-ctrl-geolocate > .mapboxgl-ctrl-icon',
-                    title: 'Ma position',
-                },
-            ]) {
-                const control = document.querySelector(querySelector);
+        const layer = layersDisplayed.find((layer) => layer.tileSet.geometryBbox);
+
+        if (layer) {
+            mapRef.fitBounds(bbox(layer.tileSet.geometryBbox), { padding: 20, animate: false });
+        }
+        // only once the map is ready: this is an initial framing, not a reaction to layers
+    }, [mapRef, fitBoundsFirstLayer]);
+
+    const drawControlDisplayed = displayDetections && displayDrawControl;
+
+    // controls are built per map instance: mapbox controls keep a reference to the map
+    // they were added to, so sharing them across the main map and the admin preview maps
+    // moves the buttons out of one map and breaks the other
+    useEffect(() => {
+        if (!mapRef) {
+            return;
+        }
+
+        const controls: { control: mapboxgl.IControl; position: mapboxgl.ControlPosition }[] = [
+            { control: new mapboxgl.ScaleControl(), position: 'bottom-right' },
+            { control: new mapboxgl.FullscreenControl(), position: 'bottom-right' },
+            {
+                control: new mapboxgl.NavigationControl({
+                    showCompass: false,
+                    showZoom: true,
+                    visualizePitch: false,
+                }),
+                position: 'bottom-right',
+            },
+        ];
+
+        if (drawControlDisplayed) {
+            const drawControl = buildDrawControl();
+            drawControlRef.current = drawControl;
+            controls.push({ control: drawControl, position: 'top-right' });
+        }
+
+        controls.forEach(({ control, position }) => mapRef.addControl(control, position));
+
+        const container = mapRef.getContainer();
+        const translateTitlesTimeout = setTimeout(() => {
+            for (const { querySelector, title } of MAP_CONTROLS_TITLES) {
+                const control = container.querySelector(querySelector);
 
                 if (!control) {
                     continue;
@@ -417,172 +484,269 @@ const Component: React.FC<ComponentProps> = ({
                 control.setAttribute('aria-label', title);
             }
         }, 100);
-    }, []);
+
+        return () => {
+            clearTimeout(translateTitlesTimeout);
+            controls.forEach(({ control }) => {
+                if (mapRef.hasControl(control)) {
+                    mapRef.removeControl(control);
+                }
+            });
+            drawControlRef.current = null;
+        };
+    }, [mapRef, drawControlDisplayed]);
+
+    // read by the draw handlers below, which are registered once so that a detections
+    // refetch can never detach them in the middle of a drawing gesture
+    const detectionsDataRef = useRef(data);
+    detectionsDataRef.current = data;
+    const isDetectionsFetchingRef = useRef(isDetectionsFetching);
+    isDetectionsFetchingRef.current = isDetectionsFetching;
+
+    const resetLayersForAddDetectionRef = useRef<() => void>(() => {});
+    resetLayersForAddDetectionRef.current = () => {
+        const partialLayersDisplayedUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], true);
+        let partialLayersToDisplayUuids: string[] = [];
+
+        if (partialLayersDisplayedUuids.length) {
+            partialLayersToDisplayUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], false);
+        }
+
+        const mostRecentBackgroundLayerYear = (backgroundLayerYears || [])[0];
+        const mostRecentBackgroundLayerUuids = mostRecentBackgroundLayerYear
+            ? layers
+                  .filter(
+                      (layer) =>
+                          layer.tileSet.tileSetType === 'BACKGROUND' &&
+                          formatDateOnly(layer.tileSet.date, 'yyyy') === mostRecentBackgroundLayerYear,
+                  )
+                  .map((layer) => layer.tileSet.uuid)
+            : [];
+
+        setTileSetsVisibility([...partialLayersToDisplayUuids, ...mostRecentBackgroundLayerUuids], true);
+    };
 
     useEffect(() => {
         if (!mapRef) {
             return;
         }
 
-        const handleModeChange = (event) => {
-            const { mode } = event;
+        const getDetectionUuidsFromPolygon = (polygon: Polygon, drawMode: DrawMode): string[] | undefined => {
+            const title = DRAW_MODE_TITLES_MAP[drawMode];
 
-            if (!backgroundLayerYears) {
-                throw new Error('backgroundLayerYears is empty');
+            // the selection is computed against the detections already loaded for the
+            // viewport: a selection made mid-refetch would silently use the previous ones
+            if (isDetectionsFetchingRef.current) {
+                notifications.show({
+                    title,
+                    message: 'Les détections sont en cours de chargement, veuillez réessayer dans un instant',
+                    color: 'red',
+                });
+                return;
             }
 
-            if (mode === 'draw_point') {
-                const partialLayersDisplayedUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], true);
-                let partialLayersToDisplayUuids: string[] = [];
+            const detectionUuids: string[] = [];
 
-                if (partialLayersDisplayedUuids.length) {
-                    partialLayersToDisplayUuids = getTileSetsUuids(['PARTIAL'], ['VISIBLE', 'HIDDEN'], false);
+            for (const feature of detectionsDataRef.current?.features || []) {
+                if (!booleanIntersects(feature.geometry, polygon)) {
+                    continue;
                 }
 
-                const mostRecentBackgroundLayerYear = backgroundLayerYears[0];
-                const mostRecentBackgroundLayerUuids = layers
-                    .filter(
-                        (layer) =>
-                            layer.tileSet.tileSetType === 'BACKGROUND' &&
-                            formatDateOnly(layer.tileSet.date, 'yyyy') === mostRecentBackgroundLayerYear,
-                    )
-                    .map((layer) => layer.tileSet.uuid);
-
-                setTileSetsVisibility([...partialLayersToDisplayUuids, ...mostRecentBackgroundLayerUuids], true);
-
-                setDrawMode('ADD_DETECTION');
-                setLeftSectionShowed(undefined);
-
-                notifications.show({
-                    title: 'Mode de dessin activé',
-                    message: "L'affichage des couches a été réinitialisé",
-                });
-                MAPBOX_DRAW_CONTROL.changeMode(DRAW_MODE_ADD_DETECTION, {
-                    escapeKeyStopsDrawing: true,
-                    allowCreateExceeded: false,
-                    exceedCallsOnEachMove: false,
-                });
-            } else if (mode === 'draw_line_string') {
-                MAPBOX_DRAW_CONTROL.changeMode(DRAW_MODE_MULTIPOLYGON);
-                setDrawMode('MULTIPLE_DOWNLOAD');
-            } else if (mode === DRAW_MODE_MULTIPOLYGON) {
-                setDrawMode('MULTIPLE_EDIT');
-            } else {
-                setDrawMode(null);
+                detectionUuids.push(feature.properties.uuid);
             }
+
+            if (detectionUuids.length > MULTIPLE_SELECTION_MAX) {
+                notifications.show({
+                    title,
+                    message: `Vous avez sélectionné ${detectionUuids.length} objets. La sélection est limitée à ${MULTIPLE_SELECTION_MAX} détections.`,
+                    color: 'red',
+                });
+                return;
+            }
+
+            if (!detectionUuids.length) {
+                notifications.show({
+                    title,
+                    message: "Aucune détection n'a été sélectionnée",
+                    color: 'red',
+                });
+                return;
+            }
+
+            return detectionUuids;
         };
 
-        const handleCreate = async (event) => {
-            const { features } = event;
+        const handleModeChange = ({ mode }: { mode: string }) => {
+            const newDrawMode = DRAW_MODES_MAP[mode] ?? null;
 
-            const getDetectionUuidsFromPolygon = (polygon: Polygon): string[] | undefined => {
-                if (!drawMode) {
-                    return;
-                }
+            drawModeRef.current = newDrawMode;
+            setDrawMode(newDrawMode);
+            // leaving a draw mode also happens on the click that closes the shape: that
+            // click is still on its way to onMapClick and must not be read as a map click
+            drawEndedGestureRef.current = true;
 
-                const detectionUuids: string[] = [];
-
-                for (const feature of data?.features || []) {
-                    if (!booleanIntersects(feature.geometry, polygon)) {
-                        continue;
-                    }
-
-                    detectionUuids.push(feature.properties.uuid);
-                }
-
-                if (detectionUuids.length > MULTIPLE_SELECTION_MAX) {
-                    notifications.show({
-                        title: DRAW_MODE_TITLES_MAP[drawMode],
-                        message: `Vous avez sélectionné ${detectionUuids.length} objets. La sélection est limitée à ${MULTIPLE_SELECTION_MAX} détections.`,
-                        color: 'red',
-                    });
-                    MAPBOX_DRAW_CONTROL.deleteAll();
-                    return;
-                }
-
-                if (!detectionUuids.length) {
-                    notifications.show({
-                        title: DRAW_MODE_TITLES_MAP[drawMode],
-                        message: "Aucune détection n'a été sélectionnée",
-                        color: 'red',
-                    });
-                    MAPBOX_DRAW_CONTROL.deleteAll();
-                    return;
-                }
-
-                return detectionUuids;
-            };
-
-            if (drawMode === 'MULTIPLE_EDIT') {
-                if (!features.length) {
-                    return;
-                }
-
-                const polygon: Polygon = features[0].geometry;
-                const detectionUuids = getDetectionUuidsFromPolygon(polygon);
-
-                if (!detectionUuids) {
-                    return;
-                }
-
-                setMultipleEditDetectionsUuids(detectionUuids);
+            if (!newDrawMode) {
+                return;
             }
 
-            if (drawMode === 'MULTIPLE_DOWNLOAD') {
-                if (!features.length) {
-                    return;
-                }
+            setLeftSectionShowed(undefined);
 
-                const polygon: Polygon = features[0].geometry;
-                const detectionUuids = getDetectionUuidsFromPolygon(polygon);
-
-                if (!detectionUuids) {
-                    return;
-                }
-
-                MAPBOX_DRAW_CONTROL.deleteAll();
+            if (newDrawMode === 'ADD_DETECTION') {
+                resetLayersForAddDetectionRef.current();
                 notifications.show({
-                    title: `Génération des fiches de signalement en cours (${detectionUuids.length} détections)`,
-                    message: 'Le téléchargement se lancera dans quelques instants',
+                    title: DRAW_MODE_TITLES_MAP.ADD_DETECTION,
+                    message:
+                        "L'affichage des couches a été réinitialisé. Dessinez un rectangle autour de l'objet, Échap pour annuler.",
                 });
-
-                const detectionObjectsDetails = await api<DetectionObjectDetail[]>(detectionObjectEndpoints.list, {
-                    params: {
-                        detectionUuids: detectionUuids.join(','),
-                        detail: true,
-                    },
-                });
-                setDetectionObjectsToDownload(detectionObjectsDetails);
+                return;
             }
+
+            notifications.show({
+                title: DRAW_MODE_TITLES_MAP[newDrawMode],
+                message:
+                    'Cliquez pour poser les points de la zone, puis cliquez sur le premier point ou double-cliquez pour la fermer. Échap pour annuler.',
+            });
+        };
+
+        const handleCreate = async (event: { features: GeoJSON.Feature[] }) => {
+            const drawMode = drawModeRef.current;
+            const drawnFeature = event.features?.[0];
+
+            drawEndedGestureRef.current = true;
+            // always drop the drawn shape first: every branch below can bail out, and a
+            // leftover polygon would stay on the map with no way to remove it
+            drawControlRef.current?.deleteAll();
+
+            if (!drawMode || !drawnFeature) {
+                return;
+            }
+
+            const polygon = drawnFeature.geometry as Polygon;
 
             if (drawMode === 'ADD_DETECTION') {
-                if (!features.length) {
-                    return;
-                }
-
-                const polygon: Polygon = features[0].geometry;
-
                 // drawing returns one extra point not needed
                 if (polygon.coordinates[0].length >= 6) {
                     polygon.coordinates[0] = polygon.coordinates[0].slice(0, 5);
                 }
 
                 setAddAnnotationPolygon(polygon);
+                return;
             }
 
-            MAPBOX_DRAW_CONTROL.deleteAll();
+            const detectionUuids = getDetectionUuidsFromPolygon(polygon, drawMode);
+
+            if (!detectionUuids) {
+                return;
+            }
+
+            if (drawMode === 'MULTIPLE_EDIT') {
+                setMultipleEditDetectionsUuids(detectionUuids);
+                return;
+            }
+
+            const runId = ++multipleDownloadRunIdRef.current;
+            const abortController = new AbortController();
+            multipleDownloadAbortRef.current = abortController;
+
+            // set before awaiting anything, so the blocker is painted on the click that closes
+            // the selection rather than once the detections have been fetched
+            setMultipleDownload({ runId, nbrDetections: detectionUuids.length, nbrProcessed: 0 });
+
+            try {
+                const detectionObjectsDetails = await api<DetectionObjectDetail[]>(detectionObjectEndpoints.list, {
+                    params: {
+                        detectionUuids: detectionUuids.join(','),
+                        detail: true,
+                    },
+                    signal: abortController.signal,
+                });
+
+                if (multipleDownloadRunIdRef.current !== runId) {
+                    return;
+                }
+
+                const pages = detectionObjectsDetails
+                    .filter((detectionObject) => detectionObject.parcel)
+                    .map((detectionObject) => ({
+                        detectionObjectUuid: detectionObject.uuid,
+                        parcelUuid: String(detectionObject.parcel?.uuid),
+                    }));
+
+                // an empty selection would render a PDF with no page at all
+                if (!pages.length) {
+                    setMultipleDownload(undefined);
+                    notifications.show({
+                        title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD,
+                        message: "Aucune détection sélectionnée n'est rattachée à une parcelle",
+                        color: 'red',
+                    });
+                    return;
+                }
+
+                setMultipleDownload((prev) => (prev?.runId === runId ? { ...prev, pages } : prev));
+            } catch {
+                if (multipleDownloadRunIdRef.current !== runId) {
+                    return;
+                }
+
+                setMultipleDownload(undefined);
+                notifications.show({
+                    title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD,
+                    message: 'Impossible de récupérer les détections sélectionnées',
+                    color: 'red',
+                });
+            }
+        };
+
+        const armDrawEndedGesture = () => {
+            drawEndedGestureRef.current = true;
+        };
+        // any genuinely new interaction starts with a press, which clears the latch
+        const disarmDrawEndedGesture = () => {
+            drawEndedGestureRef.current = false;
+        };
+
+        const cancelDraw = () => {
+            const drawControl = drawControlRef.current;
+
+            if (!drawControl) {
+                return;
+            }
+
+            // dropping the shape first matters: changing mode stops the current one, which
+            // would otherwise emit the half-drawn shape as a draw.create
+            drawControl.deleteAll();
+            // the mode change made through the public api is silent, so the mode state has
+            // to be reset here as well
+            drawControl.changeMode('simple_select');
+            drawModeRef.current = null;
+            setDrawMode(null);
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape' || !drawModeRef.current) {
+                return;
+            }
+
+            cancelDraw();
         };
 
         mapRef.on('draw.modechange', handleModeChange);
         mapRef.on('draw.create', handleCreate);
+        mapRef.on('draw.delete', armDrawEndedGesture);
+        mapRef.on('mousedown', disarmDrawEndedGesture);
+        mapRef.on('touchstart', disarmDrawEndedGesture);
+        document.addEventListener('keydown', handleKeyDown);
 
         return () => {
             mapRef.off('draw.modechange', handleModeChange);
             mapRef.off('draw.create', handleCreate);
+            mapRef.off('draw.delete', armDrawEndedGesture);
+            mapRef.off('mousedown', disarmDrawEndedGesture);
+            mapRef.off('touchstart', disarmDrawEndedGesture);
+            document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [data, mapRef, drawMode]);
-
-    const layersDisplayed = layers.filter((layer) => layer.displayed);
+    }, [mapRef]);
 
     const fetchDetections = async (signal: AbortSignal, mapBounds?: MapBounds) => {
         if (!displayDetections || !mapBounds || !objectsFilter || !otherObjectTypesUuids) {
@@ -733,49 +897,22 @@ const Component: React.FC<ComponentProps> = ({
         }
     };
 
-    useEffect(() => {
-        if (settings?.globalGeometryBbox) {
-            MAPBOX_GEOCODER.setBbox(bbox(settings.globalGeometryBbox));
-        }
-    }, [settings?.globalGeometryBbox]);
+    const onAddressSearch = useCallback(() => {
+        setLeftSectionShowed('SEARCH_ADDRESS');
+    }, []);
 
-    useEffect(() => {
-        if (!userMe || userMe.userRole === 'SUPER_ADMIN') return;
+    const cancelMultipleDownload = useCallback(() => {
+        // bumping the run id first neutralises everything already in flight, then unmounting
+        // SignalementPDFData stops the previews, the pdf render queue and the download itself
+        multipleDownloadRunIdRef.current += 1;
+        multipleDownloadAbortRef.current?.abort();
+        multipleDownloadAbortRef.current = null;
+        setMultipleDownload(undefined);
 
-        const geoZones = userMe.userUserGroups.flatMap(({ userGroup }) => userGroup.geoZones);
-        const postcodePrefixes = new Set<string>();
-
-        for (const zone of geoZones) {
-            if (!zone.code) continue;
-
-            if (zone.geoZoneType === 'DEPARTMENT' || zone.geoZoneType === 'COMMUNE') {
-                postcodePrefixes.add(getDepartmentPostcodePrefix(zone.code));
-            }
-        }
-
-        if (postcodePrefixes.size > 0) {
-            MAPBOX_GEOCODER.setFilter((feature: GeoJSON.Feature) => {
-                const context = (feature as { context?: { id: string; text: string }[] }).context;
-                const postcodeEntry = context?.find((c) => c.id.startsWith('postcode.'));
-
-                if (!postcodeEntry) return true;
-
-                return postcodePrefixes.has(getDepartmentPostcodePrefix(postcodeEntry.text));
-            });
-        }
-    }, [userMe]);
-
-    useEffect(() => {
-        const geocoderEventCallback = () => {
-            setLeftSectionShowed('SEARCH_ADDRESS');
-        };
-        MAPBOX_GEOCODER.on('loading', geocoderEventCallback);
-
-        return () => {
-            try {
-                MAPBOX_GEOCODER.off('loading', geocoderEventCallback);
-            } catch {}
-        };
+        notifications.show({
+            title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD,
+            message: 'Génération des fiches de signalement annulée',
+        });
     }, []);
 
     const closeDetectionDetail = useCallback(() => {
@@ -810,6 +947,19 @@ const Component: React.FC<ComponentProps> = ({
             return;
         }
 
+        // the click that closed a shape reaches us after mapbox-gl-draw has already
+        // reverted the mode, so the mode alone cannot tell it apart from a real map click
+        if (drawEndedGestureRef.current) {
+            drawEndedGestureRef.current = false;
+            return;
+        }
+
+        // a drawing session owns every click on the map, including the ones landing on a
+        // detection: opening the detail panel mid-draw would fly the map away
+        if (drawModeRef.current) {
+            return;
+        }
+
         const { features, target, lngLat } = event;
 
         // clicked on a displayed square => handle immediately, no timeout needed
@@ -839,98 +989,99 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         clickTimerRef.current = setTimeout(async () => {
-            const currentDrawMode = MAPBOX_DRAW_CONTROL.getMode();
+            // a drawing session may have started between the click and this timeout
+            if (drawModeRef.current) {
+                return;
+            }
 
-            if (![DRAW_MODE_ADD_DETECTION, DRAW_MODE_MULTIPOLYGON].includes(currentDrawMode)) {
-                const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
+            const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
 
-                closeDetectionDetail();
+            closeDetectionDetail();
 
-                if (!noSectionOpen) {
-                    return;
+            if (!noSectionOpen) {
+                return;
+            }
+            // clicking empty space with nothing open: look for a detection hidden by filters
+            const { lng, lat } = lngLat;
+
+            if (clickAbortRef.current) {
+                clickAbortRef.current.abort();
+            }
+            const abortController = new AbortController();
+            clickAbortRef.current = abortController;
+
+            setObjectFromCoordinates(() => ({
+                fetchStatus: 'LOADING',
+                objectFromCoordinates: undefined,
+            }));
+
+            let objectFromCoordinates: ObjectFromCoordinates | undefined;
+            try {
+                objectFromCoordinates = await api<ObjectFromCoordinates>(detectionObjectEndpoints.fromCoordinates, {
+                    params: {
+                        lat,
+                        lng,
+                    },
+                    signal: abortController.signal,
+                });
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return; // superseded by a newer click, keep the loader for the new request
                 }
-                // clicking empty space with nothing open: look for a detection hidden by filters
-                const { lng, lat } = lngLat;
-
-                if (clickAbortRef.current) {
-                    clickAbortRef.current.abort();
-                }
-                const abortController = new AbortController();
-                clickAbortRef.current = abortController;
 
                 setObjectFromCoordinates(() => ({
-                    fetchStatus: 'LOADING',
+                    fetchStatus: 'IDLE',
                     objectFromCoordinates: undefined,
                 }));
 
-                let objectFromCoordinates: ObjectFromCoordinates | undefined;
-                try {
-                    objectFromCoordinates = await api<ObjectFromCoordinates>(detectionObjectEndpoints.fromCoordinates, {
-                        params: {
-                            lat,
-                            lng,
-                        },
-                        signal: abortController.signal,
-                    });
-                } catch (error) {
-                    if (error instanceof DOMException && error.name === 'AbortError') {
-                        return; // superseded by a newer click, keep the loader for the new request
-                    }
-
-                    setObjectFromCoordinates(() => ({
-                        fetchStatus: 'IDLE',
-                        objectFromCoordinates: undefined,
-                    }));
-
-                    if (
-                        error instanceof ApiError &&
-                        (error.body as { code?: string } | undefined)?.code === 'OUTSIDE_CUSTOM_ZONE'
-                    ) {
-                        notifications.show({
-                            color: 'red',
-                            title: 'Recherche impossible',
-                            message: 'Impossible de rechercher une détection en zone urbaine',
-                        });
-                    } else {
-                        notifications.show({
-                            color: 'red',
-                            title: 'Une erreur est survenue',
-                            message: 'Impossible de rechercher une détection à cet endroit',
-                        });
-                    }
-                    return;
-                }
-
-                if (!objectFromCoordinates) {
-                    setObjectFromCoordinates(() => ({
-                        fetchStatus: 'IDLE',
-                        objectFromCoordinates: undefined,
-                    }));
+                if (
+                    error instanceof ApiError &&
+                    (error.body as { code?: string } | undefined)?.code === 'OUTSIDE_CUSTOM_ZONE'
+                ) {
                     notifications.show({
-                        title: 'Aucun objet détecté ici',
-                        message: "Aucun objet, même non-visible n'a été détecté ici",
+                        color: 'red',
+                        title: 'Recherche impossible',
+                        message: 'Impossible de rechercher une détection en zone urbaine',
                     });
-                    return;
+                } else {
+                    notifications.show({
+                        color: 'red',
+                        title: 'Une erreur est survenue',
+                        message: 'Impossible de rechercher une détection à cet endroit',
+                    });
                 }
+                return;
+            }
 
-                notifications.show({
-                    title: 'Un objet masqué par les filtres actuels a été détecté ici',
-                    message: 'Vous pouvez le rendre visible dans le panneau latéral',
-                });
-                setDetectionDetailsShowed({
-                    detectionObjectUuid: objectFromCoordinates.uuid,
-                    detectionHidden: true,
-                });
+            if (!objectFromCoordinates) {
                 setObjectFromCoordinates(() => ({
                     fetchStatus: 'IDLE',
-                    objectFromCoordinates,
+                    objectFromCoordinates: undefined,
                 }));
-
-                target.setPadding(MAP_PADDINGS.detailSectionShowed);
-                target.flyTo({
-                    center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
+                notifications.show({
+                    title: 'Aucun objet détecté ici',
+                    message: "Aucun objet, même non-visible n'a été détecté ici",
                 });
+                return;
             }
+
+            notifications.show({
+                title: 'Un objet masqué par les filtres actuels a été détecté ici',
+                message: 'Vous pouvez le rendre visible dans le panneau latéral',
+            });
+            setDetectionDetailsShowed({
+                detectionObjectUuid: objectFromCoordinates.uuid,
+                detectionHidden: true,
+            });
+            setObjectFromCoordinates(() => ({
+                fetchStatus: 'IDLE',
+                objectFromCoordinates,
+            }));
+
+            target.setPadding(MAP_PADDINGS.detailSectionShowed);
+            target.flyTo({
+                center: getCoord(centroid(objectFromCoordinates.geometry as Polygon)) as [number, number],
+            });
         }, 300);
     };
 
@@ -1010,6 +1161,8 @@ const Component: React.FC<ComponentProps> = ({
                 mapStyle="mapbox://styles/mapbox/streets-v12"
                 {...(settings?.globalGeometryBbox ? { maxBounds: bbox(settings.globalGeometryBbox) } : {})}
             >
+                {/* first, so the search bar stays at the far left of the top-left controls */}
+                <MapControlSearchAddress onSearch={onAddressSearch} />
                 <GeolocateControl
                     position="top-left"
                     style={{
@@ -1342,47 +1495,44 @@ const Component: React.FC<ComponentProps> = ({
                     </div>
                 ) : undefined}
             </Map>
-            {detectionObjectsToDownload ? (
+            {multipleDownload ? (
                 <>
-                    <SignalementPDFData
-                        previewParams={detectionObjectsToDownload
-                            .filter((detectionObject) => detectionObject.parcel)
-                            .map((detectionObject) => ({
-                                detectionObjectUuid: detectionObject.uuid,
-                                parcelUuid: String(detectionObject.parcel?.uuid),
-                            }))}
-                        onGenerationFinished={(error?: string) => {
-                            if (error) {
-                                notifications.show({
-                                    title: 'Erreur lors de la génération des fiches de signalement',
-                                    message: error,
-                                    color: 'red',
-                                });
-                            }
+                    {multipleDownload.pages ? (
+                        <SignalementPDFData
+                            // a cancel followed by a new selection must not inherit the
+                            // previews already captured by the previous run
+                            key={multipleDownload.runId}
+                            previewParams={multipleDownload.pages}
+                            onGenerationFinished={(error?: string) => {
+                                if (multipleDownloadRunIdRef.current !== multipleDownload.runId) {
+                                    return;
+                                }
 
-                            setDetectionObjectsToDownload(undefined);
-                            setDetectionObjectsNbrToDownloadProcessed(0);
-                        }}
-                        setNbrDetectionObjectsProcessed={(nbr) => setDetectionObjectsNbrToDownloadProcessed(nbr)}
-                    />
+                                if (error) {
+                                    notifications.show({
+                                        title: 'Erreur lors de la génération des fiches de signalement',
+                                        message: error,
+                                        color: 'red',
+                                    });
+                                }
+
+                                setMultipleDownload(undefined);
+                            }}
+                            setNbrDetectionObjectsProcessed={(nbr) =>
+                                setMultipleDownload((prev) =>
+                                    prev?.runId === multipleDownload.runId && prev.nbrProcessed !== nbr
+                                        ? { ...prev, nbrProcessed: nbr }
+                                        : prev,
+                                )
+                            }
+                        />
+                    ) : null}
                     <LoadingOverlay
                         zIndex={10000000}
                         visible={true}
                         loaderProps={{
                             children: (
-                                <>
-                                    <h2>Génération des rapports...</h2>
-                                    <p>Cette opération peut prendre quelques minutes</p>
-                                    <p>Veuillez ne pas fermer cette fenêtre</p>
-                                    <Progress
-                                        aria-label="Uploading progress"
-                                        mt="md"
-                                        value={
-                                            100 *
-                                            (detectionObjectsNbrToDownloadProcessed / detectionObjectsToDownload.length)
-                                        }
-                                    />
-                                </>
+                                <MultipleDownloadBlocker state={multipleDownload} onCancel={cancelMultipleDownload} />
                             ),
                         }}
                     />
