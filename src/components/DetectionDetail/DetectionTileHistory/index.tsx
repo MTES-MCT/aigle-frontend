@@ -14,7 +14,11 @@ interface ComponentProps {
 }
 const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelected }) => {
     const [fullHistoryShowed, setFullHistoryShowed] = useState(false);
-    const previewBounds = bbox(detectionObject.detections[0].tile.geometry) as [number, number, number, number];
+    // a new identity here re-frames every preview map, so it must only change with the object
+    const previewBounds = useMemo(
+        () => bbox(detectionObject.detections[0].tile.geometry) as [number, number, number, number],
+        [detectionObject],
+    );
     const tileSetUuidsDetectionsMap = detectionObject.detections.reduce<Record<string, DetectionWithTile>>(
         (prev, curr) => {
             prev[curr.tileSet.uuid] = curr;
@@ -29,7 +33,7 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
         }
 
         return detectionObject.tileSets;
-    }, [fullHistoryShowed]);
+    }, [fullHistoryShowed, detectionObject]);
 
     return (
         <div className={classes.container}>

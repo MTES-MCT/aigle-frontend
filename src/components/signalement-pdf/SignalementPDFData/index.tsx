@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { parcelEndpoints } from '@/api/endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
@@ -19,9 +19,10 @@ import { format } from 'date-fns';
 import { Polygon } from 'geojson';
 import classes from './index.module.scss';
 
-const fetchParcelDetail = (uuid: string, detectionObjectUuid?: string) =>
+const fetchParcelDetail = (uuid: string, detectionObjectUuid?: string, signal?: AbortSignal) =>
     api<ParcelDetail>(parcelEndpoints.downloadInfos(uuid), {
         params: { detectionObjectUuid },
+        signal,
     });
 
 const getSignalementPDFDocumentName = (parcel?: ParcelDetail) => {
@@ -74,6 +75,15 @@ const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinis
         }
     }, [instance.blob]);
 
+    // without this a render failure leaves the caller waiting on a blob that never comes
+    useEffect(() => {
+        if (!instance.error) {
+            return;
+        }
+
+        onGenerationFinished("Le document n'a pas pu être généré");
+    }, [instance.error]);
+
     return <></>;
 };
 
@@ -93,7 +103,10 @@ const PLAN_URL_TILESET: TileSet = {
     monochrome: false,
 };
 
-const getPreviewId = (tileSetUuid: string, parcelUuid: string) => `preview-${parcelUuid}-${tileSetUuid}`;
+// a page is identified by (parcel, detection object): two objects on the same parcel render
+// at the same time, and sharing an id made the second page capture the first one's canvas
+const getPreviewId = (tileSetUuid: string, parcelUuid: string, detectionObjectUuid?: string) =>
+    `preview-${detectionObjectUuid || parcelUuid}-${tileSetUuid}`;
 
 interface PreviewGeometry {
     geometry: Polygon;
@@ -142,10 +155,13 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({
     onInvalidParcel,
 }) => {
     const [previewImages, setPreviewImages] = useState<Record<string, PreviewImage>>({});
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const { data: parcel, isLoading: parcelIsLoading } = useQuery({
-        queryKey: [parcelEndpoints.downloadInfos(String(parcelUuid))],
-        queryFn: () => fetchParcelDetail(parcelUuid, detectionObjectUuid),
+        // the payload is scoped to the detection object, so two objects sharing a parcel
+        // must not share a cache entry
+        queryKey: [parcelEndpoints.downloadInfos(String(parcelUuid)), detectionObjectUuid],
+        queryFn: ({ signal }) => fetchParcelDetail(parcelUuid, detectionObjectUuid, signal),
     });
 
     const tileSetsToRender = parcel?.tileSetPreviews?.filter(({ preview }) => preview) || [];
@@ -181,7 +197,8 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({
                 return;
             }
 
-            const canvas = document.querySelector(`#${previewId} canvas`);
+            // scoped to this page's own previews: several pages render at the same time
+            const canvas = containerRef.current?.querySelector(`#${previewId} canvas`);
 
             let src;
             try {
@@ -205,16 +222,16 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({
     if (parcelIsLoading || !parcel || !previewBounds || !tileSetsToRender) {
         return null;
     }
-    const planPreviewId = getPreviewId(PLAN_URL_TILESET.uuid, parcel.uuid);
+    const planPreviewId = getPreviewId(PLAN_URL_TILESET.uuid, parcel.uuid, detectionObjectUuid);
 
     return (
-        <div className={classes.container}>
+        <div className={classes.container} ref={containerRef}>
             {tileSetsToRender.map(({ tileSet }, index) => {
                 if (previewImages[tileSet.uuid]) {
                     return null;
                 }
 
-                const previewId = getPreviewId(tileSet.uuid, parcel.uuid);
+                const previewId = getPreviewId(tileSet.uuid, parcel.uuid, detectionObjectUuid);
 
                 return (
                     <DetectionTilePreview
@@ -288,6 +305,15 @@ const Component: React.FC<ComponentProps> = ({
     );
     const [pagePreviewsDone, setPagePreviewsDone] = useState<PagePreviewParams[]>([]);
 
+    // the parent re-creates this callback on every render, so it cannot be an effect dependency
+    const setNbrProcessedRef = useRef(setNbrDetectionObjectsProcessed);
+    setNbrProcessedRef.current = setNbrDetectionObjectsProcessed;
+
+    // reported on its own, the loop below stops counting before the last page
+    useEffect(() => {
+        setNbrProcessedRef.current?.(pagePreviewsDone.length);
+    }, [pagePreviewsDone.length]);
+
     useEffect(() => {
         if (!pagePreviewsDone.length || pagePreviewsDone.length === previewParams.length) {
             return;
@@ -311,7 +337,6 @@ const Component: React.FC<ComponentProps> = ({
 
             return [...currentPagesDisplayed, ...pagePreviewsToDisplay.slice(0, nbrElementsToDisplay)];
         });
-        setNbrDetectionObjectsProcessed && setNbrDetectionObjectsProcessed(pagePreviewsDone.length);
     }, [pagePreviewsDone, previewParams]);
 
     return (

@@ -16,6 +16,29 @@
 
             gap: var(--mantine-spacing-xs);
         }
+
+        // sits above the map: the preview keeps an empty background rather than a
+        // basemap, so the reason for the empty tile has to be spelled out
+        .detection-tile-preview-unavailable {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+
+            padding: 0 4px;
+
+            color: var(--mantine-color-gray-6);
+            font-size: var(--mantine-font-size-xs);
+            font-style: italic;
+            text-align: center;
+
+            pointer-events: none;
+        }
     }
 
     .detection-tile-preview-title {

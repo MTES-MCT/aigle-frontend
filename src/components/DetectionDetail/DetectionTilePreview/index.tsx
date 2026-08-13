@@ -4,11 +4,11 @@ import { formatDateOnly } from '@/utils/format';
 import { extendBbox } from '@/utils/geojson';
 import { ActionIcon, Overlay, Tooltip } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
-import { IconPencil, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
+import { IconPencil, IconPhotoOff, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { Polygon, Position } from 'geojson';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Map, { Layer, MapRef, MapSourceDataEvent, Source } from 'react-map-gl';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Map, { Layer, MapEvent, MapRef, MapSourceDataEvent, MapStyle, Source } from 'react-map-gl';
 import classes from './index.module.scss';
 
 interface PreviewGeometry {
@@ -22,10 +22,41 @@ interface ClassNames {
     inner?: string;
 }
 
+const RASTER_SOURCE_ID = 'raster-source';
+const RASTER_LAYER_ID = 'raster-layer';
+const GEOJSON_SOURCE_ID = 'geojson-data';
 const GEOJSON_LAYER_ID = 'geojson-layer';
+const PIN_SOURCE_ID = 'pin-data';
 const PIN_LAYER_ID = 'pin-layer';
 
+// A preview only ever shows the imagery of its tile set. Loading the mapbox streets style
+// would download a whole vector basemap for each of the previews displayed at once and,
+// when the imagery is missing, would leave a street map that reads as a broken preview.
+const PREVIEW_MAP_STYLE: MapStyle = {
+    version: 8,
+    glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+    sources: {},
+    layers: [
+        {
+            id: 'background',
+            type: 'background',
+            paint: { 'background-color': '#e9ecef' },
+        },
+    ],
+};
+
+// imagery can legitimately be missing: tile sets are attached to whole collectivities but
+// their tiles only cover the zones that were actually flown over
+const IMAGERY_TIMEOUT_MS = 15000;
+
+// mapbox answers "loaded" optimistically: a source cache reports itself loaded once it has
+// errored a single time (one 404 tile is enough here) and while it still holds no tile at
+// all, and `idle` inherits both. Requiring the map to then stay quiet is what proves the
+// last tile has been drawn - reading the canvas earlier captures a half-painted overlay.
+const IDLE_QUIET_PERIOD_MS = 200;
+
 type PreviewControl = 'ZOOM' | 'EDIT';
+type ImageryStatus = 'LOADING' | 'LOADED' | 'UNAVAILABLE';
 
 interface ComponentProps {
     geometries?: PreviewGeometry[];
@@ -58,87 +89,120 @@ const Component: React.FC<ComponentProps> = ({
     extendedLevel = 0,
     id,
     onFullyLoaded,
-    reuseMaps = true,
+    // react-map-gl recycles maps through a global pool without resetting their sources or
+    // re-applying `bounds`, so a recycled preview can keep another year's tiles and camera
+    reuseMaps = false,
     pinPosition,
     fitBoundsOptions,
 }) => {
-    const mapRef = useRef<MapRef>();
+    const mapRef = useRef<MapRef>(null);
     const [currentExtendedLevel, setCurrentExtendedLevel] = useState(extendedLevel);
-    const bounds_ = currentExtendedLevel ? extendBbox(bounds, currentExtendedLevel) : bounds;
+    const bounds_ = useMemo(
+        () => (currentExtendedLevel ? extendBbox(bounds, currentExtendedLevel) : bounds),
+        [currentExtendedLevel, bounds],
+    );
 
-    const [sourcesLoaded, setSourcesLoaded] = useState(new Set<string>());
-    const [styleLoaded, setStyleLoaded] = useState(false);
-    const [renderComplete, setRenderComplete] = useState(false);
-    const checkCompleteTimeoutRef = useRef<NodeJS.Timeout>();
+    const [imageryStatus, setImageryStatus] = useState<ImageryStatus>('LOADING');
+    const hasRenderedTilesRef = useRef(false);
+    const fullyLoadedFiredRef = useRef(false);
+    const onFullyLoadedRef = useRef(onFullyLoaded);
+    onFullyLoadedRef.current = onFullyLoaded;
 
-    const checkIfFullyRendered = useCallback(() => {
-        if (!mapRef.current) return;
+    // the preview is done as soon as the imagery it can show has settled: an unreachable
+    // tile set must not hold the signal forever, the signalement PDF generation waits on it
+    const settle = useCallback((status: Exclude<ImageryStatus, 'LOADING'>) => {
+        setImageryStatus((current) => (current === 'LOADING' ? status : current));
 
-        const map = mapRef.current.getMap();
-
-        const allSourcesLoaded = ['geojson-data', 'raster-source'].every((sourceId) => {
-            return map.isSourceLoaded(sourceId);
-        });
-
-        const isMapLoaded = map.loaded();
-        const isStyleLoaded = map.isStyleLoaded();
-
-        if (isMapLoaded && isStyleLoaded && allSourcesLoaded) {
-            // Wait for the next render cycle to ensure geometries are painted
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    setRenderComplete(true);
-                    if (onFullyLoaded) {
-                        onFullyLoaded();
-                    }
-                });
-            });
-        } else {
-            checkCompleteTimeoutRef.current = setTimeout(checkIfFullyRendered, 100);
+        if (fullyLoadedFiredRef.current) {
+            return;
         }
-    }, [onFullyLoaded]);
+        fullyLoadedFiredRef.current = true;
 
-    const onSourceData = useCallback((e: MapSourceDataEvent) => {
-        if (e.isSourceLoaded && e.sourceId) {
-            setSourcesLoaded((prev) => new Set([...prev, e.sourceId || '']));
-        }
+        // let the tiles and the geometries be painted before the canvas is read back
+        requestAnimationFrame(() => requestAnimationFrame(() => onFullyLoadedRef.current?.()));
     }, []);
 
-    const onStyleData = useCallback(() => {
-        setStyleLoaded(true);
-    }, []);
-
-    const onRender = useCallback(() => {
-        if (checkCompleteTimeoutRef.current) {
-            clearTimeout(checkCompleteTimeoutRef.current);
-        }
-        checkCompleteTimeoutRef.current = setTimeout(checkIfFullyRendered, 100);
-    }, [checkIfFullyRendered]);
+    const quietTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        const requiredSources = ['geojson-data', 'raster-source'];
-        const allSourcesLoaded = requiredSources.every((sourceId) => sourcesLoaded.has(sourceId));
+        hasRenderedTilesRef.current = false;
+        setImageryStatus('LOADING');
 
-        if (allSourcesLoaded && styleLoaded && !renderComplete) {
-            checkIfFullyRendered();
-        }
-    }, [sourcesLoaded, styleLoaded, renderComplete, checkIfFullyRendered]);
+        const timeout = setTimeout(
+            () => settle(hasRenderedTilesRef.current ? 'LOADED' : 'UNAVAILABLE'),
+            IMAGERY_TIMEOUT_MS,
+        );
 
-    useEffect(() => {
         return () => {
-            if (checkCompleteTimeoutRef.current) {
-                clearTimeout(checkCompleteTimeoutRef.current);
+            clearTimeout(timeout);
+
+            if (quietTimeoutRef.current) {
+                clearTimeout(quietTimeoutRef.current);
+                quietTimeoutRef.current = null;
             }
         };
+        // deliberately not re-run on a camera change: re-framing cannot change whether this
+        // tile set has imagery here, and tiles already held by the source are served from
+        // its cache without emitting the events this relies on
+    }, [tileSet.url, settle]);
+
+    // isSourceLoaded turns true whether the tiles arrived or failed, so what separates
+    // "imagery displayed" from "nothing to show" is a tile event that is not an error one
+    // (a 404 tile reports itself with sourceDataType 'error' and still carries its tile)
+    const handleSourceData = useCallback((event: MapSourceDataEvent) => {
+        if (
+            event.sourceId === RASTER_SOURCE_ID &&
+            event.sourceDataType !== 'error' &&
+            (event as { tile?: unknown }).tile
+        ) {
+            hasRenderedTilesRef.current = true;
+        }
     }, []);
 
-    useEffect(() => {
-        if (!mapRef.current) {
+    // every tile that lands repaints, which pushes the settle back until nothing moves anymore
+    const handleRender = useCallback(() => {
+        if (!quietTimeoutRef.current) {
             return;
         }
 
-        mapRef.current.fitBounds(bounds_, {
+        clearTimeout(quietTimeoutRef.current);
+        quietTimeoutRef.current = null;
+    }, []);
+
+    const handleIdle = useCallback(
+        (event: MapEvent) => {
+            const map = event.target;
+
+            if (fullyLoadedFiredRef.current) {
+                return;
+            }
+
+            // idle also fires before the raster source has been added to the style
+            if (!map.getSource(RASTER_SOURCE_ID) || !map.isSourceLoaded(RASTER_SOURCE_ID)) {
+                return;
+            }
+
+            if (quietTimeoutRef.current) {
+                clearTimeout(quietTimeoutRef.current);
+            }
+
+            quietTimeoutRef.current = setTimeout(() => {
+                quietTimeoutRef.current = null;
+                settle(hasRenderedTilesRef.current ? 'LOADED' : 'UNAVAILABLE');
+            }, IDLE_QUIET_PERIOD_MS);
+        },
+        [settle],
+    );
+
+    // initialViewState frames the map on creation; this only re-frames it when the zoom
+    // controls widen the bbox
+    const fitBoundsOptionsRef = useRef(fitBoundsOptions);
+    fitBoundsOptionsRef.current = fitBoundsOptions;
+
+    useEffect(() => {
+        mapRef.current?.fitBounds(bounds_, {
             animate: false,
+            ...fitBoundsOptionsRef.current,
         });
     }, [bounds_]);
 
@@ -183,40 +247,31 @@ const Component: React.FC<ComponentProps> = ({
                         ) : null}
                     </Overlay>
                 ) : null}
+                {imageryStatus === 'UNAVAILABLE' ? (
+                    <div className={classes['detection-tile-preview-unavailable']}>
+                        <IconPhotoOff size={18} />
+                        <span>Imagerie indisponible</span>
+                    </div>
+                ) : null}
                 <div className={clsx(classes['detection-tile-preview'], classNames?.inner)}>
                     <Map
-                        preserveDrawingBuffer={true}
+                        // only needed where the canvas is read back to build the signalement PDF
+                        preserveDrawingBuffer={!!onFullyLoaded}
                         ref={mapRef}
                         mapboxAccessToken={MAPBOX_TOKEN}
                         style={{ width: '100%', height: '100%' }}
-                        mapStyle="mapbox://styles/mapbox/streets-v11"
+                        mapStyle={PREVIEW_MAP_STYLE}
                         interactive={false}
                         reuseMaps={reuseMaps}
-                        bounds={bounds_}
-                        fitBoundsOptions={fitBoundsOptions}
-                        onSourceData={onSourceData}
-                        onStyleData={onStyleData}
-                        onRender={onRender}
+                        initialViewState={{ bounds: bounds_, fitBoundsOptions }}
+                        onSourceData={handleSourceData}
+                        onRender={handleRender}
+                        onIdle={handleIdle}
                         {...(id ? { id } : {})}
                     >
-                        <Source type="geojson" data={{ type: 'Point', coordinates: pinPosition }}>
-                            <Layer
-                                id={PIN_LAYER_ID}
-                                type="symbol"
-                                layout={{
-                                    'text-field': '+',
-                                    'text-size': 96,
-                                    'text-allow-overlap': true,
-                                    'text-ignore-placement': true,
-                                }}
-                                paint={{
-                                    'text-color': '#FF0000',
-                                }}
-                            />
-                        </Source>
                         <Source
                             type="geojson"
-                            id="geojson-data"
+                            id={GEOJSON_SOURCE_ID}
                             data={{
                                 type: 'FeatureCollection',
                                 features: (geometries || []).map(({ geometry, color }) => ({
@@ -230,28 +285,37 @@ const Component: React.FC<ComponentProps> = ({
                         >
                             <Layer
                                 id={GEOJSON_LAYER_ID}
-                                beforeId={PIN_LAYER_ID}
                                 type="line"
                                 paint={{
                                     'line-color': ['get', 'color'],
                                     'line-width': 3,
-                                    'line-dasharray': strokedLine ? [2, 2] : [],
+                                    // an empty dasharray is not a valid pattern, omit it instead
+                                    ...(strokedLine ? { 'line-dasharray': [2, 2] } : {}),
                                 }}
                             />
                         </Source>
 
                         <Source
-                            id="raster-source"
+                            id={RASTER_SOURCE_ID}
                             scheme={tileSet.tileSetScheme}
                             type="raster"
                             tiles={[tileSet.url]}
                             tileSize={256}
+                            // the zoom range belongs on the source, where it declares which
+                            // levels exist so mapbox upsamples the deepest tiles above
+                            // maxzoom. Without it the preview requests its exact zoom level
+                            // and shows nothing when the tile set stops lower. On the layer
+                            // the same keys mean something else: the map zoom range in which
+                            // to draw at all, maxzoom exclusive, which would hide the
+                            // imagery this is meant to reveal.
+                            {...(tileSet.maxZoom ? { maxzoom: tileSet.maxZoom } : {})}
+                            {...(tileSet.minZoom ? { minzoom: tileSet.minZoom } : {})}
                         >
                             <Layer
                                 beforeId={GEOJSON_LAYER_ID}
-                                id="raster-layer"
+                                id={RASTER_LAYER_ID}
                                 type="raster"
-                                source="raster-source"
+                                source={RASTER_SOURCE_ID}
                                 paint={{
                                     'raster-saturation': tileSet.monochrome ? -1 : 0,
                                     'raster-opacity-transition': {
@@ -262,6 +326,28 @@ const Component: React.FC<ComponentProps> = ({
                                 }}
                             />
                         </Source>
+
+                        {pinPosition ? (
+                            <Source
+                                type="geojson"
+                                id={PIN_SOURCE_ID}
+                                data={{ type: 'Point', coordinates: pinPosition }}
+                            >
+                                <Layer
+                                    id={PIN_LAYER_ID}
+                                    type="symbol"
+                                    layout={{
+                                        'text-field': '+',
+                                        'text-size': 96,
+                                        'text-allow-overlap': true,
+                                        'text-ignore-placement': true,
+                                    }}
+                                    paint={{
+                                        'text-color': '#FF0000',
+                                    }}
+                                />
+                            </Source>
+                        ) : null}
                     </Map>
                 </div>
             </div>
