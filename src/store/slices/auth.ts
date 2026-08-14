@@ -66,8 +66,12 @@ const useAuth = create<AuthState>()(
                 return 'COLLECTIVITY';
             },
             getCanViewStatistics: () => {
-                // Internal staff only for now, while the DDTM dashboard is being rolled out.
-                return get().userMe?.isStaff === true;
+                const userMe = get().userMe;
+
+                // Internal staff and super-admins only for now, while the DDTM dashboard is
+                // being rolled out. A super-admin reads the dashboard of the group they are
+                // scoped to (X-User-Group-Uuid), like everywhere else in the app.
+                return userMe?.isStaff === true || userMe?.userRole === 'SUPER_ADMIN';
             },
             getAccessibleGeozones: (geoZoneType?: GeoZoneType) => {
                 const userMe = get().userMe;

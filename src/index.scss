@@ -433,6 +433,19 @@ a.mantine-NavLink-root {
             &:hover {
                 background-color: #f4f4f4;
             }
+
+            // these rules outrank the library's own .active styling, so the selected tool
+            // has to be highlighted here or nothing marks a drawing session as in progress
+            &.active {
+                background-color: var(--mantine-primary-color-light);
+                box-shadow:
+                    constants.$shadow,
+                    inset 0 0 0 2px var(--mantine-primary-color-filled);
+
+                &:hover {
+                    background-color: var(--mantine-primary-color-light-hover);
+                }
+            }
         }
     }
 }
