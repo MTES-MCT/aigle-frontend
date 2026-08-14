@@ -22,7 +22,7 @@
     --title-spacing: 0 0 0;
     --text-spacing: 0 0 0;
     --indicator-z-index: 10;
-    --mantine-radius-default: 8px; //  constants.$border-radius-small
+    --mantine-radius-default: #{constants.$border-radius-small};
     --lo-z-index: 150 !important;
 
     font-family: Marianne, arial, sans-serif;
@@ -436,14 +436,23 @@ a.mantine-NavLink-root {
 
             // these rules outrank the library's own .active styling, so the selected tool
             // has to be highlighted here or nothing marks a drawing session as in progress
+            // --mantine-primary-color-light is ~10% alpha, so on its own the map shows
+            // through the button; composite it over white to keep an opaque green tint
             &.active {
-                background-color: var(--mantine-primary-color-light);
+                background-color: var(--mantine-color-white);
+                background-image: linear-gradient(
+                    var(--mantine-primary-color-light),
+                    var(--mantine-primary-color-light)
+                );
                 box-shadow:
                     constants.$shadow,
                     inset 0 0 0 2px var(--mantine-primary-color-filled);
 
                 &:hover {
-                    background-color: var(--mantine-primary-color-light-hover);
+                    background-image: linear-gradient(
+                        var(--mantine-primary-color-light-hover),
+                        var(--mantine-primary-color-light-hover)
+                    );
                 }
             }
         }
@@ -475,10 +484,6 @@ a.mantine-NavLink-root {
     @media screen and (max-width: 992px) {
         flex-wrap: wrap;
     }
-}
-
-.mapboxgl-ctrl-group {
-    box-shadow: none !important;
 }
 
 .mapboxgl-ctrl-group {
