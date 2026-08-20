@@ -63,6 +63,24 @@ npm run preview      # Preview production build locally
 -   **Role-based access**: ADMIN, SUPER_ADMIN, COLLECTIVITY, DDTM
 -   **Protected routes** with role verification
 
+### DSFR (Système de Design de l'État)
+
+`@gouvfr/dsfr` is pinned to an **exact** version (no caret) and `.dsfr.yml` at the project root
+records consent to the DSFR terms of use:
+
+```yaml
+accept-license: '1.0.1' # must equal the cguVersion of the installed @gouvfr/dsfr
+```
+
+Since 1.15.0 the package ships a `preinstall` script that aborts the install when that file is
+missing (`[NO_YML]`) or when its version does not match (`[UPDATE-x->y]`). CI needs no change
+because `.dsfr.yml` is committed; `DSFR_ACCEPT_LICENSE=1` is the env-var escape hatch. **Bumping
+DSFR means updating `.dsfr.yml` in the same change** — that is why the version is pinned rather
+than ranged.
+
+Only the DSFR **CSS** is loaded, never its JavaScript runtime, so `src/components/dsfr/`
+hand-implements the behaviour DSFR's JS would provide.
+
 ### Code Quality
 
 -   **TypeScript strict mode** with path aliases (`@/*` → `src/*`)

@@ -1,11 +1,9 @@
-import { ActionIcon, Switch, Tooltip } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
 import clsx from 'clsx';
-import React, { PropsWithChildren, useMemo, useRef } from 'react';
+import React, { PropsWithChildren, useId, useRef } from 'react';
 import { ControlPosition, useControl } from 'react-map-gl';
 import classes from './index.module.scss';
 
-type ControlType = 'ACTION_BUTTON' | 'SWITCH' | 'SIMPLE';
+type ControlType = 'TOGGLE' | 'SIMPLE';
 
 interface ComponentProps extends PropsWithChildren {
     position?: ControlPosition;
@@ -14,23 +12,20 @@ interface ComponentProps extends PropsWithChildren {
     contentClassName?: string;
     containerClassName?: string;
     isShowed: boolean;
-    label?: string;
     setIsShowed?: (state: boolean) => void;
-    disabled?: boolean;
 }
 
 const Component: React.FC<ComponentProps> = ({
     position = 'top-left',
-    controlType = 'ACTION_BUTTON',
+    controlType = 'SIMPLE',
     controlInner,
     containerClassName,
     contentClassName,
     isShowed,
-    label,
     setIsShowed,
-    disabled,
     children,
-}) => {
+}: ComponentProps) => {
+    const toggleId = `map-control-${useId()}`;
     const containerRef = useRef<HTMLDivElement>(document.createElement('div'));
     const controlContainerRef = useRef<HTMLDivElement>(null);
 
@@ -58,45 +53,22 @@ const Component: React.FC<ComponentProps> = ({
 
     useControl(() => new CustomMapControl(), { position });
 
-    const tooltipPosition = useMemo(() => {
-        if (['top-right', 'top-left'].includes(position)) {
-            return 'bottom';
-        }
-
-        return 'top';
-    }, [position]);
-
     return (
         <>
-            {controlType !== 'SIMPLE' ? (
+            {controlType === 'TOGGLE' ? (
                 <div className={containerClassName} ref={controlContainerRef}>
-                    {controlType === 'ACTION_BUTTON' ? (
-                        <Tooltip label={label} position={tooltipPosition} offset={16}>
-                            <ActionIcon
-                                className={classes.button}
-                                size={36}
-                                variant="white"
-                                onClick={() => setIsShowed && setIsShowed(!isShowed)}
-                                disabled={!!disabled}
-                                aria-label={label}
-                                aria-hidden="true"
-                            >
-                                {controlInner}
-                            </ActionIcon>
-                        </Tooltip>
-                    ) : null}
-                    {controlType === 'SWITCH' ? (
-                        <Tooltip label={label}>
-                            <Switch
-                                label={controlInner}
-                                checked={isShowed}
-                                onChange={(event) => setIsShowed && setIsShowed(event.currentTarget.checked)}
-                                disabled={!!disabled}
-                                aria-label={label}
-                                aria-hidden="true"
-                            />
-                        </Tooltip>
-                    ) : null}
+                    <div className="fr-toggle fr-toggle--label-left">
+                        <input
+                            type="checkbox"
+                            className="fr-toggle__input"
+                            id={toggleId}
+                            checked={isShowed}
+                            onChange={(event) => setIsShowed && setIsShowed(event.currentTarget.checked)}
+                        />
+                        <label className="fr-toggle__label" htmlFor={toggleId}>
+                            {controlInner}
+                        </label>
+                    </div>
                 </div>
             ) : null}
 
@@ -106,14 +78,17 @@ const Component: React.FC<ComponentProps> = ({
                 })}
             >
                 {setIsShowed ? (
-                    <ActionIcon
-                        variant="transparent"
-                        className={classes['close-button']}
+                    <button
+                        type="button"
+                        className={clsx(
+                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line',
+                            classes['close-button'],
+                        )}
+                        title="Fermer la section"
                         onClick={() => setIsShowed(false)}
-                        aria-label="Fermer la section"
                     >
-                        <IconX />
-                    </ActionIcon>
+                        Fermer la section
+                    </button>
                 ) : null}
                 {children}
             </div>

@@ -17,6 +17,7 @@ export interface GeoCustomZone extends GeoZone {
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
     geoCustomZoneCategory: GeoCustomZoneCategory | null;
+    description: string | null;
 }
 export interface GeoCustomZoneWithSubZones extends GeoCustomZone {
     subCustomZones: GeoSubCustomZoneMinimal[];

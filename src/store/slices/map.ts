@@ -9,13 +9,7 @@ import EventEmitter from 'eventemitter3';
 import { isEqual } from 'lodash';
 import { create } from 'zustand';
 
-type MapEventType =
-    | 'UPDATE_DETECTIONS'
-    | 'UPDATE_DETECTION_DETAIL'
-    | 'JUMP_TO'
-    | 'DISPLAY_PARCEL'
-    | 'LAYERS_UPDATED'
-    | 'OBJECTS_FILTER_UPDATED';
+type MapEventType = 'UPDATE_DETECTIONS' | 'UPDATE_DETECTION_DETAIL' | 'JUMP_TO' | 'DISPLAY_PARCEL' | 'LAYERS_UPDATED';
 
 interface MapState {
     layers?: MapTileSetLayer[];
@@ -37,6 +31,7 @@ interface MapState {
     setTileSetVisibility: (uuid: string, visible: boolean) => void;
     setTileSetsVisibility: (uuids: string[], visible: boolean) => void;
     setCustomZoneVisibility: (uuids: string[], visible: boolean) => void;
+    setCustomZoneOpacity: (uuids: string[], opacity: number) => void;
     setAnnotationLayerVisibility: (visible: boolean) => void;
     setCustomZoneNegativeFilterVisibility: (visible: boolean) => void;
     getBackgroundTileSetYearDisplayed: () => string | undefined;
@@ -45,6 +40,29 @@ interface MapState {
     setIsDetailFetching: (state: boolean) => void;
     eventEmitter: EventEmitter<MapEventType>;
 }
+
+// A new array and a new layer object on every change: the map paint expressions are memoized
+// on customZoneLayers, and an in-place mutation would leave them stale.
+const updateCustomZoneLayer = (
+    customZoneLayers: MapGeoCustomZoneLayer[] | undefined,
+    uuids: string[],
+    patch: Partial<MapGeoCustomZoneLayer>,
+): Partial<MapState> => {
+    if (!customZoneLayers) {
+        return {};
+    }
+
+    const layerIndex = customZoneLayers.findIndex((layer) => isEqual(layer.customZoneUuids, uuids));
+
+    if (layerIndex === -1) {
+        return {};
+    }
+
+    const updated = [...customZoneLayers];
+    updated[layerIndex] = { ...updated[layerIndex], ...patch };
+
+    return { customZoneLayers: updated };
+};
 
 const useMap = create<MapState>()((set, get) => ({
     setMapSettings: (settings: MapSettings) => {
@@ -192,23 +210,10 @@ const useMap = create<MapState>()((set, get) => ({
         });
     },
     setCustomZoneVisibility: (uuids: string[], visible: boolean) => {
-        set((state) => {
-            if (!state.customZoneLayers) {
-                return {};
-            }
-
-            const layerIndex = state.customZoneLayers.findIndex((layer) => isEqual(layer.customZoneUuids, uuids));
-
-            if (layerIndex === -1) {
-                return {};
-            }
-
-            state.customZoneLayers[layerIndex].displayed = visible;
-
-            return {
-                customZoneLayers: state.customZoneLayers,
-            };
-        });
+        set((state) => updateCustomZoneLayer(state.customZoneLayers, uuids, { displayed: visible }));
+    },
+    setCustomZoneOpacity: (uuids: string[], opacity: number) => {
+        set((state) => updateCustomZoneLayer(state.customZoneLayers, uuids, { opacity }));
     },
     getBackgroundTileSetYearDisplayed: () => {
         const layers = get().layers || [];

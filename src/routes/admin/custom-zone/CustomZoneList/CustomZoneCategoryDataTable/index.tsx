@@ -2,6 +2,7 @@ import { customZoneEndpoints } from '@/api/endpoints';
 import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
+import OptionalText from '@/components/ui/OptionalText';
 import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 import { ColorSwatch, Input, Table } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
@@ -46,12 +47,16 @@ const Component: React.FC = () => {
                 <Table.Th key="createdAt">Date création</Table.Th>,
                 <Table.Th key="name">Nom</Table.Th>,
                 <Table.Th key="nameShort">Nom court</Table.Th>,
+                <Table.Th key="description">Description</Table.Th>,
                 <Table.Th key="color">Couleur</Table.Th>,
             ]}
             tableBodyRenderFns={[
                 (item: GeoCustomZoneCategory) => <DateInfo date={item.createdAt} />,
                 (item: GeoCustomZoneCategory) => item.name,
                 (item: GeoCustomZoneCategory) => item.nameShort,
+                (item: GeoCustomZoneCategory) => (
+                    <OptionalText text={item.description} emptyText="aucune description" />
+                ),
                 (item: GeoCustomZoneCategory) => (
                     <div className="color-cell">
                         <ColorSwatch color={item.color} size={24} /> {item.color}

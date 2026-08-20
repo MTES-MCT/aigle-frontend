@@ -5,7 +5,6 @@ import MapComponent from '@/components/Map';
 import Loader from '@/components/ui/Loader';
 import { useMap } from '@/store/slices/map';
 import { getPageTitle } from '@/utils/html';
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import classes from './index.module.scss';
 
 const Component: React.FC = () => {

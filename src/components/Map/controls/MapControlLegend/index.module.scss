@@ -4,10 +4,10 @@
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
 
-    bottom: 46px; // 20px (switch height) + 10px (switch margin) + 16px (switch padding)
+    bottom: 46px; // 20px (toggle height) + 10px (toggle margin) + 16px (toggle padding)
     left: 0;
 
-    margin-left: constants.$margin-map-elements;
+    @include constants.map-control-offset-bottom-left;
     margin-bottom: constants.$margin-map-elements;
 
     max-height: calc(100% - 2 * 10px - 36px - 10px);
@@ -15,26 +15,17 @@
     z-index: 96;
 
     overflow-y: auto;
-
-    .empty-filter-text {
-        font-style: italic;
-        margin-top: var(--mantine-spacing-sm);
-    }
-
-    .form {
-        padding-bottom: 0;
-    }
 }
 
 .legends-container {
     display: flex;
     flex-direction: row;
-    gap: var(--mantine-spacing-md);
+    gap: 1rem;
 
     .legends-column {
         display: flex;
         flex-direction: column;
-        gap: var(--mantine-spacing-md);
+        gap: 1rem;
     }
 
     .legends {
@@ -42,7 +33,7 @@
         padding: 0;
         margin: 0;
 
-        margin-top: var(--mantine-spacing-sm);
+        margin-top: 0.5rem;
 
         .legend-item {
             display: flex;
@@ -51,21 +42,16 @@
             gap: 8px;
 
             &:not(:last-of-type) {
-                margin-bottom: var(--mantine-spacing-xs);
+                margin-bottom: 0.25rem;
             }
 
-            .legend-item-square,
-            .legend-item-round {
+            .legend-item-square {
                 width: 16px;
                 height: 16px;
             }
 
             .legend-item-bordered {
                 border: 2px solid;
-            }
-
-            .legend-item-round {
-                border-radius: 50%;
             }
 
             .legend-item-square-dashed {
@@ -76,11 +62,14 @@
 }
 
 .container {
-    margin: 0 0 constants.$margin-map-elements constants.$margin-map-elements;
+    margin: 0 0 constants.$margin-map-elements 0;
+
+    @include constants.map-control-offset-bottom-left;
 
     padding: 8px 12px;
 
-    box-shadow: constants.$shadow;
-    background: #ffffff;
-    border-radius: constants.$border-radius-medium;
+    border-radius: 4px;
+
+    background-color: var(--background-default-grey);
+    box-shadow: 0 2px 6px 0 rgba(0, 0, 18, 0.16);
 }

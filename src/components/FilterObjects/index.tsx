@@ -1,14 +1,19 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 
-import SelectItem from '@/components/ui/SelectItem';
-import { detectionControlStatuses, detectionValidationStatusesSelectable } from '@/models/detection';
+import Accordion from '@/components/dsfr/Accordion';
+import Checkbox from '@/components/dsfr/Checkbox';
+import Range from '@/components/dsfr/Range';
+import { useExpandedSections } from '@/hooks/useExpandedSections';
+import {
+    detectionControlStatuses,
+    DetectionValidationStatus,
+    detectionValidationStatusesSelectable,
+} from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
-import { useMap } from '@/store/slices/map';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
-    DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
     OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
@@ -18,38 +23,41 @@ import {
     getMatchingPresetId,
     OBJECTS_FILTER_PRESETS,
 } from '@/utils/objects-filter-presets';
-import {
-    ActionIcon,
-    Badge,
-    Button,
-    Checkbox,
-    Group,
-    MultiSelect,
-    Select,
-    Slider,
-    Stack,
-    Text,
-    Tooltip,
-} from '@mantine/core';
-import { useForm, UseFormReturnType } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconChecks, IconX } from '@tabler/icons-react';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
-const CONTROL_LABEL = 'Filtrer les objets';
+type Section = 'OBJECT_TYPES' | 'PRESCRIPTION' | 'VALIDATION' | 'CONTROL' | 'CUSTOM_ZONES' | 'SCORE';
 
-interface FormValues {
-    objectTypesUuids: ObjectsFilter['objectTypesUuids'];
-    detectionValidationStatuses: ObjectsFilter['detectionValidationStatuses'];
-    detectionControlStatuses: ObjectsFilter['detectionControlStatuses'];
-    score: ObjectsFilter['score'];
-    prescripted: ObjectsFilter['prescripted'];
-    interfaceDrawn: ObjectsFilter['interfaceDrawn'];
-    customZonesUuids: ObjectsFilter['customZonesUuids'];
-}
+const ALL_SECTIONS: readonly Section[] = [
+    'OBJECT_TYPES',
+    'PRESCRIPTION',
+    'VALIDATION',
+    'CONTROL',
+    'CUSTOM_ZONES',
+    'SCORE',
+] as const;
 
-const formatScore = (score: number) => Math.round(score * 100);
+const formatScore = (score: number) => String(Math.round(score));
+
+/**
+ * The square trails the name and mirrors how the map draws the thing: detections are drawn as
+ * an outline, zones as a filled area. The name is truncated rather than wrapped — wrapping
+ * pushes the square out of line with the checkbox — and it has to be its own element because
+ * the DSFR checkbox label is a flex row, which drops the whitespace around a bare text node.
+ */
+const LabelWithColor: React.FC<{ name: string; color?: string; outlined?: boolean }> = ({ name, color, outlined }) => (
+    <span className={classes.label} title={name}>
+        <span className={classes['label-name']}>{name}</span>
+        {color ? (
+            <span
+                className={clsx(classes['color-square'], outlined && classes['color-square-outlined'])}
+                style={outlined ? { borderColor: color } : { backgroundColor: color }}
+                aria-hidden="true"
+            />
+        ) : null}
+    </span>
+);
 
 interface ComponentProps {
     objectTypes: ObjectType[];
@@ -65,383 +73,245 @@ const Component: React.FC<ComponentProps> = ({
     objectsFilter,
     mapGeoCustomZoneLayers,
     updateObjectsFilter,
-}) => {
-    const { eventEmitter } = useMap();
-    const {
-        objectTypesUuids,
-        detectionValidationStatuses: detectionValidationStatusesFilter,
-        detectionControlStatuses: detectionControlStatusesFilter,
-        score,
-        prescripted,
-        interfaceDrawn,
-        customZonesUuids,
-    } = objectsFilter;
+}: ComponentProps) => {
+    const { isExpanded, toggleSection } = useExpandedSections(ALL_SECTIONS);
 
-    const form: UseFormReturnType<FormValues> = useForm({
-        mode: 'uncontrolled',
-        initialValues: {
-            objectTypesUuids,
-            detectionValidationStatuses: detectionValidationStatusesFilter,
-            detectionControlStatuses: detectionControlStatusesFilter,
-            score,
-            prescripted,
-            customZonesUuids: customZonesUuids,
-            interfaceDrawn,
-        },
-    });
-    form.watch('objectTypesUuids', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            objectTypesUuids: value,
-        });
-    });
-    form.watch('detectionValidationStatuses', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            detectionValidationStatuses: value,
-        });
-    });
-    form.watch('detectionControlStatuses', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            detectionControlStatuses: value,
-        });
-    });
-    form.watch('score', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            score: value,
-        });
-    });
-    form.watch('prescripted', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            prescripted: value,
-        });
-    });
-    form.watch('customZonesUuids', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            customZonesUuids: value,
-        });
-    });
-    form.watch('interfaceDrawn', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            interfaceDrawn: value,
-        });
-    });
-    useEffect(() => {
-        const updateFilters = (newFilters: ObjectsFilter) => {
-            form.setValues(newFilters);
-        };
-
-        if (!eventEmitter) {
-            return;
-        }
-
-        eventEmitter.on('OBJECTS_FILTER_UPDATED', (newFilters: ObjectsFilter) => updateFilters(newFilters));
-
-        return () => {
-            eventEmitter.off('OBJECTS_FILTER_UPDATED', updateFilters);
-        };
-    }, []);
-
-    const objectTypesMap: Record<string, ObjectTypeMinimal> = useMemo(() => {
-        return (
-            objectTypes?.reduce(
-                (prev, curr) => ({
-                    ...prev,
-                    [curr.uuid]: curr,
-                }),
-                {
-                    [OTHER_OBJECT_TYPE.uuid]: OTHER_OBJECT_TYPE,
-                },
-            ) || {}
-        );
-    }, [objectTypes]);
+    const update = (patch: Partial<ObjectsFilter>) => updateObjectsFilter({ ...objectsFilter, ...patch });
 
     const objectTypesToDisplay: ObjectTypeMinimal[] = useMemo(() => {
-        if (otherObjectTypesUuids.size == 0) {
+        if (otherObjectTypesUuids.size === 0) {
             return objectTypes;
         }
 
-        const objectTypesToDisplay_: ObjectTypeMinimal[] = objectTypes.filter(
-            (ot) => !otherObjectTypesUuids.has(ot.uuid),
-        );
-        objectTypesToDisplay_.push(OTHER_OBJECT_TYPE);
-        return objectTypesToDisplay_;
+        return [...objectTypes.filter((ot) => !otherObjectTypesUuids.has(ot.uuid)), OTHER_OBJECT_TYPE];
     }, [objectTypes, otherObjectTypesUuids]);
 
-    const presetSelectData = useMemo(
-        () => [
-            ...OBJECTS_FILTER_PRESETS.map(({ id, label }) => ({ value: id, label })),
-            { value: CUSTOM_PRESET_ID, label: CUSTOM_PRESET_LABEL, disabled: true },
-        ],
-        [],
-    );
     const selectedPresetId = useMemo(() => getMatchingPresetId(objectsFilter) ?? CUSTOM_PRESET_ID, [objectsFilter]);
 
-    const applyPreset = (presetId: string | null) => {
+    const applyPreset = (presetId: string) => {
         const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === presetId);
-        if (!preset) {
-            return;
+
+        if (preset) {
+            update(preset.filter);
         }
-        form.setValues(preset.filter);
-        updateObjectsFilter({ ...objectsFilter, ...preset.filter });
     };
 
+    const toggleInArray = <T,>(values: T[], value: T, checked: boolean): T[] =>
+        checked ? [...values, value] : values.filter((item) => item !== value);
+
+    /**
+     * ILLEGAL has no checkbox any more but several presets still set it, so a toggle must not
+     * silently drop it. The exception is unticking the last visible status: leaving ILLEGAL
+     * behind would show an unfiltered-looking panel that is still filtering.
+     */
+    const toggleValidationStatus = (status: DetectionValidationStatus, checked: boolean) => {
+        const next = toggleInArray(objectsFilter.detectionValidationStatuses, status, checked);
+        const anySelectableLeft = next.some((value) => detectionValidationStatusesSelectable.includes(value));
+
+        update({ detectionValidationStatuses: anySelectableLeft ? next : [] });
+    };
+
+    // Two checkboxes stand in for a tri-state: both ticked means no filter. Unticking one
+    // always leaves the other ticked, so a click never lands on "nothing selected" (which
+    // would show nothing) nor bounces the box the user just clicked back on.
+    const setPrescripted = (target: boolean, checked: boolean) => update({ prescripted: checked ? null : !target });
+
+    const isPrescriptedChecked = (target: boolean) =>
+        objectsFilter.prescripted === null || objectsFilter.prescripted === target;
+
     return (
-        <form className={classes.form}>
-            <h2>{CONTROL_LABEL}</h2>
-
-            <Group gap="md" mb="md" align="center" wrap="nowrap">
-                <Text className="input-label">Filtres rapides</Text>
-                <Select
-                    data={presetSelectData}
+        <div className={classes.container}>
+            <div className={`fr-select-group ${classes.preset}`}>
+                <label className="fr-label" htmlFor="objects-filter-preset">
+                    Filtres rapides
+                </label>
+                <select
+                    className="fr-select"
+                    id="objects-filter-preset"
                     value={selectedPresetId}
-                    onChange={applyPreset}
-                    allowDeselect={false}
-                    flex={1}
-                    maw={300}
-                    styles={{ input: { caretColor: 'transparent', cursor: 'pointer' } }}
-                />
-            </Group>
-
-            <div className={classes['filters-container']}>
-                <div className={classes['filters-section']}>
-                    <Text mt="md" className="input-label">
-                        Score
-                    </Text>
-                    <div className={classes['score-slider-value-container']}>
-                        <Slider
-                            className={classes['score-slider']}
-                            label={formatScore}
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            key={form.key('score')}
-                            {...form.getInputProps('score')}
-                            onChange={undefined}
-                            onChangeEnd={(value) => form.setFieldValue('score', value)}
-                            aria-label="Changer le seuil du score"
-                        />
-                        {formatScore(form.getValues().score)}
-                    </div>
-
-                    <Text mt="md" className="input-label">
-                        Objets prescrits
-                    </Text>
-                    <Button.Group className={classes['multiselect-buttons-container']}>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().prescripted === null ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('prescripted', null)}
-                        >
-                            Prescrits et non-prescrits
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().prescripted === true ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('prescripted', true)}
-                        >
-                            Prescrits
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().prescripted === false ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => form.setFieldValue('prescripted', false)}
-                        >
-                            Non-prescrits
-                        </Button>
-                    </Button.Group>
-
-                    <div className={classes['object-types-select-container']}>
-                        <MultiSelect
-                            className={clsx('multiselect-pills-hidden', classes['object-types-select'])}
-                            mt="md"
-                            label="Types d'objets"
-                            placeholder="Caravane, piscine,..."
-                            searchable
-                            data={(objectTypesToDisplay || []).map(({ name, uuid }) => ({
-                                value: uuid,
-                                label: name,
-                            }))}
-                            renderOption={(item) => (
-                                <SelectItem item={item} color={objectTypesMap[item.option.value].color} />
-                            )}
-                            key={form.key('objectTypesUuids')}
-                            {...form.getInputProps('objectTypesUuids')}
-                        />
-
-                        <Tooltip
-                            label={
-                                form.getValues().objectTypesUuids.length ? 'Déselectionner tout' : 'Sélectionner tout'
-                            }
-                        >
-                            <ActionIcon
-                                size="lg"
-                                ml="xs"
-                                className={classes['object-types-selectall-button']}
-                                onClick={() => {
-                                    const objectTypesUuidsSelected = form.getValues().objectTypesUuids;
-                                    form.setFieldValue(
-                                        'objectTypesUuids',
-                                        objectTypesUuidsSelected.length ? [] : objectTypes.map(({ uuid }) => uuid),
-                                    );
-                                }}
-                            >
-                                <IconChecks />
-                            </ActionIcon>
-                        </Tooltip>
-                    </div>
-
-                    {form.getValues().objectTypesUuids.length ? (
-                        <Group gap="xs" mt="sm">
-                            {form
-                                .getValues()
-                                .objectTypesUuids.filter((uuid) => objectTypesMap[uuid])
-                                .map((uuid) => (
-                                    <Badge
-                                        autoContrast
-                                        rightSection={
-                                            <ActionIcon
-                                                variant="transparent"
-                                                size={16}
-                                                onClick={() => {
-                                                    form.setFieldValue('objectTypesUuids', (prev) =>
-                                                        prev.filter((typeUuid) => typeUuid !== uuid),
-                                                    );
-                                                }}
-                                                aria-label={`Retirer ${objectTypesMap[uuid].name} des filtres`}
-                                            >
-                                                <IconX size={16} color="white" />
-                                            </ActionIcon>
-                                        }
-                                        radius={100}
-                                        key={uuid}
-                                        color={objectTypesMap[uuid].color}
-                                    >
-                                        {objectTypesMap[uuid].name}
-                                    </Badge>
-                                ))}
-                        </Group>
-                    ) : (
-                        <p className={classes['empty-filter-text']}>Aucun filtre sur les types n&apos;est appliqué</p>
-                    )}
-                </div>
-
-                <div className={clsx(classes['statuses-filters-container'], classes['filters-section'])}>
-                    <div>
-                        <Checkbox.Group
-                            mt="xl"
-                            label="Statuts de validation"
-                            key={form.key('detectionValidationStatuses')}
-                            {...form.getInputProps('detectionValidationStatuses')}
-                        >
-                            <Stack gap="xs" mt="sm">
-                                {detectionValidationStatusesSelectable.map((status) => (
-                                    <Checkbox
-                                        key={status}
-                                        value={status}
-                                        label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
-                                        color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
-                                    />
-                                ))}
-                            </Stack>
-                        </Checkbox.Group>
-
-                        {form.getValues().detectionValidationStatuses.length === 0 ? (
-                            <div className={classes['empty-filter-text']}>
-                                <p>Aucun filtre sur les statuts</p>
-                                <p>de validation n&apos;est appliqué</p>
-                            </div>
-                        ) : null}
-                    </div>
-
-                    <div>
-                        <Checkbox.Group
-                            mt="xl"
-                            label="Statuts de contrôle"
-                            key={form.key('detectionControlStatuses')}
-                            {...form.getInputProps('detectionControlStatuses')}
-                        >
-                            <Stack gap="xs" mt="sm">
-                                {detectionControlStatuses.map((status) => (
-                                    <Checkbox
-                                        key={status}
-                                        value={status}
-                                        label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
-                                    />
-                                ))}
-                            </Stack>
-                        </Checkbox.Group>
-
-                        {form.getValues().detectionControlStatuses.length === 0 ? (
-                            <div className={classes['empty-filter-text']}>
-                                <p>Aucun filtre sur les statuts</p>
-                                <p>de contrôle n&apos;est appliqué</p>
-                            </div>
-                        ) : null}
-                    </div>
-
-                    <div>
-                        <Text mt="xl" className="input-label">
-                            Zones à enjeux
-                        </Text>
-                        <Stack gap="xs" mt="sm">
-                            {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids: customZoneUuids_ }) => (
-                                <Checkbox
-                                    key={customZoneUuids_.join(',')}
-                                    value={customZoneUuids_}
-                                    checked={customZoneUuids_.some((uuid) => customZonesUuids.includes(uuid))}
-                                    label={name}
-                                    color={color}
-                                    onChange={(event) => {
-                                        if (event.currentTarget.checked) {
-                                            form.setFieldValue(
-                                                'customZonesUuids',
-                                                Array.from(new Set([...customZonesUuids, ...customZoneUuids_])),
-                                            );
-                                        } else {
-                                            const next = customZonesUuids.filter(
-                                                (uuid) => !customZoneUuids_.includes(uuid),
-                                            );
-                                            if (next.length === 0) {
-                                                // At least one zone à enjeux must stay selected — detections
-                                                // outside every custom zone (zones urbaines) must not be shown.
-                                                // Re-set the same value (new ref) to snap the checkbox back on.
-                                                form.setFieldValue('customZonesUuids', [...customZonesUuids]);
-                                                notifications.show({
-                                                    color: 'red',
-                                                    title: 'Zone à enjeux',
-                                                    message: 'Au moins une zone à enjeux doit rester sélectionnée',
-                                                });
-                                                return;
-                                            }
-                                            form.setFieldValue('customZonesUuids', next);
-                                        }
-                                    }}
-                                />
-                            ))}
-                        </Stack>
-
-                        {form.getValues().customZonesUuids.length === 0 ? (
-                            <div className={classes['empty-filter-text']}>
-                                <p>Aucune zone à enjeux n&apos;est sélectionnée</p>
-                                <p>aucun objet ne peut être affiché</p>
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
+                    onChange={(event) => applyPreset(event.currentTarget.value)}
+                >
+                    {OBJECTS_FILTER_PRESETS.map(({ id, label }) => (
+                        <option key={id} value={id}>
+                            {label}
+                        </option>
+                    ))}
+                    <option value={CUSTOM_PRESET_ID} disabled>
+                        {CUSTOM_PRESET_LABEL}
+                    </option>
+                </select>
             </div>
-        </form>
+
+            <div className="fr-accordions-group">
+                <Accordion
+                    title="Types d'objets"
+                    expanded={isExpanded('OBJECT_TYPES')}
+                    onToggle={(expanded) => toggleSection('OBJECT_TYPES', expanded)}
+                >
+                    <button
+                        type="button"
+                        className={clsx(
+                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-checkbox-circle-line fr-btn--icon-left',
+                            classes['select-all'],
+                        )}
+                        onClick={() =>
+                            update({
+                                objectTypesUuids: objectsFilter.objectTypesUuids.length
+                                    ? []
+                                    : objectTypes.map(({ uuid }) => uuid),
+                            })
+                        }
+                    >
+                        {objectsFilter.objectTypesUuids.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                    </button>
+                    {objectTypesToDisplay.map(({ uuid, name, color }) => (
+                        <Checkbox
+                            key={uuid}
+                            checked={objectsFilter.objectTypesUuids.includes(uuid)}
+                            label={<LabelWithColor outlined name={name} color={color} />}
+                            onChange={(checked) =>
+                                update({
+                                    objectTypesUuids: toggleInArray(objectsFilter.objectTypesUuids, uuid, checked),
+                                })
+                            }
+                        />
+                    ))}
+                    {!objectsFilter.objectTypesUuids.length ? (
+                        <p className={classes['empty-filter-text']}>Aucun filtre sur les types n&apos;est appliqué</p>
+                    ) : null}
+                </Accordion>
+
+                <Accordion
+                    title="Prescription"
+                    expanded={isExpanded('PRESCRIPTION')}
+                    onToggle={(expanded) => toggleSection('PRESCRIPTION', expanded)}
+                >
+                    <p className={classes['section-hint']}>
+                        Les prescriptions sont appliquées automatiquement aux constructions et piscines détectées il y a
+                        plus de 6 ans.
+                    </p>
+                    <Checkbox
+                        label="Non prescrit"
+                        checked={isPrescriptedChecked(false)}
+                        onChange={(checked) => setPrescripted(false, checked)}
+                    />
+                    <Checkbox
+                        label="Prescrit"
+                        checked={isPrescriptedChecked(true)}
+                        onChange={(checked) => setPrescripted(true, checked)}
+                    />
+                </Accordion>
+
+                <Accordion
+                    title="Etat de conformité"
+                    expanded={isExpanded('VALIDATION')}
+                    onToggle={(expanded) => toggleSection('VALIDATION', expanded)}
+                >
+                    {detectionValidationStatusesSelectable.map((status) => (
+                        <Checkbox
+                            key={status}
+                            label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
+                            checked={objectsFilter.detectionValidationStatuses.includes(status)}
+                            onChange={(checked) => toggleValidationStatus(status, checked)}
+                        />
+                    ))}
+                    {!objectsFilter.detectionValidationStatuses.length ? (
+                        <p className={classes['empty-filter-text']}>
+                            Aucun filtre sur les statuts de validation n&apos;est appliqué
+                        </p>
+                    ) : null}
+                </Accordion>
+
+                <Accordion
+                    title="Statut du contrôle"
+                    expanded={isExpanded('CONTROL')}
+                    onToggle={(expanded) => toggleSection('CONTROL', expanded)}
+                >
+                    {detectionControlStatuses.map((status) => (
+                        <Checkbox
+                            key={status}
+                            label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
+                            checked={objectsFilter.detectionControlStatuses.includes(status)}
+                            onChange={(checked) =>
+                                update({
+                                    detectionControlStatuses: toggleInArray(
+                                        objectsFilter.detectionControlStatuses,
+                                        status,
+                                        checked,
+                                    ),
+                                })
+                            }
+                        />
+                    ))}
+                    {!objectsFilter.detectionControlStatuses.length ? (
+                        <p className={classes['empty-filter-text']}>
+                            Aucun filtre sur les statuts de contrôle n&apos;est appliqué
+                        </p>
+                    ) : null}
+                </Accordion>
+
+                <Accordion
+                    title="Zones à enjeux"
+                    expanded={isExpanded('CUSTOM_ZONES')}
+                    onToggle={(expanded) => toggleSection('CUSTOM_ZONES', expanded)}
+                >
+                    {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids }) => (
+                        <Checkbox
+                            key={customZoneUuids.join(',')}
+                            checked={customZoneUuids.some((uuid) => objectsFilter.customZonesUuids.includes(uuid))}
+                            label={<LabelWithColor name={name} color={color} />}
+                            onChange={(checked) => {
+                                if (checked) {
+                                    update({
+                                        customZonesUuids: Array.from(
+                                            new Set([...objectsFilter.customZonesUuids, ...customZoneUuids]),
+                                        ),
+                                    });
+                                    return;
+                                }
+
+                                const next = objectsFilter.customZonesUuids.filter(
+                                    (uuid) => !customZoneUuids.includes(uuid),
+                                );
+
+                                if (!next.length) {
+                                    // Detections outside every custom zone (zones urbaines) must not be
+                                    // shown, so an empty selection is not a valid state.
+                                    notifications.show({
+                                        color: 'red',
+                                        title: 'Zone à enjeux',
+                                        message: 'Au moins une zone à enjeux doit rester sélectionnée',
+                                    });
+                                    return;
+                                }
+
+                                update({ customZonesUuids: next });
+                            }}
+                        />
+                    ))}
+                </Accordion>
+
+                <Accordion
+                    title="Score de fiabilité"
+                    expanded={isExpanded('SCORE')}
+                    onToggle={(expanded) => toggleSection('SCORE', expanded)}
+                >
+                    <p className={classes['section-hint']}>
+                        Plus le score est élevé plus les détections affichées seront fiables, mais moins exhaustives.
+                        Avec un score à 30, le taux d’erreur de l’IA est d’environ 10%.
+                    </p>
+                    <Range
+                        label="Score minimum"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={Math.round(objectsFilter.score * 100)}
+                        formatValue={formatScore}
+                        onChange={(value) => update({ score: value / 100 })}
+                    />
+                </Accordion>
+            </div>
+        </div>
     );
 };
 

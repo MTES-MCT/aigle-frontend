@@ -1,6 +1,7 @@
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
+import { DEFAULT_CUSTOM_ZONE_LAYER_OPACITY } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { getInitialObjectFilters } from '@/utils/objects-filter';
 
@@ -10,7 +11,7 @@ interface ObjectTypesInitialState {
     otherObjectTypesUuids: Set<string>;
 }
 
-export const extractObjectTypesFromSettings = (settings: MapSettings): ObjectTypesInitialState => {
+const extractObjectTypesFromSettings = (settings: MapSettings): ObjectTypesInitialState => {
     const allObjectTypes: ObjectType[] = [];
     const visibleObjectTypesUuids = new Set<string>();
     const otherObjectTypesUuids = new Set<string>();
@@ -34,19 +35,34 @@ export const extractObjectTypesFromSettings = (settings: MapSettings): ObjectTyp
     };
 };
 
-export const getInitialMapGeoCustomZoneLayers = (settings: MapSettings): MapGeoCustomZoneLayer[] => {
+// A layer row is one uncategorized zone or a whole category, and both the category and each
+// zone under it can carry a description: distinct non-empty lines, category text first.
+const joinDescriptions = (descriptions: (string | null | undefined)[]): string | null => {
+    const lines = Array.from(new Set(descriptions.map((description) => (description || '').trim()).filter(Boolean)));
+
+    return lines.length ? lines.join('\n') : null;
+};
+
+const getInitialMapGeoCustomZoneLayers = (settings: MapSettings): MapGeoCustomZoneLayer[] => {
     return [
-        ...settings.geoCustomZonesUncategorized.map(({ name, color, uuid }) => ({
+        ...settings.geoCustomZonesUncategorized.map((zone) => ({
             displayed: false,
-            name,
-            color,
-            customZoneUuids: [uuid],
+            name: zone.name,
+            color: zone.color,
+            customZoneUuids: [zone.uuid],
+            opacity: DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+            description: joinDescriptions([zone.description]),
         })),
         ...settings.geoCustomZoneCategories.map(({ geoCustomZoneCategory, geoCustomZones }) => ({
             displayed: false,
             name: geoCustomZoneCategory.name,
             color: geoCustomZoneCategory.color,
             customZoneUuids: geoCustomZones.map(({ uuid }) => uuid),
+            opacity: DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+            description: joinDescriptions([
+                geoCustomZoneCategory.description,
+                ...geoCustomZones.map(({ description }) => description),
+            ]),
         })),
     ];
 };

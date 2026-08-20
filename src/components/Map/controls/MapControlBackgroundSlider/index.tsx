@@ -1,40 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { useMap } from '@/store/slices/map';
-import { SegmentedControl } from '@mantine/core';
 import classes from './index.module.scss';
 
 const Component: React.FC = () => {
     const { backgroundLayerYears, getBackgroundTileSetYearDisplayed, setBackgroundTileSetYearDisplayed, eventEmitter } =
         useMap();
-
+    const groupId = `background-year-${useId()}`;
     const [yearDisplayed, setYearDisplayed] = useState<string>();
 
     useEffect(() => {
-        if (!yearDisplayed) {
-            return;
-        }
-
-        setBackgroundTileSetYearDisplayed(yearDisplayed);
-    }, [yearDisplayed]);
-    useEffect(() => {
         const updateLayerDisplayed = () => {
-            const yearDisplayed = getBackgroundTileSetYearDisplayed();
+            const year = getBackgroundTileSetYearDisplayed();
 
-            if (!yearDisplayed) {
-                return;
+            if (year) {
+                setYearDisplayed(year);
             }
-
-            setYearDisplayed(yearDisplayed);
         };
 
+        updateLayerDisplayed();
         eventEmitter.on('LAYERS_UPDATED', updateLayerDisplayed);
 
         return () => {
             eventEmitter.off('LAYERS_UPDATED', updateLayerDisplayed);
         };
-    });
+    }, [eventEmitter, getBackgroundTileSetYearDisplayed]);
 
     return (
         <MapControlCustom
@@ -43,15 +34,26 @@ const Component: React.FC = () => {
             position="bottom-left"
             isShowed={true}
         >
-            <SegmentedControl
-                className={classes['controller']}
-                fullWidth
-                color="#117f58"
-                orientation="vertical"
-                data={backgroundLayerYears || []}
-                onChange={setYearDisplayed}
-                value={yearDisplayed}
-            />
+            <fieldset className="fr-segmented fr-segmented--sm fr-segmented--vertical fr-segmented--no-legend">
+                <legend className="fr-segmented__legend">Année du fond de carte</legend>
+                <div className="fr-segmented__elements">
+                    {(backgroundLayerYears || []).map((year) => (
+                        <div className="fr-segmented__element" key={year}>
+                            <input
+                                type="radio"
+                                id={`${groupId}-${year}`}
+                                name={groupId}
+                                value={year}
+                                checked={yearDisplayed === year}
+                                onChange={() => setBackgroundTileSetYearDisplayed(year)}
+                            />
+                            <label className="fr-label" htmlFor={`${groupId}-${year}`}>
+                                {year}
+                            </label>
+                        </div>
+                    ))}
+                </div>
+            </fieldset>
         </MapControlCustom>
     );
 };

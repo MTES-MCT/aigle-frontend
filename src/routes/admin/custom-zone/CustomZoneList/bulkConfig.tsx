@@ -34,6 +34,12 @@ export const customZoneBulkConfig: BulkConfig = {
             example: '#FF5733',
         },
         {
+            name: 'description',
+            label: 'Description',
+            description: 'Texte indicatif affiché sous la couche sur la carte (optionnel)',
+            example: 'Zones soumises au PPRI approuvé le 12/03/2019',
+        },
+        {
             name: 'régions (code INSEE)',
             label: 'Régions',
             description: 'Liste de codes INSEE de régions',

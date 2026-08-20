@@ -5,7 +5,7 @@ import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import api, { ApiError } from '@/utils/api';
-import { Button, ColorInput, Select, TextInput } from '@mantine/core';
+import { Button, ColorInput, Select, Textarea, TextInput } from '@mantine/core';
 import { isNotEmpty, useForm, UseFormReturnType } from '@mantine/form';
 import { IconHexagonPlus2 } from '@tabler/icons-react';
 import { useMutation, UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -34,6 +34,7 @@ interface FormValues {
     name: string;
     nameShort: string;
     color: string;
+    description: string;
     geoCustomZoneStatus: GeoCustomZoneStatus;
     geoCustomZoneType: GeoCustomZoneType;
     communesUuids: string[];
@@ -47,6 +48,7 @@ const postForm = (values: FormValues, uuid?: string) => {
     const values_ = {
         ...values,
         color: values.color || null,
+        description: values.description.trim() || null,
     };
 
     if (!uuid) {
@@ -146,6 +148,18 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 key={form.key('nameShort')}
                 {...form.getInputProps('nameShort')}
             />
+            <Textarea
+                mt="md"
+                label="Description"
+                description="Texte indicatif affiché sous la couche dans le panneau « Couches » de la carte"
+                disabled={cannotEdit}
+                placeholder="Texte indicatif sur la couche si nécessaire."
+                autosize
+                minRows={2}
+                maxRows={6}
+                key={form.key('description')}
+                {...form.getInputProps('description')}
+            />
             {!form.getValues().geoCustomZoneCategoryUuid ? (
                 <ColorInput
                     mt="md"
@@ -222,6 +236,7 @@ const getEmptyFormValues = (userRole: UserRole): FormValues => {
         name: '',
         nameShort: '',
         color: '',
+        description: '',
         geoCustomZoneStatus: 'ACTIVE',
         geoCustomZoneType: 'COLLECTIVITY_MANAGED',
         communesUuids: [],
@@ -259,6 +274,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             name: data.name,
             nameShort: data.nameShort,
             color: data.color || '',
+            description: data.description || '',
             geoCustomZoneStatus: data.geoCustomZoneStatus,
             geoCustomZoneType: data.geoCustomZoneType,
             communesUuids: data.communes.map((commune) => commune.uuid),

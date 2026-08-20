@@ -1,4 +1,5 @@
 import { getGeoListEndpoint } from '@/api/endpoints';
+import MultiAutocomplete from '@/components/dsfr/MultiAutocomplete';
 import { Paginated } from '@/models/data';
 import { CollectivityType, GeoCollectivity, collectivityTypes } from '@/models/geo/_common';
 import { GeoCommune } from '@/models/geo/geo-commune';
@@ -6,15 +7,15 @@ import { GeoDepartment } from '@/models/geo/geo-department';
 import { GeoEpci } from '@/models/geo/geo-epci';
 import { GeoRegion } from '@/models/geo/geo-region';
 import { SelectOption } from '@/models/ui/select-option';
+import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
-import { ActionIcon, Box, Group, Loader as MantineLoader, MultiSelect, Text, Textarea, Tooltip } from '@mantine/core';
 import { UseFormReturnType } from '@mantine/form';
 import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconCode, IconListDetails } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import classes from './index.module.scss';
 
 const GEO_COLLECTIVITIES_LIMIT = 10;
 
@@ -69,57 +70,13 @@ const fetchGeoCollectivities = async <T extends GeoCollectivity>(
     return res.results;
 };
 
-const getGeoSelectedUuids = (
-    geoSelectedValues: GeoValues,
-): {
-    [key in CollectivityType]: string[];
-} => {
-    return {
-        region: geoSelectedValues.region.map((geo) => geo.value),
-        department: geoSelectedValues.department.map((geo) => geo.value),
-        epci: geoSelectedValues.epci.map((geo) => geo.value),
-        commune: geoSelectedValues.commune.map((geo) => geo.value),
-    };
-};
-
-const getGeoMultiSelectValues = (
-    geoResults: {
-        [key in CollectivityType]: GeoCollectivity[];
-    },
-    geoSelectedValues: GeoValues,
-): {
-    [key in CollectivityType]: SelectOption[];
-} => {
-    const geoSelectedUuids = getGeoSelectedUuids(geoSelectedValues);
-
-    const res: {
-        [key in CollectivityType]: SelectOption[];
-    } = {
-        region: [],
-        department: [],
-        epci: [],
-        commune: [],
-    };
-
-    collectivityTypes.forEach((collectivityType) => {
-        res[collectivityType] = [
-            ...geoSelectedValues[collectivityType],
-            ...(geoResults[collectivityType] || [])
-                .filter((geo) => !geoSelectedUuids[collectivityType].includes(geo.uuid))
-                .map((geo) => geoZoneToGeoOption(geo)),
-        ];
-    });
-
-    return res;
-};
-
 interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     form: UseFormReturnType<T>;
     initialGeoSelectedValues?: GeoValues;
     className?: string;
     onChange?: (geoSelectedValues: GeoValues) => void;
     displayedCollectivityTypes?: Set<CollectivityType>;
-    // Per collectivity type: when set, the field is disabled and the string is shown as a hover tooltip.
+    // Per collectivity type: when set, the field is disabled and the string is shown on hover.
     disabledCollectivityTypes?: Partial<Record<CollectivityType, string>>;
 }
 
@@ -131,6 +88,9 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     displayedCollectivityTypes = new Set(['region', 'department', 'epci', 'commune']),
     disabledCollectivityTypes = {},
 }: ComponentProps<T>) => {
+    const { userMe } = useAuth();
+    // pasting raw INSEE/SIREN codes is a bulk-admin shortcut, not something regular users need
+    const canPasteCodes = !!userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole);
     const [geoInputValues, setGeoInputValues] = useState<{
         [key in CollectivityType]: string;
     }>({
@@ -141,23 +101,23 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     });
     const [debouncedGeoInputValues] = useDebouncedValue(geoInputValues, 250);
 
-    const { data: regions, isLoading: regionsIsLoading } = useQuery<GeoRegion[]>({
+    const { data: regions, isFetching: regionsIsLoading } = useQuery<GeoRegion[]>({
         queryKey: ['regions', debouncedGeoInputValues.region],
         enabled: !!debouncedGeoInputValues.region,
         queryFn: ({ signal }) => fetchGeoCollectivities<GeoRegion>('region', debouncedGeoInputValues.region, signal),
     });
-    const { data: departments, isLoading: departmentsIsLoading } = useQuery<GeoDepartment[]>({
+    const { data: departments, isFetching: departmentsIsLoading } = useQuery<GeoDepartment[]>({
         queryKey: ['departments', debouncedGeoInputValues.department],
         enabled: !!debouncedGeoInputValues.department,
         queryFn: ({ signal }) =>
             fetchGeoCollectivities<GeoDepartment>('department', debouncedGeoInputValues.department, signal),
     });
-    const { data: epcis, isLoading: epcisIsLoading } = useQuery<GeoEpci[]>({
+    const { data: epcis, isFetching: epcisIsLoading } = useQuery<GeoEpci[]>({
         queryKey: ['epcis', debouncedGeoInputValues.epci],
         enabled: !!debouncedGeoInputValues.epci,
         queryFn: ({ signal }) => fetchGeoCollectivities<GeoEpci>('epci', debouncedGeoInputValues.epci, signal),
     });
-    const { data: communes, isLoading: communesIsLoading } = useQuery<GeoCommune[]>({
+    const { data: communes, isFetching: communesIsLoading } = useQuery<GeoCommune[]>({
         queryKey: ['communes', debouncedGeoInputValues.commune],
         enabled: !!debouncedGeoInputValues.commune,
         queryFn: ({ signal }) => fetchGeoCollectivities<GeoCommune>('commune', debouncedGeoInputValues.commune, signal),
@@ -205,18 +165,14 @@ const Component = <T extends GeoCollectivitiesFormValues>({
         commune: communesIsLoading,
     };
 
-    const geoMultiSelectValues = useMemo(
-        () =>
-            getGeoMultiSelectValues(
-                {
-                    region: regions || [],
-                    department: departments || [],
-                    epci: epcis || [],
-                    commune: communes || [],
-                },
-                geoSelectedValues,
-            ),
-        [regions, departments, epcis, communes, geoSelectedValues],
+    const geoOptionsByType = useMemo(
+        () => ({
+            region: (regions || []).map(geoZoneToGeoOption),
+            department: (departments || []).map(geoZoneToGeoOption),
+            epci: (epcis || []).map(geoZoneToGeoOption),
+            commune: (communes || []).map(geoZoneToGeoOption),
+        }),
+        [regions, departments, epcis, communes],
     );
 
     const setSelected = (collectivityType: CollectivityType, options: SelectOption[]) => {
@@ -238,25 +194,14 @@ const Component = <T extends GeoCollectivitiesFormValues>({
             return;
         }
 
-        setGeoSelectedValues((prev) => {
-            const newValues = {
-                ...prev,
-                [collectivityType]: [...prev[collectivityType], geoZoneToGeoOption(option)],
-            };
-            onChange?.(newValues);
-            return newValues;
-        });
+        setSelected(collectivityType, [...geoSelectedValues[collectivityType], geoZoneToGeoOption(option)]);
     };
 
     const geoOnRemove = (uuid: string, collectivityType: CollectivityType) => {
-        setGeoSelectedValues((prev) => {
-            const newValues = {
-                ...prev,
-                [collectivityType]: prev[collectivityType].filter((geo) => geo.value !== uuid),
-            };
-            onChange?.(newValues);
-            return newValues;
-        });
+        setSelected(
+            collectivityType,
+            geoSelectedValues[collectivityType].filter((geo) => geo.value !== uuid),
+        );
     };
 
     // Resolve the current selection's uuids back to their codes (labels don't reliably carry
@@ -353,67 +298,65 @@ const Component = <T extends GeoCollectivitiesFormValues>({
         const config = FIELD_CONFIG[collectivityType];
         const disabledReason = disabledCollectivityTypes[collectivityType];
         const isRaw = rawModes[collectivityType];
+        const rawFieldId = `geo-collectivities-raw-${collectivityType}`;
 
         return (
-            <Box mt="md" key={collectivityType}>
-                <Group justify="space-between" align="center" gap="xs" mb={4}>
-                    <Text size="sm" fw={500}>
-                        {config.label}
-                    </Text>
-                    <Tooltip label={isRaw ? 'Revenir au mode normal' : 'Mode brut : copier/coller des codes'} withArrow>
-                        <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            aria-label="Basculer le mode brut"
-                            loading={rawLoading[collectivityType]}
-                            disabled={!!disabledReason}
-                            onClick={() => (isRaw ? applyRawMode(collectivityType) : enterRawMode(collectivityType))}
-                        >
-                            {isRaw ? <IconListDetails size={16} /> : <IconCode size={16} />}
-                        </ActionIcon>
-                    </Tooltip>
-                </Group>
-
+            <div className={classes.field} key={collectivityType} title={disabledReason}>
                 {isRaw ? (
-                    <Textarea
-                        placeholder={RAW_PLACEHOLDER[collectivityType]}
-                        autosize
-                        minRows={2}
-                        disabled={!!disabledReason}
-                        value={rawInputs[collectivityType]}
-                        onChange={(event) =>
-                            setRawInputs((prev) => ({
-                                ...prev,
-                                [collectivityType]: event.currentTarget.value,
-                            }))
-                        }
-                    />
-                ) : (
-                    <Tooltip label={disabledReason ?? ''} disabled={!disabledReason} multiline w={280} withArrow>
-                        <MultiSelect
-                            placeholder={config.placeholder}
-                            searchable
+                    <div className="fr-input-group">
+                        <label className="fr-label" htmlFor={rawFieldId}>
+                            {config.label}
+                        </label>
+                        <textarea
+                            id={rawFieldId}
+                            className="fr-input"
+                            rows={2}
+                            placeholder={RAW_PLACEHOLDER[collectivityType]}
                             disabled={!!disabledReason}
-                            data={geoMultiSelectValues[collectivityType]}
-                            onSearchChange={(value) => {
-                                setGeoInputValues((prev) => ({
+                            value={rawInputs[collectivityType]}
+                            onChange={(event) =>
+                                setRawInputs((prev) => ({
                                     ...prev,
-                                    [collectivityType]: value,
-                                }));
-                            }}
-                            rightSection={isLoadingByType[collectivityType] ? <MantineLoader size="xs" /> : null}
-                            hidePickedOptions={true}
-                            key={form.key(config.formKey)}
-                            {...form.getInputProps(config.formKey)}
-                            onOptionSubmit={(uuid) =>
-                                geoOnOptionSubmit(uuid, collectivityType, geoResultsByType[collectivityType])
+                                    [collectivityType]: event.currentTarget.value,
+                                }))
                             }
-                            onRemove={(uuid) => geoOnRemove(uuid, collectivityType)}
-                            filter={({ options }) => options}
                         />
-                    </Tooltip>
+                    </div>
+                ) : (
+                    <MultiAutocomplete
+                        label={config.label}
+                        placeholder={config.placeholder}
+                        disabled={!!disabledReason}
+                        search={geoInputValues[collectivityType]}
+                        options={geoOptionsByType[collectivityType]}
+                        selected={geoSelectedValues[collectivityType]}
+                        loading={isLoadingByType[collectivityType]}
+                        emptyText="Aucun résultat"
+                        onSearchChange={(value) =>
+                            setGeoInputValues((prev) => ({ ...prev, [collectivityType]: value }))
+                        }
+                        onSelect={({ value }) =>
+                            geoOnOptionSubmit(value, collectivityType, geoResultsByType[collectivityType])
+                        }
+                        onRemove={(value) => geoOnRemove(value, collectivityType)}
+                    />
                 )}
-            </Box>
+
+                {canPasteCodes ? (
+                    <button
+                        type="button"
+                        className={
+                            isRaw
+                                ? 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-check-line fr-btn--icon-left'
+                                : 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-code-s-slash-line fr-btn--icon-left'
+                        }
+                        disabled={!!disabledReason || rawLoading[collectivityType]}
+                        onClick={() => (isRaw ? applyRawMode(collectivityType) : enterRawMode(collectivityType))}
+                    >
+                        {isRaw ? 'Appliquer les codes' : 'Coller des codes'}
+                    </button>
+                ) : null}
+            </div>
         );
     };
 

@@ -6,7 +6,7 @@ import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import { useFilterNavigation } from '@/hooks/useFilterNavigation';
 import api, { ApiError } from '@/utils/api';
-import { Button, ColorInput, TextInput } from '@mantine/core';
+import { Button, ColorInput, TextInput, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconHexagonalPrismPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
@@ -20,18 +20,24 @@ interface FormValues {
     name: string;
     nameShort: string;
     color: string;
+    description: string;
 }
 
 const postForm = (values: FormValues, uuid?: string) => {
+    const values_ = {
+        ...values,
+        description: values.description.trim() || null,
+    };
+
     if (!uuid) {
         return api<GeoCustomZoneCategory>(customZoneEndpoints.category.create, {
             method: 'POST',
-            body: values,
+            body: values_,
         });
     }
     return api<GeoCustomZoneCategory>(customZoneEndpoints.category.detail(uuid), {
         method: 'PATCH',
-        body: values,
+        body: values_,
     });
 };
 
@@ -89,6 +95,17 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
                 key={form.key('nameShort')}
                 {...form.getInputProps('nameShort')}
             />
+            <Textarea
+                mt="md"
+                label="Description"
+                description="Texte indicatif affiché sous la couche dans le panneau « Couches » de la carte"
+                placeholder="Texte indicatif sur la couche si nécessaire."
+                autosize
+                minRows={2}
+                maxRows={6}
+                key={form.key('description')}
+                {...form.getInputProps('description')}
+            />
             <ColorInput
                 mt="md"
                 withAsterisk
@@ -126,6 +143,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     color: '',
     name: '',
     nameShort: '',
+    description: '',
 };
 
 interface ComponentInnerProps {
@@ -143,6 +161,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ uuid }) => {
             name: data.name,
             nameShort: data.nameShort,
             color: data.color,
+            description: data.description || '',
         };
 
         return initialValues;

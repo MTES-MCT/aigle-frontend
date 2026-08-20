@@ -6,7 +6,6 @@ import { Modal, Radio, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
-import classes from './index.module.scss';
 
 const MAX_DISPLAYED = 10;
 
@@ -62,11 +61,11 @@ const UserGroupSelector: React.FC = () => {
             >
                 <button
                     type="button"
-                    className={`fr-btn fr-btn--tertiary-no-outline ${classes.button}`}
+                    className="fr-btn fr-btn--tertiary-no-outline fr-icon-settings-5-line"
                     onClick={open}
                     aria-label={selectedGroup ? `Groupe: ${selectedGroup.name}` : 'Sélectionner un groupe'}
                 >
-                    <span className="fr-icon-settings-5-line" aria-hidden="true" />
+                    {selectedGroup ? `Groupe: ${selectedGroup.name}` : 'Sélectionner un groupe'}
                 </button>
             </Tooltip>
 

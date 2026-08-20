@@ -4,7 +4,14 @@ import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
-import { CUSTOM_ZONE_NEGATIVE_COLOR, OTHER_OBJECT_TYPE, PARCEL_COLOR } from '@/utils/constants';
+import { getCustomZoneOpacities, withAlpha } from '@/utils/colors';
+import {
+    CUSTOM_ZONE_NEGATIVE_COLOR,
+    CUSTOM_ZONE_NEGATIVE_OPACITY,
+    DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+    OTHER_OBJECT_TYPE,
+    PARCEL_COLOR,
+} from '@/utils/constants';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
@@ -29,10 +36,18 @@ const ObjectTypeLegend: React.FC<ObjectTypeLegendProps> = ({ objectType }) => {
 interface CustomZoneLegendProps {
     name: string;
     color: string;
+    opacity?: number;
     withBorder?: boolean;
 }
 
-const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ name, color, withBorder = true }) => {
+const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({
+    name,
+    color,
+    opacity = DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+    withBorder = true,
+}) => {
+    const opacities = getCustomZoneOpacities(opacity);
+
     return (
         <li className={classes['legend-item']}>
             <div
@@ -42,8 +57,8 @@ const CustomZoneLegend: React.FC<CustomZoneLegendProps> = ({ name, color, withBo
                     withBorder ? classes['legend-item-square-dashed'] : null,
                 )}
                 style={{
-                    borderColor: `${color}66`,
-                    backgroundColor: `${color}33`,
+                    borderColor: withAlpha(color, opacities.line),
+                    backgroundColor: withAlpha(color, opacities.fill),
                 }}
             />
             {name}
@@ -88,13 +103,19 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, otherObjec
                     <h2>Zones à enjeux</h2>
 
                     <ul className={classes['legends']}>
-                        {customZoneLayers.map(({ name, color, customZoneUuids }) => (
-                            <CustomZoneLegend key={customZoneUuids.join(',')} name={name} color={color} />
+                        {customZoneLayers.map(({ name, color, customZoneUuids, opacity }) => (
+                            <CustomZoneLegend
+                                key={customZoneUuids.join(',')}
+                                name={name}
+                                color={color}
+                                opacity={opacity}
+                            />
                         ))}
                         <CustomZoneLegend
                             name="Zones exclues par les filtres"
                             withBorder={false}
                             color={CUSTOM_ZONE_NEGATIVE_COLOR}
+                            opacity={CUSTOM_ZONE_NEGATIVE_OPACITY}
                         />
                     </ul>
                 </div>
@@ -137,7 +158,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
     return (
         <MapControlCustom
             controlInner="Afficher la légende"
-            controlType="SWITCH"
+            controlType="TOGGLE"
             position="bottom-left"
             contentClassName={classes.content}
             containerClassName={classes.container}

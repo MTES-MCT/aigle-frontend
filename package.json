@@ -16,7 +16,7 @@
         "scalingo-prebuild": "npm config set legacy-peer-deps true"
     },
     "dependencies": {
-        "@gouvfr/dsfr": "^1.12.1",
+        "@gouvfr/dsfr": "1.15.2",
         "@mantine/charts": "^7.12.2",
         "@mantine/core": "^7.10.2",
         "@mantine/dates": "^7.10.2",
@@ -25,7 +25,6 @@
         "@mantine/hooks": "^7.10.2",
         "@mantine/notifications": "^7.10.2",
         "@mapbox/mapbox-gl-draw": "^1.4.3",
-        "@mapbox/mapbox-gl-geocoder": "^5.1.2",
         "@mapbox/search-js-react": "^1.0.0-beta.21",
         "@react-pdf/layout": "3.12.1",
         "@react-pdf/renderer": "3.4.4",
@@ -61,7 +60,6 @@
         "@types/geojson": "^7946.0.14",
         "@types/lodash": "^4.17.4",
         "@types/mapbox__mapbox-gl-draw": "^1.4.6",
-        "@types/mapbox__mapbox-gl-geocoder": "^5.0.0",
         "@types/mapbox-gl": "^3.1.0",
         "@types/node": "^20.12.12",
         "@types/react": "^18.2.66",

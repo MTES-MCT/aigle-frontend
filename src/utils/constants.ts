@@ -12,7 +12,7 @@ import { colors } from '@/utils/colors';
 export const DEFAULT_ROUTE = '/';
 
 // Must match $header-height in constants.scss — used to offset scroll targets under the fixed header.
-export const HEADER_HEIGHT_PX = 116.5;
+export const HEADER_HEIGHT_PX = 128;
 
 export const TILES_URL_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
@@ -183,6 +183,12 @@ export const DEFAULT_DATE_FORMAT = 'dd/MM/yyyy';
 export const DEFAULT_DATETIME_FORMAT = 'dd/MM/yyyy à HH:mm';
 
 export const CUSTOM_ZONE_NEGATIVE_COLOR = '#808080';
+// Shared by the map paint, the legend swatch and the Couches vignette so the three agree.
+export const CUSTOM_ZONE_NEGATIVE_OPACITY = 0.5;
+
+// Opacity a "zone à enjeux" layer starts at. The slider goes up to a genuinely solid 100%,
+// so the default is what used to be hardcoded as the fill opacity rather than the maximum.
+export const DEFAULT_CUSTOM_ZONE_LAYER_OPACITY = 0.2;
 
 export const OTHER_OBJECT_TYPE: ObjectTypeMinimal = {
     name: 'Autres',

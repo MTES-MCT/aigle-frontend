@@ -224,7 +224,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     detectionObject.detections[0],
                                 );
                                 updateObjectsFilter(newFilters);
-                                eventEmitter.emit('OBJECTS_FILTER_UPDATED', newFilters);
 
                                 notifications.show({
                                     title: 'Filtres mis à jour',

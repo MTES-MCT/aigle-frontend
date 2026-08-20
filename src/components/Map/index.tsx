@@ -5,12 +5,9 @@ import { detectionEndpoints, detectionObjectEndpoints, utilsEndpoints } from '@/
 import DetectionDetail from '@/components/DetectionDetail';
 import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import MapAddAnnotationModal from '@/components/Map/MapAddAnnotationModal';
+import MapSidePanel, { MapSidePanelSection } from '@/components/Map/MapSidePanel';
 import MapControlBackgroundSlider from '@/components/Map/controls/MapControlBackgroundSlider';
-import MapControlFilterDetection from '@/components/Map/controls/MapControlFilterDetection';
-import MapControlLayerDisplay from '@/components/Map/controls/MapControlLayerDisplay';
 import MapControlLegend from '@/components/Map/controls/MapControlLegend';
-import MapControlSearchAddress from '@/components/Map/controls/MapControlSearchAddress';
-import MapControlSearchParcel from '@/components/Map/controls/MapControlSearchParcel';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import { processDetections } from '@/components/Map/utils/process-detections';
 import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
@@ -22,11 +19,17 @@ import { MapTileSetLayer } from '@/models/map-layer';
 import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api, { ApiError } from '@/utils/api';
-import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
+import { getCustomZoneOpacities } from '@/utils/colors';
+import {
+    CUSTOM_ZONE_NEGATIVE_COLOR,
+    CUSTOM_ZONE_NEGATIVE_OPACITY,
+    DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+    MAPBOX_TOKEN,
+    PARCEL_COLOR,
+} from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
 import { Button, LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
-import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
@@ -34,7 +37,7 @@ import { IconCancel } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
 import { FeatureCollection, Polygon } from 'geojson';
-import mapboxgl from 'mapbox-gl';
+import mapboxgl, { DataDrivenPropertyValueSpecification } from 'mapbox-gl';
 import DrawRectangle, { DrawStyles } from 'mapbox-gl-draw-rectangle-restrict-area';
 import classes from './index.module.scss';
 
@@ -144,21 +147,45 @@ const buildDrawControl = () =>
     });
 
 // mapbox ships these in english and exposes no option to translate them
-const MAP_CONTROLS_TITLES: { querySelector: string; title: string }[] = [
-    { querySelector: '.mapbox-gl-draw_point', title: DRAW_MODE_TITLES_MAP.ADD_DETECTION },
-    { querySelector: '.mapbox-gl-draw_polygon', title: DRAW_MODE_TITLES_MAP.MULTIPLE_EDIT },
-    { querySelector: '.mapbox-gl-draw_line', title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD },
-    { querySelector: '.mapboxgl-ctrl-fullscreen', title: 'Plein écran' },
-    { querySelector: '.mapboxgl-ctrl-fullscreen > .mapboxgl-ctrl-icon', title: 'Plein écran' },
-    { querySelector: '.mapboxgl-ctrl-zoom-in', title: 'Zoomer' },
-    { querySelector: '.mapboxgl-ctrl-zoom-in > .mapboxgl-ctrl-icon', title: 'Zoomer' },
-    { querySelector: '.mapboxgl-ctrl-zoom-out', title: 'Dézoomer' },
-    { querySelector: '.mapboxgl-ctrl-zoom-out > .mapboxgl-ctrl-icon', title: 'Dézoomer' },
-    { querySelector: '.mapboxgl-ctrl-compass', title: 'Boussole' },
-    { querySelector: '.mapboxgl-ctrl-compass > .mapboxgl-ctrl-icon', title: 'Boussole' },
-    { querySelector: '.mapboxgl-ctrl-geolocate', title: 'Ma position' },
-    { querySelector: '.mapboxgl-ctrl-geolocate > .mapboxgl-ctrl-icon', title: 'Ma position' },
+// mapbox and mapbox-gl-draw build their own control buttons, in English and with their own
+// glyphs. These give each one a French label and a DSFR icon; index.scss hides the glyph the
+// library painted.
+const MAP_CONTROLS: { querySelector: string; title: string; icon: string }[] = [
+    { querySelector: '.mapbox-gl-draw_point', title: DRAW_MODE_TITLES_MAP.ADD_DETECTION, icon: 'fr-icon-pencil-line' },
+    { querySelector: '.mapbox-gl-draw_polygon', title: DRAW_MODE_TITLES_MAP.MULTIPLE_EDIT, icon: 'fr-icon-crop-line' },
+    {
+        querySelector: '.mapbox-gl-draw_line',
+        title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD,
+        icon: 'fr-icon-download-line',
+    },
+    { querySelector: '.mapboxgl-ctrl-fullscreen', title: 'Plein écran', icon: 'fr-icon-fullscreen-line' },
+    // mapbox renames the fullscreen button rather than keeping a state attribute, so this is
+    // the same button once fullscreen is on. DSFR ships no exit-fullscreen glyph.
+    { querySelector: '.mapboxgl-ctrl-shrink', title: 'Quitter le plein écran', icon: 'fr-icon-close-line' },
+    { querySelector: '.mapboxgl-ctrl-zoom-in', title: 'Zoomer', icon: 'fr-icon-add-line' },
+    { querySelector: '.mapboxgl-ctrl-zoom-out', title: 'Dézoomer', icon: 'fr-icon-subtract-line' },
+    { querySelector: '.mapboxgl-ctrl-geolocate', title: 'Ma position', icon: 'fr-icon-focus-3-line' },
 ];
+
+const MAP_CONTROL_ICONS = MAP_CONTROLS.map(({ icon }) => icon);
+
+// Re-runnable: every icon this owns is cleared before the right one goes back on, so a
+// button mapbox has renamed (fullscreen -> shrink) ends up with one icon, not two.
+const syncMapControls = (container: HTMLElement) => {
+    for (const { querySelector, title, icon } of MAP_CONTROLS) {
+        const control = container.querySelector(querySelector);
+
+        if (!control) {
+            continue;
+        }
+
+        control.setAttribute('title', title);
+        control.setAttribute('aria-label', title);
+        control.classList.remove(...MAP_CONTROL_ICONS);
+        control.classList.add(icon);
+        control.querySelector('.mapboxgl-ctrl-icon')?.setAttribute('title', title);
+    }
+};
 
 const MAP_PADDINGS = {
     detailSectionShowed: {
@@ -252,8 +279,6 @@ const MultipleDownloadBlocker: React.FC<{ state: MultipleDownloadState; onCancel
     );
 };
 
-type LeftSection = 'SEARCH_ADDRESS' | 'FILTER_DETECTION' | 'LEGEND' | 'LAYER_DISPLAY' | 'SEARCH_PARCEL';
-
 const EMPTY_GEOJSON_FEATURE_COLLECTION: FeatureCollection = {
     type: 'FeatureCollection',
     features: [],
@@ -327,7 +352,8 @@ const Component: React.FC<ComponentProps> = ({
               }
             : null,
     );
-    const [leftSectionShowed, setLeftSectionShowed] = useState<LeftSection>();
+    const [sidePanelSection, setSidePanelSection] = useState<MapSidePanelSection>();
+    const [legendShowed, setLegendShowed] = useState(false);
     const [drawMode, setDrawMode] = useState<DrawMode | null>(null);
 
     const [isDragging, setIsDragging] = useState(false);
@@ -374,12 +400,38 @@ const Component: React.FC<ComponentProps> = ({
     const multipleDownloadRunIdRef = useRef(0);
     const multipleDownloadAbortRef = useRef<AbortController | null>(null);
 
-    const { width } = useViewportSize();
-
     const customZoneLayersDisplayedUuids = (customZoneLayers || [])
         .filter(({ displayed }) => displayed)
         .map(({ customZoneUuids }) => customZoneUuids)
         .flat();
+
+    // Every zone à enjeux shares one fill layer and one line layer, so the per-layer opacity
+    // slider has to be a data-driven match on the feature uuid, not a paint constant.
+    const customZoneOpacity = useMemo(() => {
+        const displayed = (customZoneLayers || []).filter(
+            ({ displayed: isDisplayed, customZoneUuids }) => isDisplayed && customZoneUuids.length,
+        );
+
+        const build = (pick: (opacity: number) => number): DataDrivenPropertyValueSpecification<number> => {
+            const fallback = pick(DEFAULT_CUSTOM_ZONE_LAYER_OPACITY);
+
+            if (!displayed.length) {
+                return fallback;
+            }
+
+            return [
+                'match',
+                ['get', 'uuid'],
+                ...displayed.flatMap(({ customZoneUuids, opacity }) => [customZoneUuids, pick(opacity)]),
+                fallback,
+            ] as unknown as DataDrivenPropertyValueSpecification<number>;
+        };
+
+        return {
+            fill: build((opacity) => getCustomZoneOpacities(opacity).fill),
+            line: build((opacity) => getCustomZoneOpacities(opacity).line),
+        };
+    }, [customZoneLayers]);
 
     // we get detections for all the layers available for the user, even if they are not displayed
     const tileSetsUuidsDetection = useMemo(
@@ -472,21 +524,15 @@ const Component: React.FC<ComponentProps> = ({
         controls.forEach(({ control, position }) => mapRef.addControl(control, position));
 
         const container = mapRef.getContainer();
-        const translateTitlesTimeout = setTimeout(() => {
-            for (const { querySelector, title } of MAP_CONTROLS_TITLES) {
-                const control = container.querySelector(querySelector);
+        const translateTitlesTimeout = setTimeout(() => syncMapControls(container), 100);
 
-                if (!control) {
-                    continue;
-                }
-
-                control.setAttribute('title', title);
-                control.setAttribute('aria-label', title);
-            }
-        }, 100);
+        // mapbox swaps the fullscreen button's class in its own listener; defer so this runs after
+        const onFullscreenChange = () => setTimeout(() => syncMapControls(container), 0);
+        document.addEventListener('fullscreenchange', onFullscreenChange);
 
         return () => {
             clearTimeout(translateTitlesTimeout);
+            document.removeEventListener('fullscreenchange', onFullscreenChange);
             controls.forEach(({ control }) => {
                 if (mapRef.hasControl(control)) {
                     mapRef.removeControl(control);
@@ -589,7 +635,7 @@ const Component: React.FC<ComponentProps> = ({
                 return;
             }
 
-            setLeftSectionShowed(undefined);
+            setSidePanelSection(undefined);
 
             if (newDrawMode === 'ADD_DETECTION') {
                 resetLayersForAddDetectionRef.current();
@@ -897,10 +943,6 @@ const Component: React.FC<ComponentProps> = ({
         }
     };
 
-    const onAddressSearch = useCallback(() => {
-        setLeftSectionShowed('SEARCH_ADDRESS');
-    }, []);
-
     const cancelMultipleDownload = useCallback(() => {
         // bumping the run id first neutralises everything already in flight, then unmounting
         // SignalementPDFData stops the previews, the pdf render queue and the download itself
@@ -917,7 +959,7 @@ const Component: React.FC<ComponentProps> = ({
 
     const closeDetectionDetail = useCallback(() => {
         setDetectionDetailsShowed(null);
-        setLeftSectionShowed(undefined);
+        setSidePanelSection(undefined);
         setObjectFromCoordinates(() => ({
             fetchStatus: 'IDLE',
             objectFromCoordinates: undefined,
@@ -994,7 +1036,7 @@ const Component: React.FC<ComponentProps> = ({
                 return;
             }
 
-            const noSectionOpen = !detectionDetailsShowed && !leftSectionShowed;
+            const noSectionOpen = !detectionDetailsShowed && !sidePanelSection;
 
             closeDetectionDetail();
 
@@ -1127,7 +1169,11 @@ const Component: React.FC<ComponentProps> = ({
     };
 
     return (
-        <div className={classes.container}>
+        // the bottom-left legend and year slider read this to clear the side panel
+        <div
+            className={classes.container}
+            style={{ '--map-side-panel-open': sidePanelSection ? 1 : 0 } as React.CSSProperties}
+        >
             <Map
                 reuseMaps={true}
                 ref={handleMapRef}
@@ -1161,49 +1207,17 @@ const Component: React.FC<ComponentProps> = ({
                 mapStyle="mapbox://styles/mapbox/streets-v12"
                 {...(settings?.globalGeometryBbox ? { maxBounds: bbox(settings.globalGeometryBbox) } : {})}
             >
-                {/* first, so the search bar stays at the far left of the top-left controls */}
-                <MapControlSearchAddress onSearch={onAddressSearch} />
-                <GeolocateControl
-                    position="top-left"
-                    style={{
-                        position: 'absolute',
-                        top: '24px',
-                        right: '0px',
-                        zIndex: 10,
-                        transform:
-                            width < 992 ? 'translate(-50%, -50%)' : 'translate(calc(-50% - 36px*3 - 10px*3), -50%)', // if screen is big, there is button at the right, if small, no buttons
-                        background: 'none',
-                    }}
-                />
+                <GeolocateControl position="bottom-right" />
                 {displayDetections ? (
                     <>
-                        <MapControlSearchParcel
-                            isShowed={leftSectionShowed === 'SEARCH_PARCEL'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'SEARCH_PARCEL' : undefined);
-                            }}
-                        />
-                        <MapControlFilterDetection
-                            isShowed={leftSectionShowed === 'FILTER_DETECTION'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'FILTER_DETECTION' : undefined);
-                            }}
+                        <MapSidePanel
+                            section={sidePanelSection}
+                            setSection={setSidePanelSection}
+                            displayLayersSelection={displayLayersSelection}
+                            layersDisabled={drawMode !== null}
                         />
                         {displayTileSetControls ? <MapControlBackgroundSlider /> : null}
-                        <MapControlLegend
-                            isShowed={leftSectionShowed === 'LEGEND'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'LEGEND' : undefined);
-                            }}
-                        />
-                        <MapControlLayerDisplay
-                            isShowed={leftSectionShowed === 'LAYER_DISPLAY'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'LAYER_DISPLAY' : undefined);
-                            }}
-                            displayLayersSelection={displayLayersSelection}
-                            disabled={drawMode !== null}
-                        />
+                        <MapControlLegend isShowed={legendShowed} setIsShowed={setLegendShowed} />
                         <MapAddAnnotationModal
                             isShowed={!!addAnnotationPolygon}
                             hide={() => setAddAnnotationPolygon(undefined)}
@@ -1392,7 +1406,7 @@ const Component: React.FC<ComponentProps> = ({
                         type="fill"
                         paint={{
                             'fill-color': ['get', 'color'],
-                            'fill-opacity': 0.2,
+                            'fill-opacity': customZoneOpacity.fill,
                         }}
                     />
                     <Layer
@@ -1401,7 +1415,7 @@ const Component: React.FC<ComponentProps> = ({
                         type="line"
                         paint={{
                             'line-color': ['get', 'color'],
-                            'line-opacity': 0.4,
+                            'line-opacity': customZoneOpacity.line,
                             'line-width': 2,
                             'line-dasharray': [2, 2],
                         }}
@@ -1421,7 +1435,8 @@ const Component: React.FC<ComponentProps> = ({
                         beforeId={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
                         type="fill"
                         paint={{
-                            'fill-color': 'rgba(128, 128, 128, 0.5)', // CUSTOM_ZONE_NEGATIVE_COLOR
+                            'fill-color': CUSTOM_ZONE_NEGATIVE_COLOR,
+                            'fill-opacity': CUSTOM_ZONE_NEGATIVE_OPACITY,
                         }}
                     />
                 </Source>

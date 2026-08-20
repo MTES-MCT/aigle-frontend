@@ -228,43 +228,21 @@ table {
     }
 }
 
-a:focus {
-    outline: 2px solid rgba(33, 225, 155, 0.5) !important;
-    outline-offset: 1px !important;
-}
-
 header.fr-header {
     height: constants.$header-height;
 
     position: fixed !important;
 
+    top: 0;
     right: 0;
     left: 0;
 
     display: flex;
+    flex-direction: column;
 
-    justify-content: space-between;
-    align-items: center;
-
-    border-bottom: 1px solid var(--mantine-color-gray-3);
     background: #ffffff;
 
     z-index: 200;
-
-    .navigation-items {
-        height: 100%;
-
-        white-space: nowrap;
-
-        display: flex;
-        align-items: center;
-        justify-content: start;
-
-        .navigation-items-divider {
-            margin-left: constants.$content-padding;
-            margin-right: constants.$content-padding;
-        }
-    }
 
     .fr-header__brand-top.fr-hidden-lg {
         max-width: 6rem;
@@ -274,9 +252,17 @@ header.fr-header {
         display: none;
     }
 
+    // Both rows are flex items of the header, so their z-index applies even though they are
+    // static. DSFR parks the nav row at 1750 for its mobile modal — which this app never
+    // opens — and that would paint its top border over the user menu hanging down from the
+    // row above.
     .fr-header__body {
-        height: 100%;
+        z-index: 1;
+
+        height: constants.$header-body-height;
         width: 100%;
+
+        border-bottom: 1px solid var(--border-default-grey);
 
         .fr-container {
             max-width: unset;
@@ -286,10 +272,28 @@ header.fr-header {
         .fr-header__body-row {
             height: 100%;
 
+            align-items: center;
+
             .fr-header__brand {
                 height: 100%;
             }
         }
+    }
+
+    // the nav row: fr-modal keeps it hidden below 992px, where the burger menu takes over
+    .fr-header__menu {
+        z-index: auto;
+
+        height: constants.$header-nav-height;
+
+        .fr-container {
+            max-width: unset;
+        }
+    }
+
+    // the shared .fr-btns-group bottom margin would push the tools row off-centre
+    .fr-header__tools-links .fr-btn {
+        margin-bottom: 0;
     }
 }
 
@@ -359,11 +363,13 @@ a.mantine-NavLink-root {
 }
 
 // mapbox
+//
+// mapbox renders its own controls into the map corners, so they are skinned here with
+// DSFR tokens rather than in a component stylesheet.
 
-.mapboxgl-ctrl-logo {
-    display: none !important;
-}
+$map-control-button-size: 48px;
 
+.mapboxgl-ctrl-logo,
 .mapboxgl-ctrl-attrib {
     display: none !important;
 }
@@ -372,127 +378,89 @@ a.mantine-NavLink-root {
     width: 100% !important;
 }
 
-.mapboxgl-ctrl-geocoder {
-    border-radius: constants.$border-radius-medium;
-    min-width: 300px !important;
-    max-width: 100%;
-
-    @media screen and (max-width: 992px) {
-        width: 100%;
-    }
-
-    .suggestions {
-        border-radius: constants.$border-radius-medium;
-    }
-
-    .mapboxgl-ctrl-geocoder--input {
-        border-radius: constants.$border-radius-medium;
-        height: 48px;
-        padding: 14px 42px;
-    }
-
-    .mapboxgl-ctrl-geocoder--powered-by {
-        display: none !important;
-    }
-
-    .mapboxgl-ctrl-geocoder--icon {
-        top: 14px;
-        left: 14px;
-
-        &.mapboxgl-ctrl-geocoder--icon-loading {
-            top: 14px;
-            right: 14px;
-            left: unset;
-        }
-    }
-
-    .mapboxgl-ctrl-geocoder--button {
-        display: none !important;
-
-        top: 14px;
-        right: 14px;
-    }
-}
-
-.mapboxgl-ctrl-top-right {
-    .mapboxgl-ctrl-group {
-        display: flex;
-        flex-direction: column;
-        gap: constants.$margin-map-elements;
-        background: none;
-        box-shadow: none !important;
-
-        margin-top: 20px;
-        margin-right: 20px;
-
-        .mapbox-gl-draw_ctrl-draw-btn {
-            background-color: var(--mantine-color-white);
-            border-radius: 8px;
-            box-shadow: constants.$shadow;
-
-            &:hover {
-                background-color: #f4f4f4;
-            }
-
-            // these rules outrank the library's own .active styling, so the selected tool
-            // has to be highlighted here or nothing marks a drawing session as in progress
-            // --mantine-primary-color-light is ~10% alpha, so on its own the map shows
-            // through the button; composite it over white to keep an opaque green tint
-            &.active {
-                background-color: var(--mantine-color-white);
-                background-image: linear-gradient(
-                    var(--mantine-primary-color-light),
-                    var(--mantine-primary-color-light)
-                );
-                box-shadow:
-                    constants.$shadow,
-                    inset 0 0 0 2px var(--mantine-primary-color-filled);
-
-                &:hover {
-                    background-image: linear-gradient(
-                        var(--mantine-primary-color-light-hover),
-                        var(--mantine-primary-color-light-hover)
-                    );
-                }
-            }
-        }
-    }
-}
-
-.mapboxgl-ctrl:not(.mapboxgl-ctrl-geocoder):not(.mapboxgl-ctrl-scale) {
-    border-radius: constants.$border-radius-small;
-
-    .mapboxgl-ctrl-icon {
-        opacity: 0.7;
-    }
-}
-
-.mapboxgl-ctrl-geocoder--input:focus {
-    outline: 2px solid rgba(33, 225, 155, 0.5) !important;
-    outline-offset: 1px !important;
-}
-
-.mapboxgl-ctrl-top-left {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-
-    max-width: calc(100vw - 20px - 36px - constants.$margin-map-elements);
-
-    z-index: 95;
-
-    @media screen and (max-width: 992px) {
-        flex-wrap: wrap;
-    }
-}
-
 .mapboxgl-ctrl-group {
-    box-shadow: constants.$shadow !important;
+    border-radius: 4px;
+
+    background-color: var(--background-default-grey);
+    box-shadow: 0 2px 3px 0 rgba(0, 0, 18, 0.16) !important;
+
+    // direct children only: MapControlCustom also mounts into a mapbox ctrl container
+    > button {
+        width: $map-control-button-size;
+        height: $map-control-button-size;
+
+        &:not(:first-child) {
+            border-top: 1px solid var(--border-default-grey);
+        }
+
+        // mapbox tints with its own translucent black; these are the DSFR tokens the side
+        // panel's tab rail uses, so both sides of the map react the same way
+        &:hover:not(:disabled) {
+            background-color: var(--background-default-grey-hover);
+        }
+
+        &:active:not(:disabled) {
+            background-color: var(--background-default-grey-active);
+        }
+    }
+}
+
+// the drawing tools: one card per tool, stacked
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: constants.$margin-map-elements;
+
+    margin-top: 20px;
+    margin-right: 20px;
+
+    background: none;
+    box-shadow: none !important;
+
+    .mapbox-gl-draw_ctrl-draw-btn {
+        border-top: 0;
+        border-radius: 4px;
+
+        background-color: var(--background-default-grey);
+        box-shadow: 0 2px 3px 0 rgba(0, 0, 18, 0.16);
+
+        &:hover {
+            background-color: var(--background-default-grey-hover);
+        }
+
+        // marks the tool a drawing session is running with
+        &.active {
+            background-color: var(--background-alt-blue-france);
+            box-shadow:
+                0 2px 3px 0 rgba(0, 0, 18, 0.16),
+                inset 0 0 0 2px var(--border-active-blue-france);
+        }
+    }
+}
+
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group {
+    margin-right: 20px;
+    margin-bottom: constants.$margin-map-elements;
 }
 
 .mapbox-gl-draw_ctrl-draw-btn {
-    height: 36px !important;
-    width: 36px !important;
+    width: $map-control-button-size !important;
+    height: $map-control-button-size !important;
+}
+
+// Map/index.tsx stamps a DSFR icon class onto each mapbox control button; drop the glyph the
+// library painted, whether on the button itself (mapbox-gl-draw) or on a child (mapbox-gl).
+.mapboxgl-ctrl-group > button[class*='fr-icon-'] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--text-action-high-blue-france);
+    background-image: none;
+
+    .mapboxgl-ctrl-icon {
+        display: none;
+    }
 }
 
 .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl {
@@ -527,18 +495,6 @@ body.hide-support-widgets #sentry-feedback {
 // only) hides it — the bar can have the corner back
 :fullscreen .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-scale {
     margin-right: constants.$margin-map-elements;
-}
-
-.mapbox-gl-draw_point {
-    background-image: url('@/assets/pencil.svg');
-}
-
-.mapbox-gl-draw_polygon {
-    background-image: url('@/assets/select-all.svg');
-}
-
-.mapbox-gl-draw_line {
-    background-image: url('@/assets/download.svg');
 }
 
 // custom
