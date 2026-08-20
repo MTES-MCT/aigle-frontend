@@ -38,26 +38,39 @@ const getSignalementPDFDocumentName = (parcel?: ParcelDetail) => {
     return name;
 };
 
-// Why a generation stopped, for the caller's tracking: the message is shown, never sent.
-export type SignalementFailureReason = 'Parcelle sans détection' | 'Récupération' | 'Erreur de génération';
+// Why a page was left out or a generation stopped, for the caller's tracking: the message is shown, never sent.
+export type SignalementFailureReason =
+    | 'Parcelle sans détection'
+    | 'Objet non signalable'
+    | 'Récupération'
+    | 'Erreur de génération';
 
 const FAILURE_MESSAGES: Record<SignalementFailureReason, string> = {
     'Parcelle sans détection': 'Cette parcelle ne comporte aucune détection à signaler.',
+    'Objet non signalable':
+        "Cet objet n'est pas signalable : il est prescrit ou n'apparaît sur aucun des millésimes du rapport.",
     Récupération: "Les informations de la parcelle n'ont pas pu être récupérées.",
     'Erreur de génération': "Le document n'a pas pu être généré",
 };
 
+interface PdfPageProps extends SignalementPDFPageProps {
+    index: number;
+}
+
 interface DocumentContainerProps {
     onFinished: (failureReason?: SignalementFailureReason) => void;
-    pdfProps: SignalementPDFPageProps[];
+    pdfProps: PdfPageProps[];
 }
 
 const DocumentContainer: React.FC<DocumentContainerProps> = ({ onFinished, pdfProps }) => {
+    // pages are appended as their previews finish, which is not the order they were requested in
     const pdfDocument = (
         <Document>
-            {pdfProps.map((props, index) => (
-                <SignalementPDFPage {...props} key={index} />
-            ))}
+            {[...pdfProps]
+                .sort((a, b) => a.index - b.index)
+                .map((props, index) => (
+                    <SignalementPDFPage {...props} key={index} />
+                ))}
         </Document>
     );
 
@@ -142,35 +155,69 @@ const getPreviewGeometries = (
 
 interface PreviewImagesProps {
     setFinalData: (previewImages: PreviewImage[], parcel: ParcelDetail) => void;
+    // the page is left out of the document, the others go on
+    onPageSkipped: (reason: SignalementFailureReason) => void;
+    // the whole generation stops
     onFailure: (failureReason: SignalementFailureReason) => void;
     parcelUuid: string;
     detectionObjectUuid?: string;
 }
 
-const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObjectUuid, setFinalData, onFailure }) => {
+const PreviewImages: React.FC<PreviewImagesProps> = ({
+    parcelUuid,
+    detectionObjectUuid,
+    setFinalData,
+    onPageSkipped,
+    onFailure,
+}) => {
     const [previewImages, setPreviewImages] = useState<Record<string, PreviewImage>>({});
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // both signals feed the same completion counter in the parent, so a second firing (an
+    // effect re-run, a refetch) would push it past the page count and deadlock the download
+    const pageResolvedRef = useRef(false);
+    const setFinalDataRef = useRef(setFinalData);
+    setFinalDataRef.current = setFinalData;
+    const onPageSkippedRef = useRef(onPageSkipped);
+    onPageSkippedRef.current = onPageSkipped;
+
+    const resolvePage = useCallback((resolve: () => void) => {
+        if (pageResolvedRef.current) {
+            return;
+        }
+
+        pageResolvedRef.current = true;
+        resolve();
+    }, []);
 
     const {
         data: parcel,
         isLoading: parcelIsLoading,
         isError: parcelIsError,
     } = useQuery({
-        // the payload is scoped to the detection object, so two objects sharing a parcel
-        // must not share a cache entry
+        // the payload is parcel-wide, but the download is logged per detection object, so two
+        // objects sharing a parcel must not share a cache entry
         queryKey: [parcelEndpoints.downloadInfos(String(parcelUuid)), detectionObjectUuid],
         queryFn: ({ signal }) => fetchParcelDetail(parcelUuid, detectionObjectUuid, signal),
     });
 
     const tileSetsToRender = parcel?.tileSetPreviews?.filter(({ preview }) => preview) || [];
 
+    // the requested object can be filtered out of the report (prescribed, or detected only on a
+    // year the report does not render); without this the sheet would silently become a parcel one
+    const objectNotReportable = Boolean(
+        parcel?.geometry &&
+            detectionObjectUuid &&
+            !parcel.detectionObjects.some(({ uuid }) => uuid === detectionObjectUuid),
+    );
+
     useEffect(() => {
-        if (!parcel || Object.keys(previewImages).length !== tileSetsToRender.length + 1) {
+        if (!parcel || objectNotReportable || Object.keys(previewImages).length !== tileSetsToRender.length + 1) {
             return;
         }
 
-        setFinalData(Object.values(previewImages), parcel);
-    }, [previewImages, parcel]);
+        resolvePage(() => setFinalDataRef.current(Object.values(previewImages), parcel));
+    }, [previewImages, parcel, objectNotReportable]);
 
     // a parcel with no detection to signal comes back as an empty payload from the download endpoint
     useEffect(() => {
@@ -178,13 +225,24 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
             return;
         }
 
-        onFailure('Parcelle sans détection');
+        resolvePage(() => onPageSkippedRef.current('Parcelle sans détection'));
     }, [parcel, parcelIsLoading]);
 
     useEffect(() => {
-        if (parcelIsError) {
-            onFailure('Récupération');
+        if (!objectNotReportable) {
+            return;
         }
+
+        resolvePage(() => onPageSkippedRef.current('Objet non signalable'));
+    }, [objectNotReportable]);
+
+    // without this a failed request leaves the caller waiting on previews that never arrive
+    useEffect(() => {
+        if (!parcelIsError) {
+            return;
+        }
+
+        resolvePage(() => onPageSkippedRef.current('Récupération'));
     }, [parcelIsError]);
 
     const previewBounds = useMemo(() => {
@@ -226,7 +284,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObje
         [previewImages, onFailure],
     );
 
-    if (parcelIsLoading || !parcel || !previewBounds || !tileSetsToRender) {
+    if (parcelIsLoading || !parcel || !previewBounds || !tileSetsToRender || objectNotReportable) {
         return null;
     }
     const planPreviewId = getPreviewId(PLAN_URL_TILESET.uuid, parcel.uuid, detectionObjectUuid);
@@ -298,20 +356,26 @@ interface PagePreviewParams {
 interface ComponentProps {
     previewParams: PagePreviewParams[];
     setNbrDetectionObjectsProcessed?: (nbr: number) => void;
-    // called once per generation: with the message to show and its reason when it failed
-    onGenerationFinished: (error?: string, failureReason?: SignalementFailureReason) => void;
+    // called once per generation: with the message to show and its reason when it failed, or with the
+    // reasons some pages were left out of the downloaded document
+    onGenerationFinished: (
+        error?: string,
+        failureReason?: SignalementFailureReason,
+        skippedPagesReasons?: string[],
+    ) => void;
 }
 const Component: React.FC<ComponentProps> = ({
     previewParams,
     setNbrDetectionObjectsProcessed,
     onGenerationFinished,
 }: ComponentProps) => {
-    const [pdfProps, setPdfProps] = useState<SignalementPDFPageProps[]>([]);
+    const [pdfProps, setPdfProps] = useState<PdfPageProps[]>([]);
 
     const [pagesDisplayed, setPagesDisplayed] = useState<PagePreviewParams[]>(
         previewParams.slice(0, NBR_PAGES_TO_RENDER_AT_ONCE),
     );
     const [pagePreviewsDone, setPagePreviewsDone] = useState<PagePreviewParams[]>([]);
+    const [pagesSkippedReasons, setPagesSkippedReasons] = useState<SignalementFailureReason[]>([]);
 
     // the parent re-creates this callback on every render, so it cannot be an effect dependency
     const setNbrProcessedRef = useRef(setNbrDetectionObjectsProcessed);
@@ -322,14 +386,36 @@ const Component: React.FC<ComponentProps> = ({
     const generationFinishedRef = useRef(false);
 
     // a generation ends once: what the other pages report after a failure is dropped
-    const finishGeneration = useCallback((failureReason?: SignalementFailureReason) => {
+    const finishGeneration = useCallback((...outcome: Parameters<ComponentProps['onGenerationFinished']>) => {
         if (generationFinishedRef.current) {
             return;
         }
         generationFinishedRef.current = true;
 
-        onGenerationFinishedRef.current(failureReason && FAILURE_MESSAGES[failureReason], failureReason);
+        onGenerationFinishedRef.current(...outcome);
     }, []);
+
+    const failGeneration = useCallback(
+        (failureReason: SignalementFailureReason) => finishGeneration(FAILURE_MESSAGES[failureReason], failureReason),
+        [finishGeneration],
+    );
+
+    // a page nothing can be reported for is dropped, not fatal: one prescribed object in a
+    // multi-download used to take the whole batch down with it
+    const allPagesDone = pagePreviewsDone.length >= previewParams.length;
+    const skippedReasons = [...new Set(pagesSkippedReasons)];
+
+    useEffect(() => {
+        if (!allPagesDone || pdfProps.length) {
+            return;
+        }
+
+        finishGeneration(
+            skippedReasons.map((reason) => FAILURE_MESSAGES[reason]).join(' ') ||
+                'Aucune fiche de signalement à générer.',
+            skippedReasons[0],
+        );
+    }, [allPagesDone, pdfProps.length]);
 
     // reported on its own, the loop below stops counting before the last page
     useEffect(() => {
@@ -337,7 +423,7 @@ const Component: React.FC<ComponentProps> = ({
     }, [pagePreviewsDone.length]);
 
     useEffect(() => {
-        if (!pagePreviewsDone.length || pagePreviewsDone.length === previewParams.length) {
+        if (!pagePreviewsDone.length || pagePreviewsDone.length >= previewParams.length) {
             return;
         }
 
@@ -363,11 +449,15 @@ const Component: React.FC<ComponentProps> = ({
 
     return (
         <div className={classes.container}>
-            {pagesDisplayed.map((pagePreviewProps) => (
+            {pagesDisplayed.map((pagePreviewProps, pageIndex) => (
                 <PreviewImages
                     {...pagePreviewProps}
                     key={`download-${pagePreviewProps.detectionObjectUuid || pagePreviewProps.parcelUuid}`}
-                    onFailure={finishGeneration}
+                    onPageSkipped={(reason) => {
+                        setPagesSkippedReasons((prev) => [...prev, reason]);
+                        setPagePreviewsDone((prev) => [...prev, pagePreviewProps]);
+                    }}
+                    onFailure={failGeneration}
                     setFinalData={(previewImages: PreviewImage[], parcel: ParcelDetail) => {
                         setPdfProps((prev) => {
                             const centerPoint = parcel.geometry
@@ -376,7 +466,9 @@ const Component: React.FC<ComponentProps> = ({
                             return [
                                 ...prev,
                                 {
+                                    index: pageIndex,
                                     detectionObjects: parcel?.detectionObjects || [],
+                                    detectionObjectUuid: pagePreviewProps.detectionObjectUuid,
                                     latLong: centerPoint
                                         ? `${centerPoint[1].toFixed(5)}, ${centerPoint[0].toFixed(5)}`
                                         : 'inconnu',
@@ -390,8 +482,19 @@ const Component: React.FC<ComponentProps> = ({
                 />
             ))}
 
-            {pagePreviewsDone.length === previewParams.length ? (
-                <DocumentContainer pdfProps={pdfProps} onFinished={finishGeneration} />
+            {allPagesDone && pdfProps.length ? (
+                <DocumentContainer
+                    pdfProps={pdfProps}
+                    onFinished={(failureReason) =>
+                        failureReason
+                            ? failGeneration(failureReason)
+                            : finishGeneration(
+                                  undefined,
+                                  undefined,
+                                  skippedReasons.map((reason) => FAILURE_MESSAGES[reason]),
+                              )
+                    }
+                />
             ) : null}
         </div>
     );

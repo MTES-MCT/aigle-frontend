@@ -38,7 +38,7 @@ export interface ParcelListItem extends ParcelWithCommuneSerializer {
 }
 
 export interface ParcelDetail extends Parcel, ParcelWithCommuneSerializer {
-    detectionsUpdatedAt: string;
+    detectionsUpdatedAt: string | null;
     tileSetPreviews: DetectionObjectDetailTilesetPreview[];
     detectionObjects: ParcelDetectionObject[];
     customGeoZones: GeoCustomZoneWithSubZones[];

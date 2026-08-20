@@ -1779,7 +1779,11 @@ const Component: React.FC<ComponentProps> = ({
                             // previews already captured by the previous run
                             key={multipleDownload.runId}
                             previewParams={multipleDownload.pages}
-                            onGenerationFinished={(error?: string, failureReason?: SignalementFailureReason) => {
+                            onGenerationFinished={(
+                                error?: string,
+                                failureReason?: SignalementFailureReason,
+                                skippedPagesReasons?: string[],
+                            ) => {
                                 if (multipleDownloadRunIdRef.current !== multipleDownload.runId) {
                                     return;
                                 }
@@ -1791,6 +1795,14 @@ const Component: React.FC<ComponentProps> = ({
                                         title: 'Erreur lors de la génération des fiches de signalement',
                                         message: error,
                                         color: 'red',
+                                    });
+                                } else if (skippedPagesReasons?.length) {
+                                    // the document downloads with fewer sheets than objects selected,
+                                    // which is invisible without this
+                                    notifications.show({
+                                        title: 'Certaines fiches de signalement sont absentes du document',
+                                        message: skippedPagesReasons.join(' '),
+                                        color: 'orange',
                                     });
                                 }
 
