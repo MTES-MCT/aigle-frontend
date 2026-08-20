@@ -1,0 +1,6 @@
+// DSFR only pads the accordion header; its panel is flush, which reads as broken inside
+// a narrow side panel.
+.content {
+    padding-right: 1rem;
+    padding-left: 1rem;
+}

@@ -1,0 +1,4 @@
+# Consentement aux modalités d'utilisation du DSFR, exigé par le script preinstall de
+# @gouvfr/dsfr depuis la 1.15. La version doit correspondre au cguVersion du paquet
+# installé, sinon `npm ci` échoue : c'est pourquoi @gouvfr/dsfr est épinglé exactement.
+accept-license: '1.0.1'

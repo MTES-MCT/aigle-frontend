@@ -12,11 +12,11 @@ import { CollectivityType } from '@/models/geo/_common';
 import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
 import { ObjectType } from '@/models/object-type';
 import { ObjectTypeCategory } from '@/models/object-type-category';
-import { UserGroupDetail, UserGroupType, userGroupTypes } from '@/models/user-group';
+import { FeatureFlag, FeatureFlagOption, UserGroupDetail, UserGroupType, userGroupTypes } from '@/models/user-group';
 import api, { ApiError } from '@/utils/api';
 import { USER_GROUP_TYPES_NAMES_MAP } from '@/utils/constants';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
-import { Button, MultiSelect, Select, TextInput } from '@mantine/core';
+import { Button, MultiSelect, Select, Switch, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconUserPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
@@ -38,6 +38,7 @@ interface FormValues {
     regionsUuids: string[];
     objectTypeCategoriesUuids: string[];
     geoCustomZonesUuids: string[];
+    featureFlags: FeatureFlag[];
 }
 
 const postForm = (values: FormValues, uuid?: string) => {
@@ -53,9 +54,17 @@ interface FormProps {
     initialGeoSelectedValues?: GeoValues;
     categories?: ObjectTypeCategory[];
     geoCustomZones?: GeoCustomZone[];
+    featureFlagOptions?: FeatureFlagOption[];
 }
 
-const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValues, categories, geoCustomZones }) => {
+const Form: React.FC<FormProps> = ({
+    uuid,
+    initialValues,
+    initialGeoSelectedValues,
+    categories,
+    geoCustomZones,
+    featureFlagOptions,
+}) => {
     const [error, setError] = useState<ApiError>();
     const { navigate, buildPath } = useFilterNavigation();
 
@@ -174,6 +183,25 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 key={form.key('geoCustomZonesUuids')}
                 {...form.getInputProps('geoCustomZonesUuids')}
             />
+            <h2 className="form-sub-title">Fonctionnalités</h2>
+
+            {(featureFlagOptions || []).map(({ value, label }) => (
+                <Switch
+                    mt="md"
+                    key={value}
+                    label={label}
+                    checked={form.values.featureFlags.includes(value)}
+                    onChange={(event) =>
+                        form.setFieldValue(
+                            'featureFlags',
+                            event.currentTarget.checked
+                                ? [...form.values.featureFlags, value]
+                                : form.values.featureFlags.filter((featureFlag) => featureFlag !== value),
+                        )
+                    }
+                />
+            ))}
+
             <h2 className="form-sub-title">Collectivités accessibles par le groupe</h2>
 
             <InfoCard title="Droits d'accès">
@@ -232,6 +260,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     regionsUuids: [],
     objectTypeCategoriesUuids: [],
     geoCustomZonesUuids: [],
+    featureFlags: [],
 };
 
 const ComponentInner: React.FC = () => {
@@ -253,6 +282,7 @@ const ComponentInner: React.FC = () => {
                 (objectTypeCategory) => objectTypeCategory.uuid,
             ),
             geoCustomZonesUuids: userGroup.geoCustomZones.map((geoCustomZone) => geoCustomZone.uuid),
+            featureFlags: userGroup.featureFlags || [],
         };
         const initialGeoSelectedValues: GeoValues = {
             region: userGroup.regions.map((region) => geoZoneToGeoOption(region)),
@@ -284,6 +314,11 @@ const ComponentInner: React.FC = () => {
         queryFn: () => fetchGeoCustomZones(),
     });
 
+    const { data: featureFlagOptions } = useQuery({
+        queryKey: [userGroupEndpoints.featureFlags],
+        queryFn: () => api<FeatureFlagOption[]>(userGroupEndpoints.featureFlags),
+    });
+
     if (isLoading) {
         return <Loader />;
     }
@@ -299,6 +334,7 @@ const ComponentInner: React.FC = () => {
             initialGeoSelectedValues={data?.initialGeoSelectedValues}
             geoCustomZones={geoCustomZones}
             categories={categories}
+            featureFlagOptions={featureFlagOptions}
         />
     );
 };

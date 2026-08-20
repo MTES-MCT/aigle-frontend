@@ -1,0 +1,23 @@
+.section {
+    margin-bottom: 0.5rem;
+}
+
+.section-title {
+    margin: 0;
+    padding: 0.5rem 1rem;
+
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 500;
+    color: var(--text-action-high-blue-france);
+
+    background-color: var(--background-alt-blue-france);
+
+    &::first-letter {
+        text-transform: uppercase;
+    }
+}
+
+.radio-list {
+    padding: 0.5rem 1rem;
+}

@@ -1,0 +1,5 @@
+// DSFR spaces checkboxes through `fr-fieldset__element`, which this component does not use
+// (the panel groups them under accordions instead), so consecutive rows would touch.
+.container + .container {
+    margin-top: 0.5rem;
+}

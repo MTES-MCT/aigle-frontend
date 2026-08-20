@@ -1,0 +1,154 @@
+@use '@/constants.scss' as constants;
+
+.container {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+
+    display: flex;
+    align-items: stretch;
+
+    // the map has to stay draggable everywhere the panel and the rail buttons do not cover
+    pointer-events: none;
+
+    z-index: 95;
+}
+
+// Closed, the panel is pulled out of view by its own width rather than unmounted: sliding a
+// margin keeps the content laid out, so nothing reflows mid-animation. `visibility` is what
+// takes it out of the tab order and the accessibility tree, delayed until the slide is over.
+.panel {
+    width: constants.$map-side-panel-width;
+    max-width: 100vw;
+    margin-left: -#{constants.$map-side-panel-width};
+
+    display: flex;
+    flex-direction: column;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    background-color: var(--background-default-grey);
+
+    visibility: hidden;
+    pointer-events: auto;
+
+    transition:
+        margin-left constants.$map-side-panel-slide-duration ease,
+        visibility 0s linear constants.$map-side-panel-slide-duration;
+}
+
+.panel-open {
+    margin-left: 0;
+
+    visibility: visible;
+
+    transition:
+        margin-left constants.$map-side-panel-slide-duration ease,
+        visibility 0s;
+}
+
+.panel-header {
+    position: sticky;
+    top: 0;
+
+    padding: 1rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+
+    background-color: var(--background-default-grey);
+
+    // .fr-accordion:focus-within raises itself to 1, and source order would then win
+    z-index: 2;
+}
+
+.panel-title {
+    margin: 0;
+
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+    color: var(--text-title-grey);
+}
+
+// The rail column is full height so it can sit beside the panel, but only its buttons may
+// capture pointer events: the rest of that strip has to stay draggable map.
+.rail {
+    padding-top: constants.$map-side-panel-rail-top;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+
+    height: fit-content;
+}
+
+.rail-button {
+    position: relative;
+
+    pointer-events: auto;
+
+    width: constants.$map-side-panel-rail-width;
+    height: constants.$map-side-panel-rail-width;
+    padding: 0.25rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 0 4px 4px 0;
+
+    color: var(--text-action-high-blue-france);
+    background-color: var(--background-default-grey);
+    box-shadow: inset 4px 0 8px 0 rgba(0, 0, 18, 0.08);
+
+    cursor: pointer;
+
+    // same tokens as the mapbox controls on the other side of the map
+    &:hover:not(:disabled) {
+        background-color: var(--background-default-grey-hover);
+    }
+
+    &:active:not(:disabled) {
+        background-color: var(--background-default-grey-active);
+    }
+
+    &:disabled {
+        color: var(--text-disabled-grey);
+        cursor: not-allowed;
+    }
+}
+
+// the open panel and its button read as one surface
+.rail-button-active {
+    box-shadow: none;
+}
+
+.rail-button-indicator {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+    background-color: var(--background-action-high-blue-france-active);
+}
+
+@media screen and (max-width: 992px) {
+    .panel {
+        width: calc(100vw - #{constants.$map-side-panel-rail-width});
+        margin-left: calc(-100vw + #{constants.$map-side-panel-rail-width});
+    }
+
+    .panel-open {
+        margin-left: 0;
+    }
+}
