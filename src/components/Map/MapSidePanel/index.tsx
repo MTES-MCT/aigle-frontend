@@ -6,6 +6,7 @@ import SearchPanel from '@/components/Map/MapSidePanel/SearchPanel';
 import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { getMatchingPresetId } from '@/utils/objects-filter-presets';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
@@ -25,6 +26,8 @@ interface ComponentProps {
     setSection: (section?: MapSidePanelSection) => void;
     displayLayersSelection?: boolean;
     layersDisabled?: boolean;
+    tracked?: boolean;
+    onFilterUserChange?: () => void;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -32,6 +35,8 @@ const Component: React.FC<ComponentProps> = ({
     setSection,
     displayLayersSelection = true,
     layersDisabled = false,
+    tracked = false,
+    onFilterUserChange,
 }: ComponentProps) => {
     const { layers, customZoneLayers, objectTypes, otherObjectTypesUuids, annotationLayerVisible } = useMap();
     const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
@@ -62,7 +67,7 @@ const Component: React.FC<ComponentProps> = ({
     const renderContent = () => {
         switch (slidingSection) {
             case 'SEARCH':
-                return <SearchPanel onClose={() => setSection(undefined)} />;
+                return <SearchPanel onClose={() => setSection(undefined)} tracked={tracked} />;
             case 'FILTER':
                 return (
                     <FilterObjects
@@ -71,6 +76,8 @@ const Component: React.FC<ComponentProps> = ({
                         mapGeoCustomZoneLayers={customZoneLayers}
                         otherObjectTypesUuids={otherObjectTypesUuids}
                         updateObjectsFilter={updateObjectsFilter}
+                        trackingCategory={tracked ? TRACKING_CATEGORIES.mapFilters : undefined}
+                        onUserChange={onFilterUserChange}
                     />
                 );
             case 'LAYERS':
@@ -79,6 +86,7 @@ const Component: React.FC<ComponentProps> = ({
                         layers={layers}
                         customZoneLayers={customZoneLayers}
                         displayLayersSelection={displayLayersSelection}
+                        tracked={tracked}
                     />
                 );
             default:

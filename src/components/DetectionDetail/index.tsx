@@ -328,7 +328,6 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                     detectionObject.detections[0],
                                 );
                                 updateObjectsFilter(newFilters);
-                                eventEmitter.emit('OBJECTS_FILTER_UPDATED', newFilters);
                                 trackEvent(
                                     TRACKING_CATEGORIES.detection,
                                     'Détection rendue visible',

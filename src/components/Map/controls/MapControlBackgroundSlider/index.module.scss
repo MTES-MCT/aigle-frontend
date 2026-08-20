@@ -1,21 +1,14 @@
 @use '@/constants.scss' as constants;
 
 .content {
-    bottom: 46px; // 20px (switch height) + 10px (switch margin) + 16px (switch padding)
+    bottom: 46px; // 20px (toggle height) + 10px (toggle margin) + 16px (toggle padding)
 
     left: 0;
 
-    margin-left: constants.$margin-map-elements;
+    @include constants.map-control-offset-bottom-left;
     margin-bottom: constants.$margin-map-elements;
 
-    padding: 8px 12px;
-    border-radius: 18px;
+    padding: 8px;
 
     z-index: 92;
-
-    background: #ffffff;
-
-    .controller {
-        background: #ffffff;
-    }
 }

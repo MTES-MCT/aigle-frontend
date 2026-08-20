@@ -7,12 +7,15 @@ export interface AddressSuggestion {
     name: string;
     context: string;
     postcode?: string;
+    // mapbox's own type: 'address', 'street', 'place', 'postcode'...
+    featureType?: string;
     center: [number, number];
 }
 
 interface MapboxForwardFeature {
     id: string;
     properties: {
+        feature_type?: string;
         name?: string;
         place_formatted?: string;
         full_address?: string;
@@ -70,6 +73,7 @@ export const searchAddress = async (
         name: feature.properties.name || feature.properties.full_address || '',
         context: feature.properties.place_formatted || '',
         postcode: feature.properties.context?.postcode?.name,
+        featureType: feature.properties.feature_type,
         center: feature.properties.coordinates
             ? [feature.properties.coordinates.longitude, feature.properties.coordinates.latitude]
             : feature.geometry.coordinates,

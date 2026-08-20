@@ -1,15 +1,21 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 
+import Accordion from '@/components/dsfr/Accordion';
+import Checkbox from '@/components/dsfr/Checkbox';
+import Range from '@/components/dsfr/Range';
 import { getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
-import SelectItem from '@/components/ui/SelectItem';
-import { detectionControlStatuses, detectionValidationStatusesSelectable } from '@/models/detection';
+import { useExpandedSections } from '@/hooks/useExpandedSections';
+import {
+    detectionControlStatuses,
+    DetectionValidationStatus,
+    detectionValidationStatusesSelectable,
+} from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
-    DETECTION_VALIDATION_STATUSES_COLORS_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
     OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
@@ -20,40 +26,26 @@ import {
     getMatchingPresetId,
     OBJECTS_FILTER_PRESETS,
 } from '@/utils/objects-filter-presets';
-import {
-    ActionIcon,
-    Badge,
-    Button,
-    Checkbox,
-    Group,
-    MultiSelect,
-    Select,
-    Slider,
-    Stack,
-    Text,
-    Tooltip,
-} from '@mantine/core';
-import { useForm, UseFormReturnType } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconChecks, IconX } from '@tabler/icons-react';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
-const CONTROL_LABEL = 'Filtrer les objets';
+type Section = 'OBJECT_TYPES' | 'PRESCRIPTION' | 'VALIDATION' | 'CONTROL' | 'CUSTOM_ZONES' | 'SCORE';
 
-interface FormValues {
-    objectTypesUuids: ObjectsFilter['objectTypesUuids'];
-    detectionValidationStatuses: ObjectsFilter['detectionValidationStatuses'];
-    detectionControlStatuses: ObjectsFilter['detectionControlStatuses'];
-    score: ObjectsFilter['score'];
-    prescripted: ObjectsFilter['prescripted'];
-    interfaceDrawn: ObjectsFilter['interfaceDrawn'];
-    customZonesUuids: ObjectsFilter['customZonesUuids'];
-}
+const ALL_SECTIONS: readonly Section[] = [
+    'OBJECT_TYPES',
+    'PRESCRIPTION',
+    'VALIDATION',
+    'CONTROL',
+    'CUSTOM_ZONES',
+    'SCORE',
+] as const;
 
-const formatScore = (score: number) => Math.round(score * 100);
+const formatScore = (score: number) => String(Math.round(score));
 
-// Each keyboard step and each click on the slider ends a change: only the value the agent settles on is sent.
+const getScorePercent = (score: number) => Math.round(score * 100);
+
+// Each keyboard step and each move of the slider is a change: only the value the agent settles on is sent.
 const SCORE_TRACKING_DELAY_MS = 1000;
 
 const getPrescriptedTrackingName = (prescripted: ObjectsFilter['prescripted']) => {
@@ -64,7 +56,24 @@ const getPrescriptedTrackingName = (prescripted: ObjectsFilter['prescripted']) =
     return prescripted ? 'PRESCRIBED' : 'NOT_PRESCRIBED';
 };
 
-type TrackedListField = 'objectTypesUuids' | 'detectionValidationStatuses' | 'detectionControlStatuses';
+/**
+ * The square trails the name and mirrors how the map draws the thing: detections are drawn as
+ * an outline, zones as a filled area. The name is truncated rather than wrapped — wrapping
+ * pushes the square out of line with the checkbox — and it has to be its own element because
+ * the DSFR checkbox label is a flex row, which drops the whitespace around a bare text node.
+ */
+const LabelWithColor: React.FC<{ name: string; color?: string; outlined?: boolean }> = ({ name, color, outlined }) => (
+    <span className={classes.label} title={name}>
+        <span className={classes['label-name']}>{name}</span>
+        {color ? (
+            <span
+                className={clsx(classes['color-square'], outlined && classes['color-square-outlined'])}
+                style={outlined ? { borderColor: color } : { backgroundColor: color }}
+                aria-hidden="true"
+            />
+        ) : null}
+    </span>
+);
 
 interface ComponentProps {
     objectTypes: ObjectType[];
@@ -86,122 +95,21 @@ const Component: React.FC<ComponentProps> = ({
     updateObjectsFilter,
     trackingCategory,
     onUserChange,
-}) => {
-    const { eventEmitter, settings } = useMap();
+}: ComponentProps) => {
+    const { isExpanded, toggleSection } = useExpandedSections(ALL_SECTIONS);
+    const { settings } = useMap();
     const scoreTrackingRef = useRef<{ timer: ReturnType<typeof setTimeout>; from: number } | null>(null);
-    const {
-        objectTypesUuids,
-        detectionValidationStatuses: detectionValidationStatusesFilter,
-        detectionControlStatuses: detectionControlStatusesFilter,
-        score,
-        prescripted,
-        interfaceDrawn,
-        customZonesUuids,
-    } = objectsFilter;
 
-    const form: UseFormReturnType<FormValues> = useForm({
-        mode: 'uncontrolled',
-        initialValues: {
-            objectTypesUuids,
-            detectionValidationStatuses: detectionValidationStatusesFilter,
-            detectionControlStatuses: detectionControlStatusesFilter,
-            score,
-            prescripted,
-            customZonesUuids: customZonesUuids,
-            interfaceDrawn,
-        },
-    });
-    form.watch('objectTypesUuids', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            objectTypesUuids: value,
-        });
-    });
-    form.watch('detectionValidationStatuses', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            detectionValidationStatuses: value,
-        });
-    });
-    form.watch('detectionControlStatuses', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            detectionControlStatuses: value,
-        });
-    });
-    form.watch('score', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            score: value,
-        });
-    });
-    form.watch('prescripted', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            prescripted: value,
-        });
-    });
-    form.watch('customZonesUuids', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            customZonesUuids: value,
-        });
-    });
-    form.watch('interfaceDrawn', ({ value }) => {
-        updateObjectsFilter({
-            ...form.getValues(),
-            interfaceDrawn: value,
-        });
-    });
-    useEffect(() => {
-        const updateFilters = (newFilters: ObjectsFilter) => {
-            form.setValues(newFilters);
-        };
-
-        if (!eventEmitter) {
-            return;
-        }
-
-        eventEmitter.on('OBJECTS_FILTER_UPDATED', (newFilters: ObjectsFilter) => updateFilters(newFilters));
-
-        return () => {
-            eventEmitter.off('OBJECTS_FILTER_UPDATED', updateFilters);
-        };
-    }, []);
-
-    const objectTypesMap: Record<string, ObjectTypeMinimal> = useMemo(() => {
-        return (
-            objectTypes?.reduce(
-                (prev, curr) => ({
-                    ...prev,
-                    [curr.uuid]: curr,
-                }),
-                {
-                    [OTHER_OBJECT_TYPE.uuid]: OTHER_OBJECT_TYPE,
-                },
-            ) || {}
-        );
-    }, [objectTypes]);
+    const update = (patch: Partial<ObjectsFilter>) => updateObjectsFilter({ ...objectsFilter, ...patch });
 
     const objectTypesToDisplay: ObjectTypeMinimal[] = useMemo(() => {
-        if (otherObjectTypesUuids.size == 0) {
+        if (otherObjectTypesUuids.size === 0) {
             return objectTypes;
         }
 
-        const objectTypesToDisplay_: ObjectTypeMinimal[] = objectTypes.filter(
-            (ot) => !otherObjectTypesUuids.has(ot.uuid),
-        );
-        objectTypesToDisplay_.push(OTHER_OBJECT_TYPE);
-        return objectTypesToDisplay_;
+        return [...objectTypes.filter((ot) => !otherObjectTypesUuids.has(ot.uuid)), OTHER_OBJECT_TYPE];
     }, [objectTypes, otherObjectTypesUuids]);
 
-    const presetSelectData = useMemo(
-        () => [
-            ...OBJECTS_FILTER_PRESETS.map(({ id, label }) => ({ value: id, label })),
-            { value: CUSTOM_PRESET_ID, label: CUSTOM_PRESET_LABEL, disabled: true },
-        ],
-        [],
-    );
     const selectedPresetId = useMemo(() => getMatchingPresetId(objectsFilter) ?? CUSTOM_PRESET_ID, [objectsFilter]);
 
     useEffect(
@@ -219,7 +127,8 @@ const Component: React.FC<ComponentProps> = ({
         }
     };
 
-    const getObjectTypeTrackingName = (uuid: string) => objectTypesMap[uuid]?.name ?? 'Inconnu';
+    const getObjectTypeTrackingName = (uuid: string) =>
+        [...objectTypes, OTHER_OBJECT_TYPE].find((objectType) => objectType.uuid === uuid)?.name ?? 'Inconnu';
 
     // One event per value ticked or unticked: 'Validation : +SUSPECT', 'Contrôle : -CONTROLLED_FIELD'.
     const trackListChanges = (
@@ -236,39 +145,28 @@ const Component: React.FC<ComponentProps> = ({
             .forEach((value) => trackFilterEvent('Filtre modifié', `${dimension} : -${getLabel(value)}`));
     };
 
-    // Diffs the agent's own change before the form takes it. Presets, url restores and 'Rendre visible' go
-    // through setValues instead, so they are never counted.
-    const getTrackedListInputProps = (
-        field: TrackedListField,
-        dimension: string,
-        getLabel?: (value: string) => string,
-    ) => {
-        const inputProps = form.getInputProps(field);
-
-        return {
-            ...inputProps,
-            onChange: (value: string[]) => {
-                trackListChanges(dimension, form.getValues()[field], value, getLabel);
-                onUserChange?.();
-                inputProps.onChange(value);
-            },
-        };
+    // The agent's own changes only: presets, url restores and 'Rendre visible' update the store directly.
+    const updateFromUser = (patch: Partial<ObjectsFilter>) => {
+        onUserChange?.();
+        update(patch);
     };
 
-    const changePrescripted = (prescripted: ObjectsFilter['prescripted']) => {
-        if (form.getValues().prescripted !== prescripted) {
-            trackFilterEvent('Filtre modifié', `Prescription : =${getPrescriptedTrackingName(prescripted)}`);
-            onUserChange?.();
+    const applyPreset = (presetId: string) => {
+        const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === presetId);
+
+        if (preset) {
+            trackFilterEvent('Filtre rapide appliqué', preset.id);
+            updateFromUser(preset.filter);
         }
-        form.setFieldValue('prescripted', prescripted);
     };
 
     const changeScore = (score: number) => {
-        const previousScore = form.getValues().score;
-        if (score !== previousScore) {
-            onUserChange?.();
+        const previousScore = objectsFilter.score;
+        if (score === previousScore) {
+            return;
         }
-        form.setFieldValue('score', score);
+
+        updateFromUser({ score });
 
         if (!trackingCategory) {
             return;
@@ -284,295 +182,258 @@ const Component: React.FC<ComponentProps> = ({
             from,
             timer: setTimeout(() => {
                 scoreTrackingRef.current = null;
-                if (formatScore(score) !== formatScore(from)) {
-                    trackEvent(trackingCategory, 'Score modifié', String(formatScore(score)));
+                if (getScorePercent(score) !== getScorePercent(from)) {
+                    trackEvent(trackingCategory, 'Score modifié', String(getScorePercent(score)));
                 }
             }, SCORE_TRACKING_DELAY_MS),
         };
     };
 
-    const applyPreset = (presetId: string | null) => {
-        const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === presetId);
-        if (!preset) {
-            return;
-        }
-        trackFilterEvent('Filtre rapide appliqué', preset.id);
-        onUserChange?.();
-        form.setValues(preset.filter);
-        updateObjectsFilter({ ...objectsFilter, ...preset.filter });
+    const toggleInArray = <T,>(values: T[], value: T, checked: boolean): T[] =>
+        checked ? [...values, value] : values.filter((item) => item !== value);
+
+    /**
+     * ILLEGAL has no checkbox any more but several presets still set it, so a toggle must not
+     * silently drop it. The exception is unticking the last visible status: leaving ILLEGAL
+     * behind would show an unfiltered-looking panel that is still filtering.
+     */
+    const toggleValidationStatus = (status: DetectionValidationStatus, checked: boolean) => {
+        const next = toggleInArray(objectsFilter.detectionValidationStatuses, status, checked);
+        const anySelectableLeft = next.some((value) => detectionValidationStatusesSelectable.includes(value));
+        const detectionValidationStatuses = anySelectableLeft ? next : [];
+
+        trackListChanges('Validation', objectsFilter.detectionValidationStatuses, detectionValidationStatuses);
+        updateFromUser({ detectionValidationStatuses });
     };
 
+    // Two checkboxes stand in for a tri-state: both ticked means no filter. Unticking one
+    // always leaves the other ticked, so a click never lands on "nothing selected" (which
+    // would show nothing) nor bounces the box the user just clicked back on.
+    const setPrescripted = (target: boolean, checked: boolean) => {
+        const prescripted = checked ? null : !target;
+
+        if (prescripted !== objectsFilter.prescripted) {
+            trackFilterEvent('Filtre modifié', `Prescription : =${getPrescriptedTrackingName(prescripted)}`);
+        }
+        updateFromUser({ prescripted });
+    };
+
+    const isPrescriptedChecked = (target: boolean) =>
+        objectsFilter.prescripted === null || objectsFilter.prescripted === target;
+
     return (
-        <form className={classes.form}>
-            <h2>{CONTROL_LABEL}</h2>
-
-            <Group gap="md" mb="md" align="center" wrap="nowrap">
-                <Text className="input-label">Filtres rapides</Text>
-                <Select
-                    data={presetSelectData}
+        <div className={classes.container}>
+            <div className={`fr-select-group ${classes.preset}`}>
+                <label className="fr-label" htmlFor="objects-filter-preset">
+                    Filtres rapides
+                </label>
+                <select
+                    className="fr-select"
+                    id="objects-filter-preset"
                     value={selectedPresetId}
-                    onChange={applyPreset}
-                    allowDeselect={false}
-                    flex={1}
-                    maw={300}
-                    styles={{ input: { caretColor: 'transparent', cursor: 'pointer' } }}
-                />
-            </Group>
-
-            <div className={classes['filters-container']}>
-                <div className={classes['filters-section']}>
-                    <Text mt="md" className="input-label">
-                        Score
-                    </Text>
-                    <div className={classes['score-slider-value-container']}>
-                        <Slider
-                            className={classes['score-slider']}
-                            label={formatScore}
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            key={form.key('score')}
-                            {...form.getInputProps('score')}
-                            onChange={undefined}
-                            onChangeEnd={changeScore}
-                            aria-label="Changer le seuil du score"
-                        />
-                        {formatScore(form.getValues().score)}
-                    </div>
-
-                    <Text mt="md" className="input-label">
-                        Objets prescrits
-                    </Text>
-                    <Button.Group className={classes['multiselect-buttons-container']}>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().prescripted === null ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => changePrescripted(null)}
-                        >
-                            Prescrits et non-prescrits
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().prescripted === true ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => changePrescripted(true)}
-                        >
-                            Prescrits
-                        </Button>
-                        <Button
-                            fullWidth
-                            size="xs"
-                            variant={form.getValues().prescripted === false ? 'filled' : 'outline'}
-                            type="button"
-                            onClick={() => changePrescripted(false)}
-                        >
-                            Non-prescrits
-                        </Button>
-                    </Button.Group>
-
-                    <div className={classes['object-types-select-container']}>
-                        <MultiSelect
-                            className={clsx('multiselect-pills-hidden', classes['object-types-select'])}
-                            mt="md"
-                            label="Types d'objets"
-                            placeholder="Caravane, piscine,..."
-                            searchable
-                            data={(objectTypesToDisplay || []).map(({ name, uuid }) => ({
-                                value: uuid,
-                                label: name,
-                            }))}
-                            renderOption={(item) => (
-                                <SelectItem item={item} color={objectTypesMap[item.option.value].color} />
-                            )}
-                            key={form.key('objectTypesUuids')}
-                            {...getTrackedListInputProps('objectTypesUuids', 'Type d’objet', getObjectTypeTrackingName)}
-                        />
-
-                        <Tooltip
-                            label={
-                                form.getValues().objectTypesUuids.length ? 'Déselectionner tout' : 'Sélectionner tout'
-                            }
-                        >
-                            <ActionIcon
-                                size="lg"
-                                ml="xs"
-                                className={classes['object-types-selectall-button']}
-                                onClick={() => {
-                                    const objectTypesUuidsSelected = form.getValues().objectTypesUuids;
-                                    trackFilterEvent(
-                                        'Filtre modifié',
-                                        `Type d’objet : ${objectTypesUuidsSelected.length ? '-' : '+'}TOUS`,
-                                    );
-                                    onUserChange?.();
-                                    form.setFieldValue(
-                                        'objectTypesUuids',
-                                        objectTypesUuidsSelected.length ? [] : objectTypes.map(({ uuid }) => uuid),
-                                    );
-                                }}
-                            >
-                                <IconChecks />
-                            </ActionIcon>
-                        </Tooltip>
-                    </div>
-
-                    {form.getValues().objectTypesUuids.length ? (
-                        <Group gap="xs" mt="sm">
-                            {form
-                                .getValues()
-                                .objectTypesUuids.filter((uuid) => objectTypesMap[uuid])
-                                .map((uuid) => (
-                                    <Badge
-                                        autoContrast
-                                        rightSection={
-                                            <ActionIcon
-                                                variant="transparent"
-                                                size={16}
-                                                onClick={() => {
-                                                    trackFilterEvent(
-                                                        'Filtre modifié',
-                                                        `Type d’objet : -${getObjectTypeTrackingName(uuid)}`,
-                                                    );
-                                                    onUserChange?.();
-                                                    form.setFieldValue('objectTypesUuids', (prev) =>
-                                                        prev.filter((typeUuid) => typeUuid !== uuid),
-                                                    );
-                                                }}
-                                                aria-label={`Retirer ${objectTypesMap[uuid].name} des filtres`}
-                                            >
-                                                <IconX size={16} color="white" />
-                                            </ActionIcon>
-                                        }
-                                        radius={100}
-                                        key={uuid}
-                                        color={objectTypesMap[uuid].color}
-                                    >
-                                        {objectTypesMap[uuid].name}
-                                    </Badge>
-                                ))}
-                        </Group>
-                    ) : (
-                        <p className={classes['empty-filter-text']}>Aucun filtre sur les types n&apos;est appliqué</p>
-                    )}
-                </div>
-
-                <div className={clsx(classes['statuses-filters-container'], classes['filters-section'])}>
-                    <div>
-                        <Checkbox.Group
-                            mt="xl"
-                            label="Statuts de validation"
-                            key={form.key('detectionValidationStatuses')}
-                            {...getTrackedListInputProps('detectionValidationStatuses', 'Validation')}
-                        >
-                            <Stack gap="xs" mt="sm">
-                                {detectionValidationStatusesSelectable.map((status) => (
-                                    <Checkbox
-                                        key={status}
-                                        value={status}
-                                        label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
-                                        color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
-                                    />
-                                ))}
-                            </Stack>
-                        </Checkbox.Group>
-
-                        {form.getValues().detectionValidationStatuses.length === 0 ? (
-                            <div className={classes['empty-filter-text']}>
-                                <p>Aucun filtre sur les statuts</p>
-                                <p>de validation n&apos;est appliqué</p>
-                            </div>
-                        ) : null}
-                    </div>
-
-                    <div>
-                        <Checkbox.Group
-                            mt="xl"
-                            label="Statuts de contrôle"
-                            key={form.key('detectionControlStatuses')}
-                            {...getTrackedListInputProps('detectionControlStatuses', 'Contrôle')}
-                        >
-                            <Stack gap="xs" mt="sm">
-                                {detectionControlStatuses.map((status) => (
-                                    <Checkbox
-                                        key={status}
-                                        value={status}
-                                        label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
-                                    />
-                                ))}
-                            </Stack>
-                        </Checkbox.Group>
-
-                        {form.getValues().detectionControlStatuses.length === 0 ? (
-                            <div className={classes['empty-filter-text']}>
-                                <p>Aucun filtre sur les statuts</p>
-                                <p>de contrôle n&apos;est appliqué</p>
-                            </div>
-                        ) : null}
-                    </div>
-
-                    <div>
-                        <Text mt="xl" className="input-label">
-                            Zones à enjeux
-                        </Text>
-                        <Stack gap="xs" mt="sm">
-                            {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids: customZoneUuids_ }) => (
-                                <Checkbox
-                                    key={customZoneUuids_.join(',')}
-                                    value={customZoneUuids_}
-                                    checked={customZoneUuids_.some((uuid) => customZonesUuids.includes(uuid))}
-                                    label={name}
-                                    color={color}
-                                    onChange={(event) => {
-                                        const zoneTrackingName = getZoneLayerTrackingName(
-                                            { name, customZoneUuids: customZoneUuids_ },
-                                            settings,
-                                        );
-
-                                        if (event.currentTarget.checked) {
-                                            trackFilterEvent('Filtre modifié', `Zone à enjeux : +${zoneTrackingName}`);
-                                            onUserChange?.();
-                                            form.setFieldValue(
-                                                'customZonesUuids',
-                                                Array.from(new Set([...customZonesUuids, ...customZoneUuids_])),
-                                            );
-                                        } else {
-                                            const next = customZonesUuids.filter(
-                                                (uuid) => !customZoneUuids_.includes(uuid),
-                                            );
-                                            if (next.length === 0) {
-                                                // At least one zone à enjeux must stay selected — detections
-                                                // outside every custom zone (zones urbaines) must not be shown.
-                                                // Re-set the same value (new ref) to snap the checkbox back on.
-                                                form.setFieldValue('customZonesUuids', [...customZonesUuids]);
-                                                notifications.show({
-                                                    color: 'red',
-                                                    title: 'Zone à enjeux',
-                                                    message: 'Au moins une zone à enjeux doit rester sélectionnée',
-                                                });
-                                                trackFilterEvent('Filtre refusé', 'Dernière zone à enjeux');
-                                                return;
-                                            }
-                                            trackFilterEvent('Filtre modifié', `Zone à enjeux : -${zoneTrackingName}`);
-                                            onUserChange?.();
-                                            form.setFieldValue('customZonesUuids', next);
-                                        }
-                                    }}
-                                />
-                            ))}
-                        </Stack>
-
-                        {form.getValues().customZonesUuids.length === 0 ? (
-                            <div className={classes['empty-filter-text']}>
-                                <p>Aucune zone à enjeux n&apos;est sélectionnée</p>
-                                <p>aucun objet ne peut être affiché</p>
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
+                    onChange={(event) => applyPreset(event.currentTarget.value)}
+                >
+                    {OBJECTS_FILTER_PRESETS.map(({ id, label }) => (
+                        <option key={id} value={id}>
+                            {label}
+                        </option>
+                    ))}
+                    <option value={CUSTOM_PRESET_ID} disabled>
+                        {CUSTOM_PRESET_LABEL}
+                    </option>
+                </select>
             </div>
-        </form>
+
+            <div className="fr-accordions-group">
+                <Accordion
+                    title="Types d'objets"
+                    expanded={isExpanded('OBJECT_TYPES')}
+                    onToggle={(expanded) => toggleSection('OBJECT_TYPES', expanded)}
+                >
+                    <button
+                        type="button"
+                        className={clsx(
+                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-checkbox-circle-line fr-btn--icon-left',
+                            classes['select-all'],
+                        )}
+                        onClick={() => {
+                            trackFilterEvent(
+                                'Filtre modifié',
+                                `Type d’objet : ${objectsFilter.objectTypesUuids.length ? '-' : '+'}TOUS`,
+                            );
+                            updateFromUser({
+                                objectTypesUuids: objectsFilter.objectTypesUuids.length
+                                    ? []
+                                    : objectTypes.map(({ uuid }) => uuid),
+                            });
+                        }}
+                    >
+                        {objectsFilter.objectTypesUuids.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                    </button>
+                    {objectTypesToDisplay.map(({ uuid, name, color }) => (
+                        <Checkbox
+                            key={uuid}
+                            checked={objectsFilter.objectTypesUuids.includes(uuid)}
+                            label={<LabelWithColor outlined name={name} color={color} />}
+                            onChange={(checked) => {
+                                const objectTypesUuids = toggleInArray(objectsFilter.objectTypesUuids, uuid, checked);
+
+                                trackListChanges(
+                                    'Type d’objet',
+                                    objectsFilter.objectTypesUuids,
+                                    objectTypesUuids,
+                                    getObjectTypeTrackingName,
+                                );
+                                updateFromUser({ objectTypesUuids });
+                            }}
+                        />
+                    ))}
+                    {!objectsFilter.objectTypesUuids.length ? (
+                        <p className={classes['empty-filter-text']}>Aucun filtre sur les types n&apos;est appliqué</p>
+                    ) : null}
+                </Accordion>
+
+                <Accordion
+                    title="Prescription"
+                    expanded={isExpanded('PRESCRIPTION')}
+                    onToggle={(expanded) => toggleSection('PRESCRIPTION', expanded)}
+                >
+                    <p className={classes['section-hint']}>
+                        Les prescriptions sont appliquées automatiquement aux constructions et piscines détectées il y a
+                        plus de 6 ans.
+                    </p>
+                    <Checkbox
+                        label="Non prescrit"
+                        checked={isPrescriptedChecked(false)}
+                        onChange={(checked) => setPrescripted(false, checked)}
+                    />
+                    <Checkbox
+                        label="Prescrit"
+                        checked={isPrescriptedChecked(true)}
+                        onChange={(checked) => setPrescripted(true, checked)}
+                    />
+                </Accordion>
+
+                <Accordion
+                    title="Etat de conformité"
+                    expanded={isExpanded('VALIDATION')}
+                    onToggle={(expanded) => toggleSection('VALIDATION', expanded)}
+                >
+                    {detectionValidationStatusesSelectable.map((status) => (
+                        <Checkbox
+                            key={status}
+                            label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
+                            checked={objectsFilter.detectionValidationStatuses.includes(status)}
+                            onChange={(checked) => toggleValidationStatus(status, checked)}
+                        />
+                    ))}
+                    {!objectsFilter.detectionValidationStatuses.length ? (
+                        <p className={classes['empty-filter-text']}>
+                            Aucun filtre sur les statuts de validation n&apos;est appliqué
+                        </p>
+                    ) : null}
+                </Accordion>
+
+                <Accordion
+                    title="Statut du contrôle"
+                    expanded={isExpanded('CONTROL')}
+                    onToggle={(expanded) => toggleSection('CONTROL', expanded)}
+                >
+                    {detectionControlStatuses.map((status) => (
+                        <Checkbox
+                            key={status}
+                            label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
+                            checked={objectsFilter.detectionControlStatuses.includes(status)}
+                            onChange={(checked) => {
+                                const detectionControlStatuses = toggleInArray(
+                                    objectsFilter.detectionControlStatuses,
+                                    status,
+                                    checked,
+                                );
+
+                                trackListChanges(
+                                    'Contrôle',
+                                    objectsFilter.detectionControlStatuses,
+                                    detectionControlStatuses,
+                                );
+                                updateFromUser({ detectionControlStatuses });
+                            }}
+                        />
+                    ))}
+                    {!objectsFilter.detectionControlStatuses.length ? (
+                        <p className={classes['empty-filter-text']}>
+                            Aucun filtre sur les statuts de contrôle n&apos;est appliqué
+                        </p>
+                    ) : null}
+                </Accordion>
+
+                <Accordion
+                    title="Zones à enjeux"
+                    expanded={isExpanded('CUSTOM_ZONES')}
+                    onToggle={(expanded) => toggleSection('CUSTOM_ZONES', expanded)}
+                >
+                    {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids }) => (
+                        <Checkbox
+                            key={customZoneUuids.join(',')}
+                            checked={customZoneUuids.some((uuid) => objectsFilter.customZonesUuids.includes(uuid))}
+                            label={<LabelWithColor name={name} color={color} />}
+                            onChange={(checked) => {
+                                const zoneTrackingName = getZoneLayerTrackingName({ name, customZoneUuids }, settings);
+
+                                if (checked) {
+                                    trackFilterEvent('Filtre modifié', `Zone à enjeux : +${zoneTrackingName}`);
+                                    updateFromUser({
+                                        customZonesUuids: Array.from(
+                                            new Set([...objectsFilter.customZonesUuids, ...customZoneUuids]),
+                                        ),
+                                    });
+                                    return;
+                                }
+
+                                const next = objectsFilter.customZonesUuids.filter(
+                                    (uuid) => !customZoneUuids.includes(uuid),
+                                );
+
+                                if (!next.length) {
+                                    // Detections outside every custom zone (zones urbaines) must not be
+                                    // shown, so an empty selection is not a valid state.
+                                    notifications.show({
+                                        color: 'red',
+                                        title: 'Zone à enjeux',
+                                        message: 'Au moins une zone à enjeux doit rester sélectionnée',
+                                    });
+                                    trackFilterEvent('Filtre refusé', 'Dernière zone à enjeux');
+                                    return;
+                                }
+
+                                trackFilterEvent('Filtre modifié', `Zone à enjeux : -${zoneTrackingName}`);
+                                updateFromUser({ customZonesUuids: next });
+                            }}
+                        />
+                    ))}
+                </Accordion>
+
+                <Accordion
+                    title="Score de fiabilité"
+                    expanded={isExpanded('SCORE')}
+                    onToggle={(expanded) => toggleSection('SCORE', expanded)}
+                >
+                    <p className={classes['section-hint']}>
+                        Plus le score est élevé plus les détections affichées seront fiables, mais moins exhaustives.
+                        Avec un score à 30, le taux d’erreur de l’IA est d’environ 10%.
+                    </p>
+                    <Range
+                        label="Score minimum"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={Math.round(objectsFilter.score * 100)}
+                        formatValue={formatScore}
+                        onChange={(value) => changeScore(value / 100)}
+                    />
+                </Accordion>
+            </div>
+        </div>
     );
 };
 

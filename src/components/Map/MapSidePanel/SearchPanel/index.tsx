@@ -11,9 +11,10 @@ const ALL_SECTIONS: readonly Section[] = ['ADDRESS', 'PARCEL'] as const;
 
 interface ComponentProps {
     onClose: () => void;
+    tracked: boolean;
 }
 
-const Component: React.FC<ComponentProps> = ({ onClose }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ onClose, tracked }: ComponentProps) => {
     const { isExpanded, toggleSection } = useExpandedSections(ALL_SECTIONS);
 
     return (
@@ -23,14 +24,14 @@ const Component: React.FC<ComponentProps> = ({ onClose }: ComponentProps) => {
                 expanded={isExpanded('ADDRESS')}
                 onToggle={(expanded) => toggleSection('ADDRESS', expanded)}
             >
-                <AddressSearch />
+                <AddressSearch tracked={tracked} />
             </Accordion>
             <Accordion
                 title="Recherche par parcelle"
                 expanded={isExpanded('PARCEL')}
                 onToggle={(expanded) => toggleSection('PARCEL', expanded)}
             >
-                <ParcelSearch onSearched={onClose} />
+                <ParcelSearch onSearched={onClose} tracked={tracked} />
             </Accordion>
         </div>
     );

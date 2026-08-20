@@ -51,6 +51,7 @@ const Component: React.FC<Props> = ({ filter, onFilterChange }) => {
                 <Table.Th key="nameShort">Nom court</Table.Th>,
                 <Table.Th key="geoCustomZoneCategoryName">Catégorie</Table.Th>,
                 <Table.Th key="color">Couleur</Table.Th>,
+                <Table.Th key="description">Description</Table.Th>,
                 ...(userMe?.userRole === 'SUPER_ADMIN' ? [<Table.Th key="status">Statut</Table.Th>] : []),
             ]}
             tableBodyRenderFns={[
@@ -70,6 +71,7 @@ const Component: React.FC<Props> = ({ filter, onFilterChange }) => {
                         {item.geoCustomZoneCategory ? item.geoCustomZoneCategory.color : item.color}
                     </div>
                 ),
+                (item: GeoCustomZone) => <OptionalText text={item.description} emptyText="aucune description" />,
                 ...(userMe?.userRole === 'SUPER_ADMIN'
                     ? [(item: GeoCustomZone) => GEO_CUSTOM_ZONE_STATUSES_NAMES_MAP[item.geoCustomZoneStatus]]
                     : []),

@@ -1,3 +1,4 @@
+import { MapSidePanelSection } from '@/components/Map/MapSidePanel';
 import { SignalementFailureReason as PdfFailureReason } from '@/components/signalement-pdf/SignalementPDFData';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
@@ -14,6 +15,12 @@ export const DRAW_TOOL_TRACKING_NAMES: Record<DrawMode, string> = {
 };
 
 export type MapPanel = 'Recherche' | 'Filtres' | 'Couches' | 'Légende';
+
+export const MAP_SIDE_PANEL_TRACKING_NAMES: Record<MapSidePanelSection, MapPanel> = {
+    SEARCH: 'Recherche',
+    FILTER: 'Filtres',
+    LAYERS: 'Couches',
+};
 
 export const trackMapPanelOpened = (panel: MapPanel) => trackEvent(TRACKING_CATEGORIES.map, 'Panneau ouvert', panel);
 

@@ -2,6 +2,7 @@ import React, { PropsWithChildren } from 'react';
 
 import Header from '@/components/Header';
 import { useAuth } from '@/store/slices/auth';
+import { HEADER_HEIGHT_PX } from '@/utils/constants';
 import { getPageTitle } from '@/utils/html';
 import { AppShell, NavLink } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -35,7 +36,7 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
     return (
         <AppShell
             header={{
-                height: 116.5,
+                height: HEADER_HEIGHT_PX,
             }}
             navbar={{
                 width: 300,

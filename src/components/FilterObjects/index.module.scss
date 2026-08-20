@@ -1,51 +1,65 @@
-.statuses-filters-container {
-    display: flex;
-    flex-direction: row;
-    gap: var(--mantine-spacing-xl);
-    flex-wrap: wrap;
+.container {
+    // the accordions are full-bleed on purpose: their separators span the panel
+    padding-top: 0.5rem;
 }
 
-.score-slider-value-container {
+.preset {
+    padding-right: 1rem;
+    padding-left: 1rem;
+}
+
+.section-hint {
+    margin-bottom: 0.75rem;
+
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: var(--text-mention-grey);
+}
+
+.empty-filter-text {
+    margin-top: 0.5rem;
+
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    font-style: italic;
+    color: var(--text-mention-grey);
+}
+
+// DSFR's tertiary-no-outline button carries no vertical rhythm of its own, so the first
+// checkbox would sit flush against it
+.select-all {
+    margin-bottom: 0.5rem;
+}
+
+// the DSFR checkbox label is itself a flex row, so this has to be able to shrink for the
+// name to ellipsis instead of wrapping
+.label {
+    flex: 1 1 auto;
+    min-width: 0;
+
     display: flex;
     align-items: center;
-
-    .score-slider {
-        flex: 1;
-
-        margin-right: var(--mantine-spacing-xs);
-    }
+    gap: 0.5rem;
 }
 
-.multiselect-buttons-container {
-    width: 100%;
-}
-
-.object-types-select-container {
-    display: flex;
-    align-items: flex-end;
-
-    .object-types-select {
-        width: 100%;
-    }
-
-    .object-types-selectall-button {
-        margin: 2px;
-    }
-}
-
-.filters-container {
-    display: flex;
-    flex-direction: row;
-
-    gap: var(--mantine-spacing-xl);
-
+.label-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
-
-    .filters-section {
-        flex: 1;
-    }
 }
 
-.manually-added-detections-tooltip {
-    margin-left: var(--mantine-spacing-xs);
+.color-square {
+    flex: 0 0 auto;
+
+    width: 0.75rem;
+    height: 0.75rem;
+
+    border: 1px solid var(--border-default-grey);
+    border-radius: 2px;
+}
+
+// detections are drawn on the map as an outline, not a filled shape
+.color-square-outlined {
+    border-width: 2px;
+    background-color: transparent;
 }

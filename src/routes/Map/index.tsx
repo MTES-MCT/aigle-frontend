@@ -8,7 +8,6 @@ import { useMap } from '@/store/slices/map';
 import { getPageTitle } from '@/utils/html';
 import { trackEvent } from '@/utils/matomo';
 import { TRACKING_CATEGORIES } from '@/utils/tracking';
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import classes from './index.module.scss';
 
 // Module state: the route remounts on every visit to /map, the check is once per page load.

@@ -1,9 +1,18 @@
 $shadow: 0 0 10px 2px #00000019;
 
-$header-height: 116.5px;
+// The header stacks a tools row over the DSFR nav bar; the sum is what every page offsets by.
+$header-body-height: 72px;
+$header-nav-height: 56px;
+$header-height: $header-body-height + $header-nav-height;
 $content-padding: 16px;
 
 $margin-map-elements: 10px;
+
+$map-side-panel-width: 380px;
+$map-side-panel-rail-width: 48px;
+$map-side-panel-slide-duration: 250ms;
+// where the first rail button starts; map controls anchored top-left line up with it
+$map-side-panel-rail-top: 16px;
 
 $border-radius-medium: 24px;
 $border-radius-small: 8px;
@@ -17,3 +26,19 @@ $tile-preview-detail-size: calc(
 );
 
 $map-control-padding: 24px;
+
+// The map side panel overlays the map from the left. The icon rail sits to the right of the
+// panel but only paints at the top of that edge, so a control anchored to the top must always
+// clear the rail, while one anchored to the bottom only ever has the panel in its way.
+// `--map-side-panel-open` is set on the map container by the Map component.
+@mixin map-control-offset-top-left {
+    left: calc(
+        var(--map-side-panel-open, 0) * #{$map-side-panel-width} + #{$map-side-panel-rail-width + $margin-map-elements}
+    );
+    transition: left $map-side-panel-slide-duration ease;
+}
+
+@mixin map-control-offset-bottom-left {
+    margin-left: calc(var(--map-side-panel-open, 0) * #{$map-side-panel-width} + #{$margin-map-elements});
+    transition: margin-left $map-side-panel-slide-duration ease;
+}
