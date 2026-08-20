@@ -1,6 +1,6 @@
 import { GeoZone, GeoZoneType } from '@/models/geo/geo-zone';
 import { User } from '@/models/user';
-import { UserGroupType } from '@/models/user-group';
+import { FeatureFlag, UserGroupType } from '@/models/user-group';
 import { resetBrevo } from '@/utils/brevo';
 import { clearStoredUserGroupUuid } from '@/utils/scope';
 import * as Sentry from '@sentry/react';
@@ -17,6 +17,7 @@ interface AuthState {
     setUser: (userMe?: User) => void;
     logout: () => void;
     getUserGroupType: () => UserGroupType;
+    hasFeatureFlag: (featureFlag: FeatureFlag) => boolean;
     getCanViewStatistics: () => boolean;
     getAccessibleGeozones: (geoZoneType?: GeoZoneType) => GeoZone[];
 
@@ -65,13 +66,23 @@ const useAuth = create<AuthState>()(
 
                 return 'COLLECTIVITY';
             },
+            hasFeatureFlag: (featureFlag: FeatureFlag) => {
+                // A session persisted before feature flags existed has no list yet, and
+                // gets one back on the next /users/me.
+                return get().userMe?.featureFlags?.includes(featureFlag) === true;
+            },
             getCanViewStatistics: () => {
                 const userMe = get().userMe;
 
-                // Internal staff and super-admins only for now, while the DDTM dashboard is
-                // being rolled out. A super-admin reads the dashboard of the group they are
-                // scoped to (X-User-Group-Uuid), like everywhere else in the app.
-                return userMe?.isStaff === true || userMe?.userRole === 'SUPER_ADMIN';
+                // Internal staff and super-admins keep the dashboard whatever their groups
+                // hold, while the DDTM rollout goes on. A super-admin reads the dashboard of
+                // the group they are scoped to (X-User-Group-Uuid), like everywhere else in
+                // the app.
+                if (userMe?.isStaff === true || userMe?.userRole === 'SUPER_ADMIN') {
+                    return true;
+                }
+
+                return get().hasFeatureFlag('STATS');
             },
             getAccessibleGeozones: (geoZoneType?: GeoZoneType) => {
                 const userMe = get().userMe;

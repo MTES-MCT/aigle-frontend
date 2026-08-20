@@ -1,0 +1,67 @@
+.layer {
+    background-color: var(--background-default-grey);
+    box-shadow: inset 0 -1px 0 0 var(--border-default-grey);
+}
+
+.header {
+    padding: 0.25rem 0.5rem;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+// 24px swatch centred in the 44px slot the design reserves for a layer thumbnail
+.vignette {
+    flex: 0 0 auto;
+
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0.625rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--border-default-grey);
+    border-radius: 4px;
+
+    color: var(--text-mention-grey);
+    background-color: var(--background-alt-blue-france);
+}
+
+// DSFR sizes its glyphs at 1.5rem on the pseudo-element itself, so the swatch has to override
+// it there or the icon fills the square edge to edge. Matching the icon class as well keeps
+// this ahead of the DSFR rule, which is otherwise equally specific.
+.vignette[class*='fr-icon-']::before {
+    --icon-size: 1rem;
+}
+
+.title {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.name {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--text-label-grey);
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.details {
+    padding: 0 0.75rem 0.75rem;
+}
+
+.description {
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: var(--text-mention-grey);
+
+    white-space: pre-line;
+}

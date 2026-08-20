@@ -1,5 +1,5 @@
 import { Timestamped, Uuided } from '@/models/data';
-import { UserGroup } from '@/models/user-group';
+import { FeatureFlag, UserGroup } from '@/models/user-group';
 
 export const userRoles = ['SUPER_ADMIN', 'ADMIN', 'REGULAR', 'DEACTIVATED'] as const;
 export type UserRole = (typeof userRoles)[number];
@@ -22,4 +22,6 @@ export interface User extends Uuided, Timestamped {
     userRole: UserRole;
     isStaff: boolean;
     userUserGroups: UserUserGroup[];
+    // Union of the feature flags of every group the user belongs to.
+    featureFlags: FeatureFlag[];
 }

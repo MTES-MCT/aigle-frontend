@@ -6,6 +6,16 @@ import { ObjectTypeCategory } from '@/models/object-type-category';
 export const userGroupTypes = ['DDTM', 'COLLECTIVITY'] as const;
 export type UserGroupType = (typeof userGroupTypes)[number];
 
+// Mirrors the FeatureFlag enum of the API. The catalogue displayed in the admin form
+// comes from the backend, this union only types the `if` that gates a feature.
+export const featureFlags = ['STATS'] as const;
+export type FeatureFlag = (typeof featureFlags)[number];
+
+export interface FeatureFlagOption {
+    value: FeatureFlag;
+    label: string;
+}
+
 export interface UserGroup extends Uuided, Timestamped {
     name: string;
     userGroupType: UserGroupType;
@@ -15,4 +25,5 @@ export interface UserGroup extends Uuided, Timestamped {
 export interface UserGroupDetail extends UserGroup, WithCollectivities {
     objectTypeCategories: ObjectTypeCategory[];
     geoCustomZones: GeoCustomZone[];
+    featureFlags: FeatureFlag[];
 }

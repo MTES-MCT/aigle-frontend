@@ -17,6 +17,7 @@ export const userGroupEndpoints = {
     list: BASE_USER_GROUP,
     create: BASE_USER_GROUP,
     detail: (uuid: string) => `${BASE_USER_GROUP}${uuid}/`,
+    featureFlags: `${BASE_USER_GROUP}feature-flags/`,
     export: `${BASE_USER_GROUP}export/`,
     bulkImportPreview: `${BASE_USER_GROUP}bulk-import-preview/`,
     bulkImport: `${BASE_USER_GROUP}bulk-import/`,
