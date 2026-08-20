@@ -7,11 +7,20 @@ import { Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import React from 'react';
 
-const countSuspectObjectsParcel = (parcel: ParcelDetail, excludeObjectUuid?: string): Record<string, number> | null => {
+// the images only draw detections belonging to a previewed tile set, so counting anything else
+// makes the report assert an object it never shows
+const countSuspectObjectsParcel = (parcel: ParcelDetail): Record<string, number> | null => {
+    const previewedTileSetUuids = new Set((parcel.tileSetPreviews || []).map(({ tileSet }) => tileSet.uuid));
     const suspectObjectsMap: Record<string, number> = {};
 
     parcel.detectionObjects.forEach((detectionObject) => {
-        if (excludeObjectUuid && detectionObject.uuid === excludeObjectUuid) {
+        // no preview at all means the API served every year unrestricted, as it does when no
+        // tile set covers the parcel: counting nothing would drop the whole line instead
+        const isDrawable =
+            previewedTileSetUuids.size === 0 ||
+            detectionObject.detections.some((detection) => previewedTileSetUuids.has(detection.tileSet.uuid));
+
+        if (!isDrawable) {
             return;
         }
 
@@ -100,13 +109,21 @@ export interface ComponentProps {
     previewImages: PreviewImage[];
     latLong: string;
     parcel: ParcelDetail;
+    detectionObjectUuid?: string;
 }
 
-const Component: React.FC<ComponentProps> = ({ detectionObjects, previewImages, parcel, latLong }) => {
-    if (detectionObjects.length === 1) {
-    }
-
+const Component: React.FC<ComponentProps> = ({
+    detectionObjects,
+    previewImages,
+    parcel,
+    latLong,
+    detectionObjectUuid,
+}) => {
     const suspectObjectsCount = parcel ? countSuspectObjectsParcel(parcel) : null;
+    // the sheet is titled after what was requested, not after how many objects the parcel holds
+    const detectionObjectReported = detectionObjectUuid
+        ? detectionObjects.find(({ uuid }) => uuid === detectionObjectUuid)
+        : undefined;
 
     return (
         <Page size="A4" style={styles.page}>
@@ -117,8 +134,8 @@ const Component: React.FC<ComponentProps> = ({ detectionObjects, previewImages, 
                 <View style={styles.topSectionTextContainer}>
                     <Text>Fiche de signalement</Text>
                     <Text>
-                        {detectionObjects.length === 1
-                            ? `Objet détecté ${detectionObjects[0].id}`
+                        {detectionObjectReported
+                            ? `Objet détecté ${detectionObjectReported.id}`
                             : `Parcelle ${formatParcel(parcel)}`}
                     </Text>
                 </View>
@@ -143,7 +160,11 @@ const Component: React.FC<ComponentProps> = ({ detectionObjects, previewImages, 
                 {parcel.customGeoZones?.length ? (
                     <Text>Zones à enjeux : {formatGeoCustomZonesWithSubZones(parcel.customGeoZones)}</Text>
                 ) : null}
-                <Text>Date de la dernière modification : {format(parcel.updatedAt, DEFAULT_DATE_FORMAT)}</Text>
+                {/* parcel.updatedAt is rewritten by every cadastre import, so it dates the import */}
+                <Text>
+                    Date de la dernière modification :{' '}
+                    {format(parcel.detectionsUpdatedAt || parcel.updatedAt, DEFAULT_DATE_FORMAT)}
+                </Text>
                 {suspectObjectsCount ? (
                     <Text>
                         Objets suspects sur la parcelle :{' '}
