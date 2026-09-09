@@ -1,11 +1,12 @@
 import { Alert, Button, Loader } from '@mantine/core';
-import React, { useState } from 'react';
+import React from 'react';
 
 import { authEndpoints } from '@/api/endpoints';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
 import { useAuth } from '@/store/slices/auth';
 import api, { ApiError } from '@/utils/api';
+import { DEFAULT_ROUTE } from '@/utils/constants';
 import { IconLock } from '@tabler/icons-react';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
@@ -24,21 +25,17 @@ const verifyLink = (token: string) =>
 const isLinkDead = (error: ApiError) => error.status === 400 || error.status === 404;
 
 const Component: React.FC = () => {
-    const { token: tokenFromUrl } = useParams<{ token: string }>();
+    const { token } = useParams<{ token: string }>();
     const { setAccessToken, setRefreshToken } = useAuth();
-
-    // Le jeton est encore valide au moment du rendu : le sortir de l'URL avant tout
-    // évite qu'il ne parte dans l'historique du navigateur, dans Matomo ou dans Sentry.
-    const [token] = useState(tokenFromUrl);
-    if (tokenFromUrl) {
-        window.history.replaceState(null, '', '/login/verify');
-    }
 
     const mutation: UseMutationResult<JwtAuthResponse, ApiError, string> = useMutation({
         mutationFn: verifyLink,
         onSuccess: (data) => {
-            // App.tsx sort des routes publiques dès que les jetons existent : pas de
-            // navigate() à faire ici.
+            // Poser les jetons démonte le Router (App.tsx affiche un Loader plein écran
+            // le temps du bootstrap), et au remontage il relit window.location. On l'amène
+            // donc directement sur la route d'arrivée : le jeton, désormais consommé, sort
+            // de l'URL et de l'historique avant que Matomo ou Sentry ne les voient.
+            window.history.replaceState(null, '', DEFAULT_ROUTE);
             setAccessToken(data.access);
             setRefreshToken(data.refresh);
         },

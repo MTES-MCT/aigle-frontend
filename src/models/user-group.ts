@@ -8,7 +8,7 @@ export type UserGroupType = (typeof userGroupTypes)[number];
 
 // Mirrors the FeatureFlag enum of the API. The catalogue displayed in the admin form
 // comes from the backend, this union only types the `if` that gates a feature.
-export const featureFlags = ['STATS'] as const;
+export const featureFlags = ['STATS', 'REQUIRE_2FA'] as const;
 export type FeatureFlag = (typeof featureFlags)[number];
 
 export interface FeatureFlagOption {
