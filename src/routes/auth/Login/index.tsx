@@ -1,4 +1,4 @@
-import { Button, PasswordInput, TextInput } from '@mantine/core';
+import { Alert, Button, PasswordInput, TextInput } from '@mantine/core';
 import { isEmail, useForm, UseFormReturnType } from '@mantine/form';
 import React, { useState } from 'react';
 
@@ -9,6 +9,7 @@ import WarningCard from '@/components/ui/WarningCard';
 import { useAuth } from '@/store/slices/auth';
 import api, { ApiError } from '@/utils/api';
 import { ENVIRONMENT } from '@/utils/constants';
+import { IconMail } from '@tabler/icons-react';
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
@@ -17,6 +18,14 @@ interface JwtAuthResponse {
     access: string;
     refresh: string;
 }
+
+interface MfaChallengeResponse {
+    mfaRequired: true;
+}
+
+type LoginResponse = JwtAuthResponse | MfaChallengeResponse;
+
+const isMfaChallenge = (data: LoginResponse): data is MfaChallengeResponse => 'mfaRequired' in data;
 
 interface FormValues {
     email: string;
@@ -27,11 +36,32 @@ interface ErrorBody {
     detail?: string;
 }
 
-const login = (user: FormValues) => api<JwtAuthResponse>(authEndpoints.login, { method: 'POST', body: user });
+const login = (user: FormValues) => api<LoginResponse>(authEndpoints.login, { method: 'POST', body: user });
+
+interface LinkSentProps {
+    email: string;
+    onRestart: () => void;
+}
+
+const LinkSent: React.FC<LinkSentProps> = ({ email, onRestart }: LinkSentProps) => (
+    <LayoutAuth title="Connexion - lien envoyé">
+        <Alert mt="md" variant="light" color="blue" title="Vérifiez votre boîte mail" icon={<IconMail />}>
+            <p>
+                Un lien de connexion vient d&apos;être envoyé à <strong>{email}</strong>.
+            </p>
+            <p>Ouvrez-le pour terminer votre connexion. Il est valable 10 minutes et ne fonctionne qu&apos;une fois.</p>
+            <p>Si vous ne le voyez pas, pensez à regarder dans vos courriers indésirables.</p>
+        </Alert>
+        <Button mt="md" variant="subtle" onClick={onRestart}>
+            Recommencer la connexion
+        </Button>
+    </LayoutAuth>
+);
 
 const Component: React.FC = () => {
     const { setAccessToken, setRefreshToken } = useAuth();
     const [error, setError] = useState<ApiError<ErrorBody>>();
+    const [mfaSentTo, setMfaSentTo] = useState<string>();
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
@@ -44,9 +74,14 @@ const Component: React.FC = () => {
         },
     });
 
-    const mutation: UseMutationResult<JwtAuthResponse, ApiError<ErrorBody>, FormValues> = useMutation({
+    const mutation: UseMutationResult<LoginResponse, ApiError<ErrorBody>, FormValues> = useMutation({
         mutationFn: login,
-        onSuccess: (data) => {
+        onSuccess: (data, variables) => {
+            if (isMfaChallenge(data)) {
+                setMfaSentTo(variables.email);
+                return;
+            }
+
             setAccessToken(data.access);
             setRefreshToken(data.refresh);
         },
@@ -61,6 +96,20 @@ const Component: React.FC = () => {
     const handleSubmit = (values: FormValues) => {
         mutation.mutate(values);
     };
+
+    if (mfaSentTo) {
+        return (
+            <LinkSent
+                email={mfaSentTo}
+                onRestart={() => {
+                    setMfaSentTo(undefined);
+                    setError(undefined);
+                    mutation.reset();
+                    form.reset();
+                }}
+            />
+        );
+    }
 
     return (
         <LayoutAuth>

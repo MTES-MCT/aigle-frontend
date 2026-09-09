@@ -117,6 +117,12 @@ const doFetch = async (path: string, options: ApiFetchOptions): Promise<Response
     });
 };
 
+const NON_REPLAYABLE_PATHS = new Set<string>([
+    authEndpoints.refreshToken,
+    authEndpoints.login,
+    authEndpoints.mfaVerifyLink,
+]);
+
 // Single-flight refresh: concurrent 401s share one refresh promise instead of
 // each firing its own refresh request and racing to overwrite the token.
 let refreshPromise: Promise<string> | null = null;
@@ -164,7 +170,9 @@ const runRefresh = (): Promise<string> => {
 const fetchWithAuth = async (path: string, options: ApiFetchOptions): Promise<Response> => {
     let response = await doFetch(path, options);
 
-    if (response.status === 401 && path !== authEndpoints.refreshToken) {
+    // Rejouer ces routes après un refresh n'a pas de sens : elles sont le point d'entrée
+    // de la session. Le lien 2FA est de plus à usage unique, un rejeu le consommerait.
+    if (response.status === 401 && !NON_REPLAYABLE_PATHS.has(path)) {
         try {
             const newToken = await runRefresh();
 
