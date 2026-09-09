@@ -17,6 +17,13 @@ export const publicRoutes: RouteGroup = {
             component: LoginVerify,
             requiresAuth: false,
         },
+        // Sans jeton : le lien a été tronqué par un client de messagerie, ou l'URL a
+        // déjà été nettoyée. Sans cette route la page ne matche rien et reste blanche.
+        {
+            path: '/login/verify',
+            component: LoginVerify,
+            requiresAuth: false,
+        },
         {
             path: '/reset-password',
             component: ResetPassword,
