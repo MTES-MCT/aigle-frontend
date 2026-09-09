@@ -1,4 +1,5 @@
 import Login from '@/routes/auth/Login';
+import LoginVerify from '@/routes/auth/LoginVerify';
 import ResetPassword from '@/routes/auth/ResetPassword';
 import ResetPasswordConfirmation from '@/routes/auth/ResetPasswordConfirmation';
 import { RouteGroup } from './types';
@@ -9,6 +10,11 @@ export const publicRoutes: RouteGroup = {
         {
             path: '/login',
             component: Login,
+            requiresAuth: false,
+        },
+        {
+            path: '/login/verify/:token',
+            component: LoginVerify,
             requiresAuth: false,
         },
         {
