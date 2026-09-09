@@ -1,3 +1,4 @@
+import { authEndpoints } from '@/api/endpoints';
 import { GeoZone, GeoZoneType } from '@/models/geo/geo-zone';
 import { User } from '@/models/user';
 import { FeatureFlag, UserGroupType } from '@/models/user-group';
@@ -15,7 +16,7 @@ interface AuthState {
     setAccessToken: (accessToken?: string) => void;
     setRefreshToken: (refreshToken: string) => void;
     setUser: (userMe?: User) => void;
-    logout: () => void;
+    logout: () => Promise<void>;
     getUserGroupType: () => UserGroupType;
     hasFeatureFlag: (featureFlag: FeatureFlag) => boolean;
     getCanViewStatistics: () => boolean;
@@ -23,6 +24,25 @@ interface AuthState {
 
     isAuthenticated: () => boolean;
 }
+
+// fetch nu plutôt que le client `api` : celui-ci importe ce store, et la révocation
+// est le seul appel réseau qu'il fait. Elle ne porte que le refresh token, pas d'en-tête
+// d'authentification.
+const revokeRefreshToken = async (refreshToken?: string): Promise<void> => {
+    if (!refreshToken) {
+        return;
+    }
+
+    try {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL as string}${authEndpoints.logout}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh: refreshToken }),
+        });
+    } catch {
+        // Hors ligne ou API injoignable : la déconnexion locale doit aboutir malgré tout.
+    }
+};
 
 const useAuth = create<AuthState>()(
     persist(
@@ -43,7 +63,11 @@ const useAuth = create<AuthState>()(
                 }));
                 Sentry.setUser(userMe ? { id: userMe.uuid, email: userMe.email, userRole: userMe.userRole } : null);
             },
-            logout: () => {
+            logout: async () => {
+                // Attendu avant le reload, qui annulerait la requête : sans révocation
+                // serveur, une copie du refresh token resterait valable une semaine.
+                await revokeRefreshToken(get().refreshToken);
+
                 set(() => ({
                     refreshToken: undefined,
                     accessToken: undefined,

@@ -49,8 +49,18 @@ const triggerDownload = (blob: Blob, fileName: string) => {
     URL.revokeObjectURL(url);
 };
 
+// Excel et LibreOffice évaluent une cellule commençant par =, +, - ou @ comme une
+// formule : un nom de groupe ou de compte contenant =HYPERLINK(...) s'exécuterait donc
+// sur le poste de qui ouvre l'export. L'apostrophe de tête neutralise l'évaluation.
+const CSV_FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
 const toCsvCell = (value: string | number | null): string => {
-    const text = value === null || value === undefined ? '' : String(value);
+    let text = value === null || value === undefined ? '' : String(value);
+
+    if (CSV_FORMULA_PREFIX.test(text)) {
+        text = `'${text}`;
+    }
+
     return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 

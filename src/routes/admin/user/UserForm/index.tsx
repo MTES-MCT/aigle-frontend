@@ -43,11 +43,15 @@ const emailLooksInternal = (email: string): boolean => {
     return INTERNAL_USER_NAME_HINTS.some((name) => emailLower.includes(name));
 };
 
+// Math.random() est un PRNG non cryptographique dont l'état interne se retrouve à
+// partir de quelques sorties : il n'a pas sa place dans la génération du mot de passe
+// initial d'un compte, ce formulaire créant aussi des ADMIN et des SUPER_ADMIN.
 const generateRandomPassword = (): string => {
     const length = PASSWORD_MIN_LENGTH * 2;
 
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?';
-    return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const values = crypto.getRandomValues(new Uint32Array(length));
+    return Array.from(values, (value) => chars[value % chars.length]).join('');
 };
 
 interface FormValues {
