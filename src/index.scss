@@ -291,6 +291,18 @@ header.fr-header {
             }
         }
     }
+
+    /* Just above the burger breakpoint the admin nav (group selector, Admin) is wider than the
+       room left by the brand: tighten the items rather than clip "Se déconnecter". DSFR sets
+       the padding through a chain of :not() selectors, hence !important. */
+    @media (min-width: 62em) and (max-width: 74.99em) {
+        .fr-header__tools-links .fr-btns-group .fr-btn {
+            margin-right: 0;
+            margin-left: 0;
+            padding-right: 0.5rem !important;
+            padding-left: 0.5rem !important;
+        }
+    }
 }
 
 .fr-btns-group .fr-btn {

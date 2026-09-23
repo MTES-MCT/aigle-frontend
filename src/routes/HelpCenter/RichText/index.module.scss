@@ -1,0 +1,76 @@
+.container {
+    > * {
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+
+    > *:last-child {
+        margin-bottom: 0;
+    }
+
+    ul,
+    ol {
+        padding-left: 1.5rem;
+    }
+
+    /* index.scss removes DSFR's underline from every [href]; content links still need one */
+    a:not([class]) {
+        text-decoration: underline;
+    }
+
+    mark {
+        padding: 0 1px;
+        background-color: var(--background-contrast-yellow-tournesol-hover);
+        color: inherit;
+    }
+}
+
+.note {
+    margin-left: 0;
+    padding-left: 1rem;
+
+    p {
+        font-size: 0.875rem;
+        line-height: 1.5rem;
+    }
+}
+
+.alert p {
+    margin: 0;
+}
+
+.example {
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--border-default-grey);
+    background-color: var(--background-alt-grey);
+    font-style: italic;
+}
+
+.table {
+    table {
+        font-size: 0.875rem;
+    }
+}
+
+.checklist {
+    padding: 1rem;
+    border: 1px solid var(--border-default-grey);
+}
+
+.checklist-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2rem;
+    margin-bottom: 0.75rem;
+
+    p {
+        margin: 0;
+    }
+}
+
+.checklist-summary {
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+}

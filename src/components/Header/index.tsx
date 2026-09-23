@@ -11,6 +11,7 @@ import {
     IconAdjustments,
     IconHelp,
     IconInfoCircle,
+    IconLifebuoy,
     IconMap,
     IconReportAnalytics,
     IconTable,
@@ -83,6 +84,16 @@ const NavMenu: React.FC = () => {
                     <a className="fr-btn fr-btn--tertiary-no-outline" href="/help" onClick={handleNavigate('/help')}>
                         <IconHelp className={classes['link-icon']} size={16} />
                         Besoin d&apos;aide
+                    </a>
+                </li>
+                <li>
+                    <a
+                        className="fr-btn fr-btn--tertiary-no-outline"
+                        href="/help-center"
+                        onClick={handleNavigate('/help-center')}
+                    >
+                        <IconLifebuoy className={classes['link-icon']} size={16} />
+                        Centre d&apos;aide
                     </a>
                 </li>
             </ul>

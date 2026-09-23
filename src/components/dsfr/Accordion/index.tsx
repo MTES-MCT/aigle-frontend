@@ -1,19 +1,28 @@
 import Collapse from '@/components/dsfr/Collapse';
-import React, { PropsWithChildren, useId } from 'react';
+import React, { PropsWithChildren, ReactNode, useId } from 'react';
 import classes from './index.module.scss';
 
 interface ComponentProps extends PropsWithChildren {
-    title: string;
+    title: ReactNode;
     expanded: boolean;
     onToggle: (expanded: boolean) => void;
+    id?: string;
+    titleAs?: 'h2' | 'h3' | 'h4';
 }
 
-const Component: React.FC<ComponentProps> = ({ title, expanded, onToggle, children }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({
+    title,
+    expanded,
+    onToggle,
+    id,
+    titleAs: TitleTag = 'h3',
+    children,
+}: ComponentProps) => {
     const panelId = `accordion-${useId()}`;
 
     return (
-        <section className="fr-accordion">
-            <h3 className="fr-accordion__title">
+        <section id={id} className="fr-accordion">
+            <TitleTag className="fr-accordion__title">
                 <button
                     type="button"
                     className="fr-accordion__btn"
@@ -23,7 +32,7 @@ const Component: React.FC<ComponentProps> = ({ title, expanded, onToggle, childr
                 >
                     {title}
                 </button>
-            </h3>
+            </TitleTag>
             <Collapse id={panelId} expanded={expanded}>
                 <div className={classes.content}>{children}</div>
             </Collapse>

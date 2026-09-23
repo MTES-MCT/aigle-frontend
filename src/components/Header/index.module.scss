@@ -33,6 +33,14 @@
     margin-right: var(--mantine-spacing-xs);
 }
 
+/* From the burger breakpoint up to 90em the desktop nav does not fit with its icons: the last
+   items get clipped and the brand squeezed (see also the admin rule in index.scss). */
+@media (min-width: 62em) and (max-width: 89.99em) {
+    .link-icon {
+        display: none;
+    }
+}
+
 .group-selector-li {
     display: flex;
     align-items: center;

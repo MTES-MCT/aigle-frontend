@@ -1,0 +1,52 @@
+.intro {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+}
+
+.webinar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border: 1px solid var(--border-default-grey);
+}
+
+.webinar-upcoming {
+    border-color: var(--border-default-blue-france);
+    background-color: var(--background-alt-blue-france);
+}
+
+.date {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    color: var(--text-title-blue-france);
+    font-weight: 700;
+}
+
+.time {
+    color: var(--text-mention-grey);
+    font-weight: 400;
+}
+
+.title {
+    font-size: 1.125rem;
+}

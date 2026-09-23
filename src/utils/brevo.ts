@@ -15,6 +15,9 @@ const STORAGE_PREFIXES = ['BrevoConversations.', 'SibConversations.'];
 
 type BrevoCommandQueue = ((...args: unknown[]) => void) & { q?: unknown[][] };
 
+// A content blocker or a proxy can stop the widget script: commands would then only pile up in the queue.
+let widgetFailedToLoad = false;
+
 declare global {
     interface Window {
         BrevoConversationsID?: string;
@@ -57,6 +60,9 @@ export const setupBrevo = (user: User) => {
         const scriptElt = document.createElement('script');
         scriptElt.async = true;
         scriptElt.src = WIDGET_URL;
+        scriptElt.onerror = () => {
+            widgetFailedToLoad = true;
+        };
         document.head.appendChild(scriptElt);
     }
 
@@ -85,4 +91,15 @@ export const resetBrevo = () => {
             document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
         }
     }
+};
+
+// Off in local dev, like the widget itself (see setupBrevo).
+export const isBrevoChatEnabled = ENVIRONMENT !== 'development';
+
+export const openBrevoChat = (fallbackEmail: string) => {
+    if (widgetFailedToLoad || !window.BrevoConversations) {
+        window.location.href = `mailto:${fallbackEmail}`;
+        return;
+    }
+    window.BrevoConversations('openChat', true);
 };

@@ -1,0 +1,20 @@
+.intro {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1.5rem;
+    list-style: none;
+    padding: 0;
+}
+
+.feedback {
+    margin-top: 2rem;
+    color: var(--text-mention-grey);
+    font-size: 0.875rem;
+}
