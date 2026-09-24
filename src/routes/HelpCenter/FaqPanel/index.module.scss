@@ -48,7 +48,6 @@
 }
 
 .intro {
-    max-width: tokens.$measure;
     margin-bottom: tokens.$space-group;
     font-size: 1rem;
     line-height: 1.5rem;
@@ -61,8 +60,8 @@
     margin-bottom: tokens.$space-section;
 }
 
-.filters .field {
-    max-width: tokens.$measure;
+/* Outranks DSFR's `.fr-input-group:not(:last-child)` margin, which would double the flex gap. */
+.layout .filters .field {
     margin: 0;
 }
 
@@ -82,8 +81,6 @@
 
     h3 {
         margin-bottom: tokens.$space-heading;
-        font-size: 1.25rem;
-        line-height: 1.75rem;
     }
 }
 
@@ -106,5 +103,4 @@
     display: flex;
     flex-direction: column;
     gap: tokens.$space-group;
-    max-width: tokens.$measure-lead;
 }

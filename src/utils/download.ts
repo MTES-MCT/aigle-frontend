@@ -38,7 +38,7 @@ export const toFileSlug = (text: string) =>
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
 
-const triggerDownload = (blob: Blob, fileName: string) => {
+export const triggerDownload = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

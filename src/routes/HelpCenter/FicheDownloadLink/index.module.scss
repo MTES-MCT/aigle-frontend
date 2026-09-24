@@ -1,0 +1,33 @@
+/* DSFR loads after the CSS modules: overrides of a DSFR class sit under .link to outrank it. */
+
+/* DSFR has no loader: the link's own download arrow keeps moving until the file is there. */
+.link[aria-busy='true'] {
+    cursor: progress;
+
+    &::after {
+        animation: nudge 1s ease-in-out infinite;
+    }
+}
+
+@keyframes nudge {
+    0%,
+    100% {
+        transform: translateY(-0.125rem);
+    }
+
+    50% {
+        transform: translateY(0.1875rem);
+    }
+}
+
+.link .done {
+    color: var(--text-default-success);
+}
+
+.link .error {
+    color: var(--text-default-error);
+}
+
+.link .status::before {
+    margin-right: 0.25rem;
+}

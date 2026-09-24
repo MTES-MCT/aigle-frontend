@@ -23,7 +23,6 @@
 }
 
 .objective {
-    max-width: tokens.$measure;
     font-size: 1rem;
     font-weight: 500;
     line-height: 1.5rem;
@@ -65,9 +64,4 @@
     flex-direction: column;
     gap: tokens.$space-related;
     margin-top: tokens.$space-region;
-
-    h3 {
-        font-size: 1.25rem;
-        line-height: 1.75rem;
-    }
 }

@@ -1,4 +1,3 @@
-@use '@/constants.scss' as constants;
 @use './tokens' as tokens;
 
 /* The DSFR stylesheet loads after the CSS modules (main.tsx imports App before index.scss), so a
@@ -22,7 +21,6 @@
 }
 
 .lead {
-    max-width: tokens.$measure-lead;
     font-size: 1.25rem;
     line-height: 2rem;
     text-wrap: pretty;
@@ -39,62 +37,25 @@
     }
 }
 
-/* Flush with the header and the page edges, as DSFR places a notice; the text keeps the page column. */
-.notice {
-    margin: calc(-1 * constants.$content-padding) calc(-1 * constants.$content-padding) 0;
-    padding-inline: constants.$content-padding;
-}
-
-.notice-column {
-    max-width: 62rem;
-    margin: 0 auto;
-}
-
-/* index.scss drops DSFR's link underline on every [href]; the button is a link in all but markup. */
-.notice-link {
-    margin-left: tokens.$space-related;
-    font-weight: 500;
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-    white-space: nowrap;
-
-    &:hover {
-        text-decoration-thickness: 2px;
-    }
-}
-
-/* Below 36em DSFR puts the description on its own line: the first link then starts one too. */
-@media (max-width: 35.99em) {
-    .notice-desc + .notice-link {
-        margin-left: 0;
-    }
-}
-
 .tabs {
     margin-top: tokens.$space-section;
 }
 
-/* Contact: the page's fallback, kept below the help content and quieter than it. */
+/* index.scss zeroes --title-spacing on every element, DSFR's own gap under the callout title with it. */
+.container .callout-title {
+    margin-bottom: tokens.$space-heading;
+}
+
+/* index.scss drops DSFR's link underline on every [href]; a link in running text still needs one. */
+.container .callout a:not([class]) {
+    text-decoration: underline;
+}
+
+.container .webinar {
+    margin: tokens.$space-section 0 0;
+}
+
+/* Contact: the page's fallback, kept below the help content. */
 .container .contact {
     margin: tokens.$space-region 0 0;
-
-    a:not([class]) {
-        text-decoration: underline;
-    }
-}
-
-.container .contact-title {
-    margin-bottom: tokens.$space-heading;
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-}
-
-.container .contact-text {
-    max-width: tokens.$measure;
-    font-size: 1rem;
-    line-height: 1.5rem;
-}
-
-.container .contact-actions {
-    margin-top: tokens.$space-group;
 }

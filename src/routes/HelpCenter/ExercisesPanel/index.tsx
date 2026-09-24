@@ -107,7 +107,7 @@ const Component: React.FC<ComponentProps> = ({ expandedId, onToggle, onPlay }: C
             </div>
 
             <section className={classes.validation}>
-                <h3>Validation du parcours</h3>
+                <h3 className="fr-h6">Validation du parcours</h3>
                 <RichText blocks={PATH_VALIDATION} />
             </section>
         </>

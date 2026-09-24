@@ -199,7 +199,7 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
                     {categories.length ? (
                         categories.map((category) => (
                             <section key={category.id} className={classes.category}>
-                                <h3>{category.title}</h3>
+                                <h3 className="fr-h6">{category.title}</h3>
                                 <div className="fr-accordions-group">{category.questions.map(renderQuestion)}</div>
                             </section>
                         ))

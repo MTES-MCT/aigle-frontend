@@ -1,4 +1,3 @@
-import pdfDoc from '@/assets/Fiche métier - AIGLE - v2.3.pdf';
 import Tabs, { TabsItem } from '@/components/dsfr/Tabs';
 import LayoutBase from '@/components/LayoutBase';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
@@ -11,6 +10,7 @@ import { FAQ_CATEGORIES } from './content/faq';
 import { WEBINARS } from './content/webinars';
 import ExercisesPanel from './ExercisesPanel';
 import FaqPanel from './FaqPanel';
+import FicheDownloadLink from './FicheDownloadLink';
 import classes from './index.module.scss';
 import {
     CONTACT_EMAIL,
@@ -92,56 +92,6 @@ const Component: React.FC = () => {
 
     return (
         <LayoutBase title="Centre d’aide">
-            {/* A DSFR notice sits right under the header, so it never moves the tab list either. */}
-            {nextWebinar ? (
-                <div className={clsx('fr-notice fr-notice--info', classes.notice)}>
-                    <div className={classes['notice-column']}>
-                        <div className="fr-notice__body">
-                            <p>
-                                <span className="fr-notice__title fr-icon-calendar-event-line">
-                                    Prochain webinaire : {nextWebinar.title}
-                                </span>
-                                <span className={clsx('fr-notice__desc', classes['notice-desc'])}>
-                                    {formatWebinarDate(nextWebinar.date)}
-                                    {nextWebinar.timeSlot ? `, ${formatWebinarTimeSlot(nextWebinar.timeSlot)}` : ''}
-                                </span>
-                                {nextWebinar.registrationUrl ? (
-                                    <a
-                                        className={clsx('fr-notice__link', classes['notice-link'])}
-                                        href={nextWebinar.registrationUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="S’inscrire au webinaire - nouvelle fenêtre"
-                                    >
-                                        S’inscrire
-                                    </a>
-                                ) : null}
-                                {/* On Webinaires the webinar is already listed: the second link is the visio. */}
-                                {tab !== 'webinaires' ? (
-                                    <button
-                                        type="button"
-                                        className={clsx('fr-notice__link', classes['notice-link'])}
-                                        onClick={() => setTab('webinaires')}
-                                    >
-                                        Tous les webinaires
-                                    </button>
-                                ) : nextWebinar.visioUrl ? (
-                                    <a
-                                        className={clsx('fr-notice__link', classes['notice-link'])}
-                                        href={nextWebinar.visioUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Lien de connexion au webinaire - nouvelle fenêtre"
-                                    >
-                                        Lien de connexion
-                                    </a>
-                                ) : null}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            ) : null}
-
             <div className={classes.container}>
                 <div className={classes.header}>
                     <h1>Centre d’aide</h1>
@@ -150,12 +100,48 @@ const Component: React.FC = () => {
                         pratiques, réponses aux questions fréquentes et webinaires.
                     </p>
                     <p className={classes.download}>
-                        <a className="fr-link fr-link--download" href={pdfDoc} download>
-                            Télécharger la fiche métier AIGLE
-                            <span className="fr-link__detail">PDF – 3,3 Mo</span>
-                        </a>
+                        <FicheDownloadLink />
                     </p>
                 </div>
+
+                {nextWebinar ? (
+                    <section
+                        className={clsx(
+                            'fr-callout fr-callout--blue-ecume fr-icon-calendar-event-line',
+                            classes.callout,
+                            classes.webinar,
+                        )}
+                    >
+                        <h2 className={clsx('fr-callout__title', classes['callout-title'])}>
+                            Prochain webinaire : {nextWebinar.title}
+                        </h2>
+                        <p className="fr-callout__text">
+                            {formatWebinarDate(nextWebinar.date)}
+                            {nextWebinar.timeSlot ? `, ${formatWebinarTimeSlot(nextWebinar.timeSlot)}` : ''}
+                        </p>
+                        {nextWebinar.registrationUrl ? (
+                            <a
+                                className="fr-btn"
+                                href={nextWebinar.registrationUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="S’inscrire au webinaire - nouvelle fenêtre"
+                            >
+                                S’inscrire
+                            </a>
+                        ) : nextWebinar.visioUrl ? (
+                            <a
+                                className="fr-btn"
+                                href={nextWebinar.visioUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Lien de connexion au webinaire - nouvelle fenêtre"
+                            >
+                                Lien de connexion
+                            </a>
+                        ) : null}
+                    </section>
+                ) : null}
 
                 <div className={classes.tabs}>
                     <Tabs label="Rubriques du centre d’aide" tabs={TABS} value={tab} onChange={setTab}>
@@ -189,39 +175,36 @@ const Component: React.FC = () => {
                     </Tabs>
                 </div>
 
-                <section className={clsx('fr-callout', classes.contact)}>
-                    <h2 className={clsx('fr-callout__title', classes['contact-title'])}>
+                {/* DSFR gives a callout a single button: the chat when it is on, the address stays in the text. */}
+                <section
+                    className={clsx(
+                        'fr-callout fr-callout--blue-ecume fr-icon-question-answer-line',
+                        classes.callout,
+                        classes.contact,
+                    )}
+                >
+                    <h2 className={clsx('fr-callout__title', classes['callout-title'])}>
                         Une question non couverte par ce centre d’aide ?
                     </h2>
-                    <p className={clsx('fr-callout__text', classes['contact-text'])}>
+                    <p className="fr-callout__text">
                         Contactez l’équipe AIGLE via le tchat intégré à l’application ou par courriel à{' '}
                         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Afin d’accélérer le traitement de votre
                         demande, précisez votre structure, votre territoire, la parcelle ou l’objet concerné, et joignez
                         une capture d’écran lorsque c’est possible.
                     </p>
-                    <ul
-                        className={clsx(
-                            'fr-btns-group fr-btns-group--inline-md fr-btns-group--icon-left',
-                            classes['contact-actions'],
-                        )}
-                    >
-                        {isBrevoChatEnabled ? (
-                            <li>
-                                <button
-                                    type="button"
-                                    className="fr-btn fr-btn--secondary fr-icon-chat-3-line"
-                                    onClick={() => openBrevoChat(CONTACT_EMAIL)}
-                                >
-                                    Ouvrir le tchat
-                                </button>
-                            </li>
-                        ) : null}
-                        <li>
-                            <a className="fr-btn fr-btn--tertiary fr-icon-mail-line" href={`mailto:${CONTACT_EMAIL}`}>
-                                Écrire à l’équipe AIGLE
-                            </a>
-                        </li>
-                    </ul>
+                    {isBrevoChatEnabled ? (
+                        <button
+                            type="button"
+                            className="fr-btn fr-btn--icon-left fr-icon-chat-3-line"
+                            onClick={() => openBrevoChat(CONTACT_EMAIL)}
+                        >
+                            Ouvrir le tchat
+                        </button>
+                    ) : (
+                        <a className="fr-btn fr-btn--icon-left fr-icon-mail-line" href={`mailto:${CONTACT_EMAIL}`}>
+                            Écrire à l’équipe AIGLE
+                        </a>
+                    )}
                 </section>
             </div>
 

@@ -79,7 +79,7 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar, upcoming, onPlay }: 
                     <div className="fr-card__content">
                         <h4 className="fr-card__title">{webinar.title}</h4>
                         {webinar.description.length ? (
-                            <div className={clsx('fr-card__desc', classes.description)}>
+                            <div className="fr-card__desc">
                                 <RichText blocks={webinar.description} />
                             </div>
                         ) : null}
@@ -121,7 +121,7 @@ const Component: React.FC<ComponentProps> = ({ upcomingWebinars, pastWebinars, o
         </div>
 
         <section className={classes.section}>
-            <h3 className={classes['section-title']}>Prochains webinaires</h3>
+            <h3 className="fr-h6">Prochains webinaires</h3>
             {upcomingWebinars.length ? (
                 <ul className="fr-raw-list fr-grid-row fr-grid-row--gutters">
                     {upcomingWebinars.map((webinar) => (
@@ -137,7 +137,7 @@ const Component: React.FC<ComponentProps> = ({ upcomingWebinars, pastWebinars, o
 
         <section className={classes.section}>
             <div className={classes['section-heading']}>
-                <h3 className={classes['section-title']}>Webinaires passés</h3>
+                <h3 className="fr-h6">Webinaires passés</h3>
                 <a
                     className="fr-link fr-link--sm"
                     href={TUBE_CHANNEL_URL}

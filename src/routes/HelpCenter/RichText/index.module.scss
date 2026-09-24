@@ -11,27 +11,14 @@
 /* DSFR loads after the CSS modules: overrides of a DSFR class sit under .container to outrank it. */
 
 /* The fieldset keeps DSFR's negative side margins, which line its checkboxes up with the text. */
-.container .checklist {
-    max-width: tokens.$measure;
-
-    > :last-child {
-        margin-bottom: 0;
-    }
+.container .checklist > :last-child {
+    margin-bottom: 0;
 }
 
 .container {
     > * {
         margin-top: 0;
         margin-bottom: tokens.$space-block;
-    }
-
-    > p,
-    > ul,
-    > ol,
-    > .note,
-    > .example,
-    > .alert {
-        max-width: tokens.$measure;
     }
 
     /* Classed paragraphs are DSFR components (badges) with their own size. */
@@ -73,10 +60,6 @@
     > .checklist:not(:last-child) {
         margin-bottom: tokens.$space-group;
     }
-}
-
-.container .columns {
-    max-width: none;
 }
 
 @media (min-width: 48em) {
