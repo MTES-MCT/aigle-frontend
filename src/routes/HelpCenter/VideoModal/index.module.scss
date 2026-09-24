@@ -1,5 +1,12 @@
-.title {
-    font-weight: 700;
+@use '../tokens' as tokens;
+
+/* Width derived from the height as well, so the whole player fits in DSFR's 80vh modal on a
+   short laptop screen (1280x720): 14.5rem is the header, title and footer around it. */
+@media (min-width: 48em) {
+    .body {
+        max-width: max(24rem, calc((80vh - 14.5rem) * 16 / 9 + 4rem));
+        margin: 0 auto;
+    }
 }
 
 .player {
@@ -19,19 +26,21 @@
 
 .footer {
     display: flex;
+    flex: 1 1 auto;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem 1rem;
-    margin-top: 1rem;
+    gap: tokens.$space-related tokens.$space-block;
 }
 
 .meta {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    flex-wrap: wrap;
+    gap: tokens.$space-label;
     color: var(--text-mention-grey);
     font-size: 0.875rem;
+    line-height: 1.5rem;
 
     a {
         text-decoration: underline;
@@ -40,5 +49,18 @@
 
 .navigation {
     display: flex;
-    gap: 0.75rem;
+    gap: tokens.$space-related;
+}
+
+@media (max-width: 35.99em) {
+    .navigation {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    .navigation .nav-button {
+        justify-content: center;
+        width: 100%;
+    }
 }

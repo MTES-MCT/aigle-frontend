@@ -1,0 +1,16 @@
+/* Spacing roles of the help center, on the DSFR grid (1v = .25rem, 1w = .5rem).
+   Name the relationship, not the size: a gap between two things says how related they are. */
+$space-label: 0.25rem; /* a label and its detail: date and title, link and file size */
+$space-heading: 0.5rem; /* a heading and its own content */
+$space-related: 0.75rem; /* closely related blocks */
+$space-block: 1rem; /* prose blocks, items of a list of cards */
+$space-group: 1.5rem; /* sub-sections, text and its actions */
+$space-section: 2rem; /* sections of a panel, intro and content */
+$space-region: 3rem; /* page regions */
+
+/* Prose at 1rem: about 70 characters per line. Tables, lists of cards and controls keep the full width. */
+$measure: 36rem;
+$measure-lead: 50rem;
+
+$breakpoint-md: 48em;
+$breakpoint-lg: 62em;

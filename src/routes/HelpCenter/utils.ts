@@ -1,6 +1,8 @@
 import { AppFilterLink, ContentBlock, Webinar } from './content/types';
 
-export const HELP_CENTER_PATH = '/help-center';
+export const HELP_CENTER_PATH = '/help';
+
+export const CONTACT_EMAIL = 'contact@aigle.beta.gouv.fr';
 
 export const HELP_CENTER_TABS = ['videos', 'exercices', 'faq', 'webinaires'] as const;
 export type HelpCenterTab = (typeof HELP_CENTER_TABS)[number];

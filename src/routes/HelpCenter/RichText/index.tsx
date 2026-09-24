@@ -116,15 +116,44 @@ const Checklist: React.FC<ChecklistProps> = ({ id, items, summary }: ChecklistPr
     // Whatever sits in storage is untrusted: an older format or a manual edit must not crash the page.
     const checked = Array.isArray(storedChecked) ? storedChecked.filter((index) => index < items.length) : [];
     const done = checked.length === items.length;
-    const containerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLFieldSetElement>(null);
 
     return (
-        <div ref={containerRef} className={classes.checklist}>
-            <div className={classes['checklist-header']}>
-                <p className={clsx('fr-badge fr-badge--sm', done ? 'fr-badge--success' : 'fr-badge--info')}>
+        <fieldset ref={containerRef} className={clsx('fr-fieldset', classes.checklist)}>
+            <legend className="fr-fieldset__legend fr-fieldset__legend--regular">
+                <span className={clsx('fr-badge fr-badge--sm', done ? 'fr-badge--success' : 'fr-badge--info')}>
                     {checked.length} / {items.length} réalisé{checked.length > 1 ? 's' : ''}
-                </p>
-                {checked.length ? (
+                </span>
+            </legend>
+            {items.map((item, index) => (
+                <div key={index} className="fr-fieldset__element">
+                    <Checkbox
+                        label={
+                            <span>
+                                <Inline text={item} />
+                            </span>
+                        }
+                        checked={checked.includes(index)}
+                        onChange={(isChecked) =>
+                            setChecked(
+                                isChecked
+                                    ? [...checked, index]
+                                    : checked.filter((checkedIndex) => checkedIndex !== index),
+                            )
+                        }
+                    />
+                </div>
+            ))}
+            {summary ? (
+                <div className="fr-fieldset__element">
+                    <p className={classes['checklist-summary']}>
+                        <Inline text={summary} />
+                    </p>
+                </div>
+            ) : null}
+            {/* Last, so that appearing with the first checked box moves nothing above it. */}
+            {checked.length ? (
+                <div className="fr-fieldset__element">
                     <button
                         type="button"
                         className="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-refresh-line fr-btn--icon-left"
@@ -136,30 +165,9 @@ const Checklist: React.FC<ChecklistProps> = ({ id, items, summary }: ChecklistPr
                     >
                         Réinitialiser
                     </button>
-                ) : null}
-            </div>
-            {items.map((item, index) => (
-                <Checkbox
-                    key={index}
-                    label={
-                        <span>
-                            <Inline text={item} />
-                        </span>
-                    }
-                    checked={checked.includes(index)}
-                    onChange={(isChecked) =>
-                        setChecked(
-                            isChecked ? [...checked, index] : checked.filter((checkedIndex) => checkedIndex !== index),
-                        )
-                    }
-                />
-            ))}
-            {summary ? (
-                <p className={classes['checklist-summary']}>
-                    <Inline text={summary} />
-                </p>
+                </div>
             ) : null}
-        </div>
+        </fieldset>
     );
 };
 
@@ -181,7 +189,8 @@ const Component: React.FC<ComponentProps> = ({ blocks, highlightTerms }: Compone
                 case 'list': {
                     const ListTag = block.ordered ? 'ol' : 'ul';
                     return (
-                        <ListTag key={index}>
+                        // fr-list: DSFR's list defaults, which a surrounding fr-raw-list would otherwise pass down.
+                        <ListTag key={index} className={clsx('fr-list', block.columns && classes.columns)}>
                             {block.items.map((item, itemIndex) => (
                                 <li key={itemIndex}>
                                     <Inline text={item} highlightTerms={highlightTerms} />
@@ -208,9 +217,18 @@ const Component: React.FC<ComponentProps> = ({ blocks, highlightTerms }: Compone
                     );
                 case 'example':
                     return (
-                        <p key={index} className={classes.example}>
-                            <Inline text={block.text} highlightTerms={highlightTerms} />
-                        </p>
+                        <div
+                            key={index}
+                            className={clsx(
+                                'fr-highlight fr-highlight--beige-gris-galet',
+                                classes.note,
+                                classes.example,
+                            )}
+                        >
+                            <p>
+                                <Inline text={block.text} highlightTerms={highlightTerms} />
+                            </p>
+                        </div>
                     );
                 case 'table':
                     return (

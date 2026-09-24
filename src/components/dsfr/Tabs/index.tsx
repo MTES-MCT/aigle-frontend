@@ -5,6 +5,8 @@ import React, { PropsWithChildren, useEffect, useId, useLayoutEffect, useRef, us
 export interface TabsItem<T extends string> {
     value: T;
     label: string;
+    // Shown below 48em instead of the label (and without the icon), so the tabs fit a phone.
+    shortLabel?: string;
     icon?: string;
 }
 
@@ -106,7 +108,14 @@ const Component = <T extends string>({ label, tabs, value, onChange, children }:
     return (
         <div
             className="fr-tabs"
-            style={height === undefined ? undefined : ({ '--tabs-height': `${height}px` } as React.CSSProperties)}
+            // clip rather than DSFR's hidden: hidden makes the box a scroll container, which stops
+            // position: sticky from working inside the panels.
+            style={
+                {
+                    overflow: 'clip',
+                    ...(height === undefined ? {} : { '--tabs-height': `${height}px` }),
+                } as React.CSSProperties
+            }
         >
             <ul ref={listRef} className="fr-tabs__list" role="tablist" aria-label={label}>
                 {tabs.map((tab, index) => (
@@ -122,14 +131,27 @@ const Component = <T extends string>({ label, tabs, value, onChange, children }:
                             type="button"
                             id={`${baseId}-tab-${tab.value}`}
                             role="tab"
-                            className={clsx('fr-tabs__tab', tab.icon && [tab.icon, 'fr-tabs__tab--icon-left'])}
+                            className="fr-tabs__tab"
                             aria-selected={tab.value === value}
                             aria-controls={`${baseId}-panel`}
                             tabIndex={tab.value === value ? 0 : -1}
                             onClick={() => onChange(tab.value)}
                             onKeyDown={(event) => handleKeyDown(event, index)}
                         >
-                            {tab.label}
+                            {tab.icon ? (
+                                <span
+                                    className={clsx(tab.icon, 'fr-icon--sm fr-mr-1w fr-hidden fr-unhidden-md')}
+                                    aria-hidden="true"
+                                />
+                            ) : null}
+                            {tab.shortLabel ? (
+                                <>
+                                    <span className="fr-hidden-md">{tab.shortLabel}</span>
+                                    <span className="fr-hidden fr-unhidden-md">{tab.label}</span>
+                                </>
+                            ) : (
+                                tab.label
+                            )}
                         </button>
                     </li>
                 ))}

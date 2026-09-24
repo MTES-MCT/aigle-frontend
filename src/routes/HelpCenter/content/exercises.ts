@@ -28,6 +28,7 @@ export const EXERCISES_INTRO: ContentBlock[] = [
     { type: 'paragraph', text: 'À l’issue de ces exercices, vous saurez :' },
     {
         type: 'list',
+        columns: true,
         items: [
             'rechercher et filtrer des objets ;',
             'consulter une fiche objet ;',

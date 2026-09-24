@@ -11,7 +11,7 @@ export interface AppFilterLink {
 // in-app link, anything else opens in a new tab.
 export type ContentBlock =
     | { type: 'paragraph'; text: string }
-    | { type: 'list'; items: string[]; ordered?: boolean }
+    | { type: 'list'; items: string[]; ordered?: boolean; columns?: boolean }
     | { type: 'note'; text: string }
     | { type: 'warning'; text: string }
     | { type: 'example'; text: string }

@@ -4,6 +4,7 @@ import LayoutBase from '@/components/LayoutBase';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { isBrevoChatEnabled, openBrevoChat } from '@/utils/brevo';
 import { HEADER_HEIGHT_PX } from '@/utils/constants';
+import clsx from 'clsx';
 import React, { useEffect, useState } from 'react';
 import { EXERCISES } from './content/exercises';
 import { FAQ_CATEGORIES } from './content/faq';
@@ -11,19 +12,24 @@ import { WEBINARS } from './content/webinars';
 import ExercisesPanel from './ExercisesPanel';
 import FaqPanel from './FaqPanel';
 import classes from './index.module.scss';
-import { formatWebinarDate, formatWebinarTimeSlot, HELP_CENTER_TABS, HelpCenterTab, isWebinarUpcoming } from './utils';
+import {
+    CONTACT_EMAIL,
+    formatWebinarDate,
+    formatWebinarTimeSlot,
+    HELP_CENTER_TABS,
+    HelpCenterTab,
+    isWebinarUpcoming,
+} from './utils';
 import VideoModal, { VideoSelection } from './VideoModal';
 import VideosPanel from './VideosPanel';
 import WebinarsPanel from './WebinarsPanel';
 
 const TABS: TabsItem<HelpCenterTab>[] = [
-    { value: 'videos', label: 'Se former en vidéo', icon: 'fr-icon-play-circle-line' },
-    { value: 'exercices', label: 'Faire les exercices', icon: 'fr-icon-todo-line' },
-    { value: 'faq', label: 'Questions fréquentes', icon: 'fr-icon-question-line' },
+    { value: 'videos', label: 'Se former en vidéo', shortLabel: 'Vidéos', icon: 'fr-icon-play-circle-line' },
+    { value: 'exercices', label: 'Faire les exercices', shortLabel: 'Exercices', icon: 'fr-icon-todo-line' },
+    { value: 'faq', label: 'Questions fréquentes', shortLabel: 'FAQ', icon: 'fr-icon-question-line' },
     { value: 'webinaires', label: 'Webinaires', icon: 'fr-icon-calendar-event-line' },
 ];
-
-const CONTACT_EMAIL = 'contact@aigle.beta.gouv.fr';
 
 const isHelpCenterTab = (value: string): value is HelpCenterTab =>
     (HELP_CENTER_TABS as readonly string[]).includes(value);
@@ -86,36 +92,22 @@ const Component: React.FC = () => {
 
     return (
         <LayoutBase title="Centre d’aide">
-            <div className={classes.container}>
-                <div className={classes.header}>
-                    <h1>Centre d’aide</h1>
-                    <p className="fr-text--lead">
-                        Un espace pour vous accompagner dans la prise en main d’AIGLE : vidéos de formation, exercices
-                        pratiques, réponses aux questions fréquentes et webinaires.
-                    </p>
-                    <p>
-                        <a className="fr-link fr-link--download" href={pdfDoc} download>
-                            Télécharger la fiche métier AIGLE
-                            <span className="fr-link__detail">PDF – 3,3 Mo</span>
-                        </a>
-                    </p>
-                </div>
-
-                {nextWebinar && tab !== 'webinaires' ? (
-                    <div className={classes['next-webinar']}>
-                        <span className="fr-icon-calendar-event-line" aria-hidden="true" />
-                        <div className={classes['next-webinar-content']}>
-                            <p className={classes['next-webinar-title']}>
-                                Prochain webinaire : {formatWebinarDate(nextWebinar.date)}
-                                {nextWebinar.timeSlot ? `, ${formatWebinarTimeSlot(nextWebinar.timeSlot)}` : ''}
-                            </p>
-                            <p>{nextWebinar.title}</p>
-                        </div>
-                        <ul className="fr-btns-group fr-btns-group--inline fr-btns-group--sm">
-                            {nextWebinar.registrationUrl ? (
-                                <li>
+            {/* A DSFR notice sits right under the header, so it never moves the tab list either. */}
+            {nextWebinar ? (
+                <div className={clsx('fr-notice fr-notice--info', classes.notice)}>
+                    <div className={classes['notice-column']}>
+                        <div className="fr-notice__body">
+                            <p>
+                                <span className="fr-notice__title fr-icon-calendar-event-line">
+                                    Prochain webinaire : {nextWebinar.title}
+                                </span>
+                                <span className={clsx('fr-notice__desc', classes['notice-desc'])}>
+                                    {formatWebinarDate(nextWebinar.date)}
+                                    {nextWebinar.timeSlot ? `, ${formatWebinarTimeSlot(nextWebinar.timeSlot)}` : ''}
+                                </span>
+                                {nextWebinar.registrationUrl ? (
                                     <a
-                                        className="fr-btn"
+                                        className={clsx('fr-notice__link', classes['notice-link'])}
                                         href={nextWebinar.registrationUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -123,65 +115,101 @@ const Component: React.FC = () => {
                                     >
                                         S’inscrire
                                     </a>
-                                </li>
-                            ) : null}
-                            <li>
-                                <button
-                                    type="button"
-                                    className="fr-btn fr-btn--secondary"
-                                    onClick={() => setTab('webinaires')}
-                                >
-                                    Tous les webinaires
-                                </button>
-                            </li>
-                        </ul>
+                                ) : null}
+                                {/* On Webinaires the webinar is already listed: the second link is the visio. */}
+                                {tab !== 'webinaires' ? (
+                                    <button
+                                        type="button"
+                                        className={clsx('fr-notice__link', classes['notice-link'])}
+                                        onClick={() => setTab('webinaires')}
+                                    >
+                                        Tous les webinaires
+                                    </button>
+                                ) : nextWebinar.visioUrl ? (
+                                    <a
+                                        className={clsx('fr-notice__link', classes['notice-link'])}
+                                        href={nextWebinar.visioUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Lien de connexion au webinaire - nouvelle fenêtre"
+                                    >
+                                        Lien de connexion
+                                    </a>
+                                ) : null}
+                            </p>
+                        </div>
                     </div>
-                ) : null}
+                </div>
+            ) : null}
 
-                <Tabs label="Rubriques du centre d’aide" tabs={TABS} value={tab} onChange={setTab}>
-                    {tab === 'videos' ? (
-                        <VideosPanel onPlay={setVideoSelection} onGoToExercises={() => setTab('exercices')} />
-                    ) : null}
-                    {tab === 'exercices' ? (
-                        <ExercisesPanel
-                            expandedId={expandedExerciseId}
-                            onToggle={(id, expanded) => setExpandedExerciseId(expanded ? id : null)}
-                            onPlay={setVideoSelection}
-                        />
-                    ) : null}
-                    {tab === 'faq' ? (
-                        <FaqPanel
-                            expandedIds={expandedQuestionIds}
-                            onToggle={(id, expanded) =>
-                                setExpandedQuestionIds((ids) =>
-                                    expanded ? [...ids, id] : ids.filter((expandedId) => expandedId !== id),
-                                )
-                            }
-                        />
-                    ) : null}
-                    {tab === 'webinaires' ? (
-                        <WebinarsPanel
-                            upcomingWebinars={upcomingWebinars}
-                            pastWebinars={pastWebinars}
-                            onPlay={setVideoSelection}
-                        />
-                    ) : null}
-                </Tabs>
+            <div className={classes.container}>
+                <div className={classes.header}>
+                    <h1>Centre d’aide</h1>
+                    <p className={classes.lead}>
+                        Un espace pour vous accompagner dans la prise en main d’AIGLE : vidéos de formation, exercices
+                        pratiques, réponses aux questions fréquentes et webinaires.
+                    </p>
+                    <p className={classes.download}>
+                        <a className="fr-link fr-link--download" href={pdfDoc} download>
+                            Télécharger la fiche métier AIGLE
+                            <span className="fr-link__detail">PDF – 3,3 Mo</span>
+                        </a>
+                    </p>
+                </div>
 
-                <div className={`fr-callout fr-icon-chat-3-line ${classes.contact}`}>
-                    <h2 className="fr-callout__title">Une question non couverte par ce centre d’aide ?</h2>
-                    <p className="fr-callout__text">
+                <div className={classes.tabs}>
+                    <Tabs label="Rubriques du centre d’aide" tabs={TABS} value={tab} onChange={setTab}>
+                        {tab === 'videos' ? (
+                            <VideosPanel onPlay={setVideoSelection} onGoToExercises={() => setTab('exercices')} />
+                        ) : null}
+                        {tab === 'exercices' ? (
+                            <ExercisesPanel
+                                expandedId={expandedExerciseId}
+                                onToggle={(id, expanded) => setExpandedExerciseId(expanded ? id : null)}
+                                onPlay={setVideoSelection}
+                            />
+                        ) : null}
+                        {tab === 'faq' ? (
+                            <FaqPanel
+                                expandedIds={expandedQuestionIds}
+                                onToggle={(id, expanded) =>
+                                    setExpandedQuestionIds((ids) =>
+                                        expanded ? [...ids, id] : ids.filter((expandedId) => expandedId !== id),
+                                    )
+                                }
+                            />
+                        ) : null}
+                        {tab === 'webinaires' ? (
+                            <WebinarsPanel
+                                upcomingWebinars={upcomingWebinars}
+                                pastWebinars={pastWebinars}
+                                onPlay={setVideoSelection}
+                            />
+                        ) : null}
+                    </Tabs>
+                </div>
+
+                <section className={clsx('fr-callout', classes.contact)}>
+                    <h2 className={clsx('fr-callout__title', classes['contact-title'])}>
+                        Une question non couverte par ce centre d’aide ?
+                    </h2>
+                    <p className={clsx('fr-callout__text', classes['contact-text'])}>
                         Contactez l’équipe AIGLE via le tchat intégré à l’application ou par courriel à{' '}
                         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Afin d’accélérer le traitement de votre
                         demande, précisez votre structure, votre territoire, la parcelle ou l’objet concerné, et joignez
                         une capture d’écran lorsque c’est possible.
                     </p>
-                    <ul className="fr-btns-group fr-btns-group--inline-md fr-btns-group--icon-left">
+                    <ul
+                        className={clsx(
+                            'fr-btns-group fr-btns-group--inline-md fr-btns-group--icon-left',
+                            classes['contact-actions'],
+                        )}
+                    >
                         {isBrevoChatEnabled ? (
                             <li>
                                 <button
                                     type="button"
-                                    className="fr-btn fr-icon-chat-3-line"
+                                    className="fr-btn fr-btn--secondary fr-icon-chat-3-line"
                                     onClick={() => openBrevoChat(CONTACT_EMAIL)}
                                 >
                                     Ouvrir le tchat
@@ -189,12 +217,12 @@ const Component: React.FC = () => {
                             </li>
                         ) : null}
                         <li>
-                            <a className="fr-btn fr-btn--secondary fr-icon-mail-line" href={`mailto:${CONTACT_EMAIL}`}>
+                            <a className="fr-btn fr-btn--tertiary fr-icon-mail-line" href={`mailto:${CONTACT_EMAIL}`}>
                                 Écrire à l’équipe AIGLE
                             </a>
                         </li>
                     </ul>
-                </div>
+                </section>
             </div>
 
             <VideoModal

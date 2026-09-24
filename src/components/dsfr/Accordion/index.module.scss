@@ -1,6 +1,14 @@
-// DSFR only pads the accordion header; its panel is flush, which reads as broken inside
-// a narrow side panel.
+/* DSFR only pads the accordion panel from 48em up, and only by the header's own inset there:
+   below 48em the panel is flush, which reads as broken, and above it an extra 1rem would push the
+   content right of the title. */
 .content {
     padding-right: 1rem;
     padding-left: 1rem;
+}
+
+@media (min-width: 48em) {
+    .content {
+        padding-right: 0.25rem;
+        padding-left: 0.25rem;
+    }
 }

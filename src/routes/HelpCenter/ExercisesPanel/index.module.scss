@@ -1,8 +1,7 @@
+@use '../tokens' as tokens;
+
 .intro {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: tokens.$space-group;
 }
 
 .title {
@@ -16,37 +15,59 @@
     font-weight: 400;
 }
 
+/* Sections are separated more than their own blocks, and a heading sits closer to its content. */
 .exercise {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    padding-bottom: 0.5rem;
+    gap: tokens.$space-section;
+}
+
+.objective {
+    max-width: tokens.$measure;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5rem;
 }
 
 .videos {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: tokens.$space-heading;
 }
 
 .videos-label {
+    font-size: 0.875rem;
     font-weight: 700;
+}
+
+.videos .tag {
+    text-align: left;
 }
 
 .section {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: tokens.$space-related;
 
     h4 {
-        font-size: 1.125rem;
-        line-height: 1.75rem;
+        font-size: 1rem;
+        line-height: 1.5rem;
     }
+}
+
+.next {
+    padding-top: tokens.$space-block;
+    border-top: 1px solid var(--border-default-grey);
 }
 
 .validation {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-top: 2rem;
+    gap: tokens.$space-related;
+    margin-top: tokens.$space-region;
+
+    h3 {
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+    }
 }

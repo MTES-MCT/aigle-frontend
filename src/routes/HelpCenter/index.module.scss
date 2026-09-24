@@ -1,16 +1,19 @@
+@use '@/constants.scss' as constants;
+@use './tokens' as tokens;
+
+/* The DSFR stylesheet loads after the CSS modules (main.tsx imports App before index.scss), so a
+   rule that must beat a DSFR class on the same element is nested under .container to outrank it. */
+
 .container {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
     max-width: 62rem;
     margin: 0 auto;
-    padding: 1.5rem 0 5rem;
+    padding: tokens.$space-group 0 tokens.$space-region;
 }
 
 .header {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: tokens.$space-related;
 
     h1 {
         font-size: 2rem;
@@ -18,32 +21,80 @@
     }
 }
 
-.next-webinar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem 1rem;
-    padding: 1rem 1.5rem;
-    background-color: var(--background-contrast-info);
-    color: var(--text-default-info);
+.lead {
+    max-width: tokens.$measure-lead;
+    font-size: 1.25rem;
+    line-height: 2rem;
+    text-wrap: pretty;
 }
 
-.next-webinar-content {
-    flex: 1 1 20rem;
+.download {
+    margin-top: tokens.$space-label;
 }
 
-.next-webinar-title {
-    font-weight: 700;
+@media (max-width: 47.99em) {
+    .lead {
+        font-size: 1.0625rem;
+        line-height: 1.625rem;
+    }
 }
 
-.next-webinar ul {
-    margin-bottom: -0.5rem;
+/* Flush with the header and the page edges, as DSFR places a notice; the text keeps the page column. */
+.notice {
+    margin: calc(-1 * constants.$content-padding) calc(-1 * constants.$content-padding) 0;
+    padding-inline: constants.$content-padding;
 }
 
-.contact {
-    margin-top: 1rem;
+.notice-column {
+    max-width: 62rem;
+    margin: 0 auto;
+}
+
+/* index.scss drops DSFR's link underline on every [href]; the button is a link in all but markup. */
+.notice-link {
+    margin-left: tokens.$space-related;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    white-space: nowrap;
+
+    &:hover {
+        text-decoration-thickness: 2px;
+    }
+}
+
+/* Below 36em DSFR puts the description on its own line: the first link then starts one too. */
+@media (max-width: 35.99em) {
+    .notice-desc + .notice-link {
+        margin-left: 0;
+    }
+}
+
+.tabs {
+    margin-top: tokens.$space-section;
+}
+
+/* Contact: the page's fallback, kept below the help content and quieter than it. */
+.container .contact {
+    margin: tokens.$space-region 0 0;
 
     a:not([class]) {
         text-decoration: underline;
     }
+}
+
+.container .contact-title {
+    margin-bottom: tokens.$space-heading;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+
+.container .contact-text {
+    max-width: tokens.$measure;
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.container .contact-actions {
+    margin-top: tokens.$space-group;
 }

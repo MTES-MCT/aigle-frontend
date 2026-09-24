@@ -1,0 +1,22 @@
+/* showModal() puts the dialog under the UA's `dialog:modal` rules, which cap its size at
+   100% - 2em and draw their own backdrop. DSFR's .fr-modal is already the full-screen overlay. */
+.dialog {
+    max-width: none;
+    max-height: none;
+
+    &::backdrop {
+        background: transparent;
+    }
+}
+
+/* DSFR also fades `visibility` in, and while it is still hidden showModal() finds nothing to
+   focus. Opening shows it at once and fades only the opacity; closing keeps DSFR's fade. */
+.dialog[open] {
+    transition: opacity 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dialog[open] {
+        transition: none;
+    }
+}

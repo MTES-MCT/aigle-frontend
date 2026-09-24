@@ -5,7 +5,7 @@ import React, { useId, useMemo, useState } from 'react';
 import { FAQ_CATEGORIES } from '../content/faq';
 import { FaqQuestion } from '../content/types';
 import RichText, { Inline } from '../RichText';
-import { findSearchTerm, getBlocksText, getHelpCenterUrl, normalizeSearchText } from '../utils';
+import { CONTACT_EMAIL, findSearchTerm, getBlocksText, getHelpCenterUrl, normalizeSearchText } from '../utils';
 import classes from './index.module.scss';
 
 // Words that match nearly every answer: searching or highlighting them only adds noise.
@@ -60,27 +60,38 @@ interface ComponentProps {
 
 const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: ComponentProps) => {
     const searchId = useId();
+    const themeSelectId = useId();
     const [query, setQuery] = useState('');
     const [categoryId, setCategoryId] = useState<string | null>(null);
 
     const searchTerms = useMemo(() => getSearchTerms(query), [query]);
 
-    const categories = useMemo(
+    // Search first, theme second: the theme menu shows how many matches each theme holds.
+    const matchingCategories = useMemo(
         () =>
-            FAQ_CATEGORIES.filter(({ id }) => !categoryId || id === categoryId)
-                .map((category) => ({
-                    ...category,
-                    questions: category.questions.filter(({ id }) => {
-                        const text = SEARCH_INDEX.get(id) ?? '';
-                        return searchTerms.every((term) => findSearchTerm(text, term) !== -1);
-                    }),
-                }))
-                .filter(({ questions }) => questions.length),
-        [categoryId, searchTerms],
+            FAQ_CATEGORIES.map((category) => ({
+                ...category,
+                questions: category.questions.filter(({ id }) => {
+                    const text = SEARCH_INDEX.get(id) ?? '';
+                    return searchTerms.every((term) => findSearchTerm(text, term) !== -1);
+                }),
+            })),
+        [searchTerms],
+    );
+    const matchingCount = matchingCategories.reduce((total, { questions }) => total + questions.length, 0);
+    const categories = matchingCategories.filter(
+        ({ id, questions }) => questions.length && (!categoryId || id === categoryId),
     );
 
     const resultsCount = categories.reduce((total, { questions }) => total + questions.length, 0);
     const isFiltered = !!searchTerms.length || !!categoryId;
+    const selectedCategory = FAQ_CATEGORIES.find(({ id }) => id === categoryId);
+
+    const resetFilters = () => {
+        setQuery('');
+        setCategoryId(null);
+        document.getElementById(searchId)?.focus();
+    };
 
     const renderQuestion = (question: FaqQuestion) => (
         <Accordion
@@ -103,86 +114,122 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
         </Accordion>
     );
 
+    const themeOptions = [
+        { id: null, title: 'Tous les thèmes', count: matchingCount },
+        ...matchingCategories.map(({ id, title, questions }) => ({ id, title, count: questions.length })),
+    ];
+
     return (
         <>
-            <div className={classes.intro}>
-                <h2 className="fr-sr-only">Questions fréquentes</h2>
-                <p>
-                    Retrouvez les réponses aux {QUESTIONS_COUNT} questions les plus fréquentes sur AIGLE, classées par
-                    thème. Recherchez par mot-clé ou filtrez par thème.
-                </p>
-            </div>
+            <h2 className="fr-sr-only">Questions fréquentes</h2>
+            <div className={classes.layout}>
+                <nav className={clsx('fr-sidemenu fr-hidden fr-unhidden-lg', classes.sidemenu)} aria-label="Thèmes">
+                    <div className="fr-sidemenu__inner">
+                        <p className={clsx('fr-sidemenu__title', classes['sidemenu-title'])}>Thèmes</p>
+                        <ul className="fr-sidemenu__list">
+                            {themeOptions.map((option) => (
+                                <li key={option.id ?? 'all'} className="fr-sidemenu__item">
+                                    <button
+                                        type="button"
+                                        className={clsx('fr-sidemenu__link', classes['theme-link'])}
+                                        aria-current={categoryId === option.id ? 'true' : undefined}
+                                        onClick={() => setCategoryId(option.id)}
+                                    >
+                                        <span>{option.title}</span>
+                                        <span className={classes['theme-count']}>{option.count}</span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </nav>
 
-            <div className={clsx('fr-input-group', classes.search)} role="search">
-                <label className="fr-label" htmlFor={searchId}>
-                    Rechercher dans les questions fréquentes
-                    <span className="fr-hint-text">Par exemple : cadastre, prescription, export, mot de passe</span>
-                </label>
-                <div className="fr-input-wrap fr-icon-search-line">
-                    <input
-                        className="fr-input"
-                        id={searchId}
-                        type="search"
-                        value={query}
-                        onChange={(event) => setQuery(event.currentTarget.value)}
-                    />
+                <div className={classes.content}>
+                    <p className={classes.intro}>
+                        Retrouvez les réponses aux {QUESTIONS_COUNT} questions les plus fréquentes sur AIGLE, classées
+                        par thème. Recherchez par mot-clé ou filtrez par thème.
+                    </p>
+
+                    <div className={classes.filters} role="search">
+                        <div className={clsx('fr-input-group', classes.field)}>
+                            <label className="fr-label" htmlFor={searchId}>
+                                Rechercher dans les questions fréquentes
+                                <span className="fr-hint-text">
+                                    Par exemple : cadastre, prescription, export, mot de passe
+                                </span>
+                            </label>
+                            <div className="fr-input-wrap fr-icon-search-line">
+                                <input
+                                    className="fr-input"
+                                    id={searchId}
+                                    type="search"
+                                    value={query}
+                                    onChange={(event) => setQuery(event.currentTarget.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className={clsx('fr-select-group fr-hidden-lg', classes.field)}>
+                            <label className="fr-label" htmlFor={themeSelectId}>
+                                Thème
+                            </label>
+                            <select
+                                className="fr-select"
+                                id={themeSelectId}
+                                value={categoryId ?? ''}
+                                onChange={(event) => setCategoryId(event.currentTarget.value || null)}
+                            >
+                                {themeOptions.map((option) => (
+                                    <option key={option.id ?? 'all'} value={option.id ?? ''}>
+                                        {option.title} ({option.count})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <p className={classes.count} aria-live="polite">
+                            {isFiltered
+                                ? `${resultsCount} question${resultsCount > 1 ? 's' : ''} sur ${QUESTIONS_COUNT}${
+                                      selectedCategory ? ` · ${selectedCategory.title}` : ''
+                                  }`
+                                : `${QUESTIONS_COUNT} questions`}
+                        </p>
+                    </div>
+
+                    {categories.length ? (
+                        categories.map((category) => (
+                            <section key={category.id} className={classes.category}>
+                                <h3>{category.title}</h3>
+                                <div className="fr-accordions-group">{category.questions.map(renderQuestion)}</div>
+                            </section>
+                        ))
+                    ) : (
+                        <div className={classes.empty}>
+                            <div className="fr-alert fr-alert--info fr-alert--sm">
+                                <p>
+                                    Aucune question ne correspond à votre recherche. Essayez un autre mot-clé, ou posez
+                                    directement votre question à l’équipe AIGLE.
+                                </p>
+                            </div>
+                            <ul className="fr-btns-group fr-btns-group--sm fr-btns-group--inline-md fr-btns-group--icon-left">
+                                <li>
+                                    <button type="button" className="fr-btn fr-btn--secondary" onClick={resetFilters}>
+                                        Afficher toutes les questions
+                                    </button>
+                                </li>
+                                <li>
+                                    <a
+                                        className="fr-btn fr-btn--tertiary fr-icon-mail-line"
+                                        href={`mailto:${CONTACT_EMAIL}`}
+                                    >
+                                        Écrire à l’équipe AIGLE
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    )}
                 </div>
             </div>
-
-            <ul className={clsx('fr-tags-group', classes.tags)} aria-label="Filtrer par thème">
-                <li>
-                    <button
-                        type="button"
-                        className="fr-tag fr-tag--sm"
-                        aria-pressed={!categoryId}
-                        onClick={() => setCategoryId(null)}
-                    >
-                        Tous les thèmes
-                    </button>
-                </li>
-                {FAQ_CATEGORIES.map((category) => (
-                    <li key={category.id}>
-                        <button
-                            type="button"
-                            className="fr-tag fr-tag--sm"
-                            aria-pressed={categoryId === category.id}
-                            onClick={() => setCategoryId(categoryId === category.id ? null : category.id)}
-                        >
-                            {category.title}
-                        </button>
-                    </li>
-                ))}
-            </ul>
-
-            <p className={classes.count} aria-live="polite">
-                {isFiltered
-                    ? `${resultsCount} question${resultsCount > 1 ? 's' : ''} sur ${QUESTIONS_COUNT}`
-                    : `${QUESTIONS_COUNT} questions`}
-            </p>
-
-            {categories.length ? (
-                categories.map((category) => (
-                    <section key={category.id} className={classes.category}>
-                        <h3>{category.title}</h3>
-                        <div className="fr-accordions-group">{category.questions.map(renderQuestion)}</div>
-                    </section>
-                ))
-            ) : (
-                <div className={classes.empty}>
-                    <p>Aucune question ne correspond à votre recherche.</p>
-                    <button
-                        type="button"
-                        className="fr-btn fr-btn--secondary fr-btn--sm"
-                        onClick={() => {
-                            setQuery('');
-                            setCategoryId(null);
-                            document.getElementById(searchId)?.focus();
-                        }}
-                    >
-                        Afficher toutes les questions
-                    </button>
-                </div>
-            )}
         </>
     );
 };

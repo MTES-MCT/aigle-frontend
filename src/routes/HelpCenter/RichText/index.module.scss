@@ -1,11 +1,44 @@
+@use '../tokens' as tokens;
+
+.alert p {
+    margin: 0;
+}
+
+.table table {
+    font-size: 0.875rem;
+}
+
+/* DSFR loads after the CSS modules: overrides of a DSFR class sit under .container to outrank it. */
+
+/* The fieldset keeps DSFR's negative side margins, which line its checkboxes up with the text. */
+.container .checklist {
+    max-width: tokens.$measure;
+
+    > :last-child {
+        margin-bottom: 0;
+    }
+}
+
 .container {
     > * {
         margin-top: 0;
-        margin-bottom: 1rem;
+        margin-bottom: tokens.$space-block;
     }
 
-    > *:last-child {
-        margin-bottom: 0;
+    > p,
+    > ul,
+    > ol,
+    > .note,
+    > .example,
+    > .alert {
+        max-width: tokens.$measure;
+    }
+
+    /* Classed paragraphs are DSFR components (badges) with their own size. */
+    p:not([class]),
+    li {
+        font-size: 1rem;
+        line-height: 1.5rem;
     }
 
     ul,
@@ -23,11 +56,40 @@
         background-color: var(--background-contrast-yellow-tournesol-hover);
         color: inherit;
     }
+
+    > *:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Tables, alerts and checklists stand apart from the prose around them. */
+    > * + .table,
+    > * + .alert,
+    > * + .checklist {
+        margin-top: tokens.$space-heading;
+    }
+
+    > .table:not(:last-child),
+    > .alert:not(:last-child),
+    > .checklist:not(:last-child) {
+        margin-bottom: tokens.$space-group;
+    }
 }
 
-.note {
+.container .columns {
+    max-width: none;
+}
+
+@media (min-width: 48em) {
+    .container .columns {
+        column-gap: tokens.$space-section;
+        columns: 2;
+    }
+}
+
+/* Aligned on the text column: DSFR indents .fr-highlight by 2rem + 2.25rem from 48em up. */
+.container .note {
     margin-left: 0;
-    padding-left: 1rem;
+    padding-left: tokens.$space-block;
 
     p {
         font-size: 0.875rem;
@@ -35,42 +97,12 @@
     }
 }
 
-.alert p {
-    margin: 0;
-}
-
-.example {
-    padding: 0.5rem 0.75rem;
-    border-left: 3px solid var(--border-default-grey);
-    background-color: var(--background-alt-grey);
+/* A sample to type in, not a remark: set apart from the notes by its tone and its slant. */
+.container .example p {
     font-style: italic;
 }
 
-.table {
-    table {
-        font-size: 0.875rem;
-    }
-}
-
-.checklist {
-    padding: 1rem;
-    border: 1px solid var(--border-default-grey);
-}
-
-.checklist-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    min-height: 2rem;
-    margin-bottom: 0.75rem;
-
-    p {
-        margin: 0;
-    }
-}
-
-.checklist-summary {
-    margin: 0.75rem 0 0;
+.container .checklist-summary {
     font-size: 0.875rem;
+    line-height: 1.5rem;
 }
