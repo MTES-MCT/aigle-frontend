@@ -22,3 +22,19 @@ export const setupMatomo = (user: User) => {
     scriptElt.src = url + 'matomo.js';
     script.parentNode?.insertBefore(scriptElt, script);
 };
+
+// Commands wait in the queue until matomo.js has loaded, so these can be called at any time.
+const push = (command: unknown[]) => {
+    (window._paq = window._paq || []).push(command);
+};
+
+// matomo.js reads the url once, when it loads: without this, every later event, outlink or
+// download would be reported on the page the session started on.
+export const setTrackedUrl = (url: string) => push(['setCustomUrl', url]);
+
+export const trackEvent = (category: string, action: string, name?: string) =>
+    push(['trackEvent', category, action, name]);
+
+// Reported under Behaviour > Site Search, where searches without any result have their own list.
+export const trackSiteSearch = (keyword: string, category: string, resultsCount: number) =>
+    push(['trackSiteSearch', keyword, category, resultsCount]);

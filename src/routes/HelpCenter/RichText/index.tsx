@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import React, { ReactNode, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { PATH_VALIDATION_CHECKLIST_ID } from '../content/exercises';
-import { ContentBlock } from '../content/types';
+import { AppFilterLink, ContentBlock } from '../content/types';
 import { usePathValidation } from '../usePathValidation';
 import { buildAppFilterUrl, findSearchTerm, normalizeSearchText } from '../utils';
 import classes from './index.module.scss';
@@ -197,9 +197,10 @@ interface LocalChecklistProps {
     id: string;
     items: string[];
     summary?: string;
+    onComplete?: () => void;
 }
 
-const LocalChecklist: React.FC<LocalChecklistProps> = ({ id, items, summary }: LocalChecklistProps) => {
+const LocalChecklist: React.FC<LocalChecklistProps> = ({ id, items, summary, onComplete }: LocalChecklistProps) => {
     const { userMe } = useAuth();
     // Keyed per user: workstations are often shared within a service, and logout keeps local storage.
     const [storedChecked, setChecked] = useLocalStorage<number[]>({
@@ -214,9 +215,15 @@ const LocalChecklist: React.FC<LocalChecklistProps> = ({ id, items, summary }: L
             items={items}
             summary={summary}
             checked={checked}
-            onToggle={(index, isChecked) =>
-                setChecked(isChecked ? [...checked, index] : checked.filter((checkedIndex) => checkedIndex !== index))
-            }
+            onToggle={(index, isChecked) => {
+                const nextChecked = isChecked
+                    ? [...checked, index]
+                    : checked.filter((checkedIndex) => checkedIndex !== index);
+                setChecked(nextChecked);
+                if (isChecked && nextChecked.length === items.length) {
+                    onComplete?.();
+                }
+            }}
             onReset={() => setChecked([])}
         />
     );
@@ -256,9 +263,17 @@ const PathValidationChecklist: React.FC<PathValidationChecklistProps> = ({
 interface ComponentProps {
     blocks: ContentBlock[];
     highlightTerms?: string[];
+    onAppLinkClick?: (link: AppFilterLink) => void;
+    // Only the checklists kept in local storage: the path validation progress is already saved by the API.
+    onChecklistComplete?: (checklistId: string) => void;
 }
 
-const Component: React.FC<ComponentProps> = ({ blocks, highlightTerms }: ComponentProps) => (
+const Component: React.FC<ComponentProps> = ({
+    blocks,
+    highlightTerms,
+    onAppLinkClick,
+    onChecklistComplete,
+}: ComponentProps) => (
     <div className={classes.container}>
         {blocks.map((block, index) => {
             switch (block.type) {
@@ -352,7 +367,13 @@ const Component: React.FC<ComponentProps> = ({ blocks, highlightTerms }: Compone
                     return block.id === PATH_VALIDATION_CHECKLIST_ID ? (
                         <PathValidationChecklist key={index} items={block.items} summary={block.summary} />
                     ) : (
-                        <LocalChecklist key={index} id={block.id} items={block.items} summary={block.summary} />
+                        <LocalChecklist
+                            key={index}
+                            id={block.id}
+                            items={block.items}
+                            summary={block.summary}
+                            onComplete={() => onChecklistComplete?.(block.id)}
+                        />
                     );
                 case 'appLink':
                     // A new tab keeps the instructions open next to the app, and the full load it
@@ -365,6 +386,7 @@ const Component: React.FC<ComponentProps> = ({ blocks, highlightTerms }: Compone
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title={`${block.label} - nouvelle fenêtre`}
+                                onClick={() => onAppLinkClick?.(block)}
                             >
                                 {block.label}
                             </a>

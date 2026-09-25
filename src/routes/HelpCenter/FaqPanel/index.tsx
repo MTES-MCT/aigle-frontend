@@ -1,12 +1,17 @@
 import Accordion from '@/components/dsfr/Accordion';
-import { useClipboard } from '@mantine/hooks';
+import { trackEvent, trackSiteSearch } from '@/utils/matomo';
+import { useClipboard, useDebouncedCallback } from '@mantine/hooks';
 import clsx from 'clsx';
-import React, { useId, useMemo, useState } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import { FAQ_CATEGORIES } from '../content/faq';
 import { FaqQuestion } from '../content/types';
 import RichText, { Inline } from '../RichText';
+import { trackContact, TRACKING_CATEGORIES } from '../tracking';
 import { CONTACT_EMAIL, findSearchTerm, getBlocksText, getHelpCenterUrl, normalizeSearchText } from '../utils';
 import classes from './index.module.scss';
+
+// The list filters at every keystroke: only what is left once the user stops typing is a search.
+const SEARCH_TRACKING_DELAY_MS = 1500;
 
 // Words that match nearly every answer: searching or highlighting them only adds noise.
 const IGNORED_SEARCH_WORDS = new Set([
@@ -36,7 +41,12 @@ const SEARCH_INDEX = new Map<string, string>(
 
 const QUESTIONS_COUNT = SEARCH_INDEX.size;
 
-const CopyLinkButton: React.FC<{ questionId: string }> = ({ questionId }) => {
+const matchesSearchTerms = (questionId: string, terms: string[]): boolean => {
+    const text = SEARCH_INDEX.get(questionId) ?? '';
+    return terms.every((term) => findSearchTerm(text, term) !== -1);
+};
+
+const CopyLinkButton: React.FC<{ question: FaqQuestion }> = ({ question }) => {
     const clipboard = useClipboard({ timeout: 2000 });
 
     return (
@@ -46,7 +56,10 @@ const CopyLinkButton: React.FC<{ questionId: string }> = ({ questionId }) => {
                 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-left',
                 clipboard.copied ? 'fr-icon-check-line' : 'fr-icon-links-line',
             )}
-            onClick={() => clipboard.copy(getHelpCenterUrl('faq', questionId))}
+            onClick={() => {
+                trackEvent(TRACKING_CATEGORIES.faq, 'Lien copié', question.question);
+                clipboard.copy(getHelpCenterUrl('faq', question.id));
+            }}
         >
             {clipboard.copied ? 'Lien copié' : 'Copier le lien vers cette question'}
         </button>
@@ -71,10 +84,7 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
         () =>
             FAQ_CATEGORIES.map((category) => ({
                 ...category,
-                questions: category.questions.filter(({ id }) => {
-                    const text = SEARCH_INDEX.get(id) ?? '';
-                    return searchTerms.every((term) => findSearchTerm(text, term) !== -1);
-                }),
+                questions: category.questions.filter(({ id }) => matchesSearchTerms(id, searchTerms)),
             })),
         [searchTerms],
     );
@@ -87,8 +97,40 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
     const isFiltered = !!searchTerms.length || !!categoryId;
     const selectedCategory = FAQ_CATEGORIES.find(({ id }) => id === categoryId);
 
+    const lastTrackedTermsRef = useRef('');
+    const trackSearchNow = (searchQuery: string) => {
+        const terms = getSearchTerms(searchQuery);
+        const key = terms.join(' ');
+        // Same terms (e.g. an ignored word added) are the same search.
+        if (key === lastTrackedTermsRef.current) {
+            return;
+        }
+        lastTrackedTermsRef.current = key;
+
+        if (terms.length) {
+            trackSiteSearch(
+                searchQuery.trim().replace(/\s+/g, ' ').toLowerCase(),
+                TRACKING_CATEGORIES.faq,
+                // Across every theme: the theme filter is not part of the search.
+                [...SEARCH_INDEX.keys()].filter((id) => matchesSearchTerms(id, terms)).length,
+            );
+        }
+    };
+    const trackSearch = useDebouncedCallback(trackSearchNow, {
+        delay: SEARCH_TRACKING_DELAY_MS,
+        // A search left within the delay (tab switch) is often one without results: it still counts.
+        flushOnUnmount: true,
+    });
+
+    const changeQuery = (value: string) => {
+        setQuery(value);
+        trackSearch(value);
+    };
+
     const resetFilters = () => {
-        setQuery('');
+        // Not trackSearch.flush(): Mantine's flush leaves its timer running, which then swallows the next search.
+        trackSearchNow(query);
+        changeQuery('');
         setCategoryId(null);
         document.getElementById(searchId)?.focus();
     };
@@ -105,11 +147,24 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
                 </span>
             }
             expanded={expandedIds.includes(question.id)}
-            onToggle={(expanded) => onToggle(question.id, expanded)}
+            onToggle={(expanded) => {
+                if (expanded) {
+                    trackEvent(TRACKING_CATEGORIES.faq, 'Question consultée', question.question);
+                }
+                onToggle(question.id, expanded);
+            }}
         >
-            <div className={classes.answer}>
+            {/* Delegated: the contact links sit in the answer text. */}
+            <div
+                className={classes.answer}
+                onClick={(event) => {
+                    if (event.target instanceof Element && event.target.closest('a[href^="mailto:"]')) {
+                        trackContact(TRACKING_CATEGORIES.faq, question.question);
+                    }
+                }}
+            >
                 <RichText blocks={question.answer} highlightTerms={searchTerms} />
-                <CopyLinkButton questionId={question.id} />
+                <CopyLinkButton question={question} />
             </div>
         </Accordion>
     );
@@ -118,6 +173,18 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
         { id: null, title: 'Tous les thèmes', count: matchingCount },
         ...matchingCategories.map(({ id, title, questions }) => ({ id, title, count: questions.length })),
     ];
+
+    const selectCategory = (id: string | null) => {
+        // Back to all themes is not a theme of interest.
+        if (id !== null && id !== categoryId) {
+            trackEvent(
+                TRACKING_CATEGORIES.faq,
+                'Thème sélectionné',
+                themeOptions.find((option) => option.id === id)?.title,
+            );
+        }
+        setCategoryId(id);
+    };
 
     return (
         <>
@@ -133,7 +200,7 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
                                         type="button"
                                         className={clsx('fr-sidemenu__link', classes['theme-link'])}
                                         aria-current={categoryId === option.id ? 'true' : undefined}
-                                        onClick={() => setCategoryId(option.id)}
+                                        onClick={() => selectCategory(option.id)}
                                     >
                                         <span>{option.title}</span>
                                         <span className={classes['theme-count']}>{option.count}</span>
@@ -164,7 +231,7 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
                                     id={searchId}
                                     type="search"
                                     value={query}
-                                    onChange={(event) => setQuery(event.currentTarget.value)}
+                                    onChange={(event) => changeQuery(event.currentTarget.value)}
                                 />
                             </div>
                         </div>
@@ -177,7 +244,7 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
                                 className="fr-select"
                                 id={themeSelectId}
                                 value={categoryId ?? ''}
-                                onChange={(event) => setCategoryId(event.currentTarget.value || null)}
+                                onChange={(event) => selectCategory(event.currentTarget.value || null)}
                             >
                                 {themeOptions.map((option) => (
                                     <option key={option.id ?? 'all'} value={option.id ?? ''}>
@@ -221,6 +288,7 @@ const Component: React.FC<ComponentProps> = ({ expandedIds, onToggle }: Componen
                                     <a
                                         className="fr-btn fr-btn--tertiary fr-icon-mail-line"
                                         href={`mailto:${CONTACT_EMAIL}`}
+                                        onClick={() => trackContact(TRACKING_CATEGORIES.faq, 'Aucun résultat')}
                                     >
                                         Écrire à l’équipe AIGLE
                                     </a>

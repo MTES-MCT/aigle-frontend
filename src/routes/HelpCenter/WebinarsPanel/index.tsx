@@ -1,8 +1,10 @@
+import { trackEvent } from '@/utils/matomo';
 import clsx from 'clsx';
 import React from 'react';
 import { Webinar } from '../content/types';
 import { TUBE_CHANNEL_URL } from '../content/videos';
 import RichText from '../RichText';
+import { TRACKING_CATEGORIES, trackWebinarLink } from '../tracking';
 import { formatVideoDuration, formatWebinarDate, formatWebinarTimeSlot } from '../utils';
 import { VideoSelection } from '../VideoModal';
 import classes from './index.module.scss';
@@ -24,6 +26,7 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar, upcoming, onPlay }: 
                         target="_blank"
                         rel="noopener noreferrer"
                         title="S’inscrire au webinaire - nouvelle fenêtre"
+                        onClick={() => trackWebinarLink('Inscription', webinar)}
                     >
                         S’inscrire
                     </a>
@@ -37,6 +40,7 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar, upcoming, onPlay }: 
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Lien de connexion au webinaire - nouvelle fenêtre"
+                        onClick={() => trackWebinarLink('Lien de connexion', webinar)}
                     >
                         Lien de connexion
                     </a>
@@ -50,7 +54,12 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar, upcoming, onPlay }: 
                     <button
                         type="button"
                         className="fr-btn fr-btn--secondary fr-icon-play-circle-line"
-                        onClick={() => webinar.replay && onPlay({ video: webinar.replay })}
+                        onClick={() => {
+                            if (webinar.replay) {
+                                trackWebinarLink('Replay', webinar);
+                                onPlay({ video: webinar.replay });
+                            }
+                        }}
                     >
                         Voir le replay ({formatVideoDuration(webinar.replay.durationSeconds)})
                     </button>
@@ -64,6 +73,7 @@ const WebinarCard: React.FC<WebinarCardProps> = ({ webinar, upcoming, onPlay }: 
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Télécharger le support - nouvelle fenêtre"
+                        onClick={() => trackWebinarLink('Support', webinar)}
                     >
                         Télécharger le support
                     </a>
@@ -144,6 +154,7 @@ const Component: React.FC<ComponentProps> = ({ upcomingWebinars, pastWebinars, o
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Tous les replays sur la chaîne AIGLE (tube.numerique.gouv.fr) - nouvelle fenêtre"
+                    onClick={() => trackEvent(TRACKING_CATEGORIES.webinars, 'Chaîne des replays')}
                 >
                     Tous les replays sur la chaîne AIGLE
                 </a>

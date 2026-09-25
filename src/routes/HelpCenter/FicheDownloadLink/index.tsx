@@ -1,7 +1,9 @@
 import pdfDoc from '@/assets/Fiche métier - AIGLE - v2.3.pdf';
 import { triggerDownload } from '@/utils/download';
+import { trackEvent } from '@/utils/matomo';
 import clsx from 'clsx';
 import React, { useEffect, useRef, useState } from 'react';
+import { TRACKING_CATEGORIES } from '../tracking';
 import classes from './index.module.scss';
 
 const FILE_NAME = 'Fiche métier - AIGLE - v2.3.pdf';
@@ -20,6 +22,8 @@ const ANNOUNCEMENTS: Record<DownloadStatus['state'], string> = {
     done: 'Fiche métier téléchargée',
     error: 'Le téléchargement de la fiche métier a échoué, réessayez',
 };
+
+const trackDownload = () => trackEvent(TRACKING_CATEGORIES.helpCenter, 'Fiche métier téléchargée', FILE_NAME);
 
 const fetchWithProgress = async (
     url: string,
@@ -77,6 +81,7 @@ const Component: React.FC = () => {
     const handleClick = async (event: React.MouseEvent<HTMLAnchorElement>) => {
         // A modified click (new tab, new window, save as) keeps the browser's own behaviour.
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            trackDownload();
             return;
         }
 
@@ -99,6 +104,7 @@ const Component: React.FC = () => {
                 ),
             );
             triggerDownload(blob, FILE_NAME);
+            trackDownload();
             setStatus({ state: 'done' });
         } catch {
             if (!abortController.signal.aborted) {

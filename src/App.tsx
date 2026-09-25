@@ -10,7 +10,7 @@ import { useStatistics } from '@/store/slices/statistics';
 import api, { ApiError } from '@/utils/api';
 import { setupBrevo } from '@/utils/brevo';
 import { DEFAULT_ROUTE } from '@/utils/constants';
-import { setupMatomo } from '@/utils/matomo';
+import { setTrackedUrl, setupMatomo } from '@/utils/matomo';
 import ProtectedRoute from '@/utils/ProtectedRoute';
 import { getStoredUserGroupUuid, isScopeDisabledPath, setScopedUserGroupUuid } from '@/utils/scope';
 import * as Sentry from '@sentry/react';
@@ -52,6 +52,17 @@ const SupportWidgetsVisibility: React.FC = () => {
     useEffect(() => {
         document.body.classList.toggle('hide-support-widgets', isScopeDisabledPath(pathname));
     }, [pathname]);
+
+    return null;
+};
+
+// Rendered before <Routes> so it runs ahead of the page's own effects, which may track events.
+const MatomoUrlSync: React.FC = () => {
+    const location = useLocation();
+
+    useEffect(() => {
+        setTrackedUrl(window.location.href);
+    }, [location]);
 
     return null;
 };
@@ -144,6 +155,7 @@ const App: React.FC = () => {
     return (
         <Router>
             <SupportWidgetsVisibility />
+            <MatomoUrlSync />
             <Routes>
                 <Route index element={<Navigate to="/map" replace />} />
                 <Route path="/admin" element={<Navigate to="/admin/users" replace />} />

@@ -3,8 +3,9 @@ import LayoutBase from '@/components/LayoutBase';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { isBrevoChatEnabled, openBrevoChat } from '@/utils/brevo';
 import { HEADER_HEIGHT_PX } from '@/utils/constants';
+import { trackEvent } from '@/utils/matomo';
 import clsx from 'clsx';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { EXERCISES } from './content/exercises';
 import { FAQ_CATEGORIES } from './content/faq';
 import { WEBINARS } from './content/webinars';
@@ -12,6 +13,13 @@ import ExercisesPanel from './ExercisesPanel';
 import FaqPanel from './FaqPanel';
 import FicheDownloadLink from './FicheDownloadLink';
 import classes from './index.module.scss';
+import {
+    getExerciseTrackingName,
+    trackContact,
+    TRACKING_CATEGORIES,
+    trackVideoOpen,
+    trackWebinarLink,
+} from './tracking';
 import {
     CONTACT_EMAIL,
     formatWebinarDate,
@@ -31,19 +39,23 @@ const TABS: TabsItem<HelpCenterTab>[] = [
     { value: 'webinaires', label: 'Webinaires', icon: 'fr-icon-calendar-event-line' },
 ];
 
+const trackMailContact = () => trackContact(TRACKING_CATEGORIES.helpCenter, 'Courriel');
+
 const isHelpCenterTab = (value: string): value is HelpCenterTab =>
     (HELP_CENTER_TABS as readonly string[]).includes(value);
 
 // A link can point straight at an exercise or a question (`#<id>`): open it in the right tab.
-const getAnchorTarget = (): { id: string; tab: HelpCenterTab } | null => {
+const getAnchorTarget = (): { id: string; tab: HelpCenterTab; trackingName: string } | null => {
     // Ids are ASCII slugs, so no decoding: a malformed %-escape in a pasted link must not throw.
     const id = window.location.hash.slice(1);
 
-    if (EXERCISES.some((exercise) => exercise.id === id)) {
-        return { id, tab: 'exercices' };
+    const exercise = EXERCISES.find((exercise) => exercise.id === id);
+    if (exercise) {
+        return { id, tab: 'exercices', trackingName: getExerciseTrackingName(exercise) };
     }
-    if (FAQ_CATEGORIES.some(({ questions }) => questions.some((question) => question.id === id))) {
-        return { id, tab: 'faq' };
+    const question = FAQ_CATEGORIES.flatMap(({ questions }) => questions).find((question) => question.id === id);
+    if (question) {
+        return { id, tab: 'faq', trackingName: question.question };
     }
 
     return null;
@@ -70,6 +82,35 @@ const Component: React.FC = () => {
     const nextWebinar = upcomingWebinars[0];
 
     const setTab = (value: HelpCenterTab) => setUrlFilter({ onglet: value });
+
+    const playTutorial = (selection: VideoSelection) => {
+        trackVideoOpen(selection.video);
+        setVideoSelection(selection);
+    };
+
+    // The tabs are not page views: without this, a visit to the help center would go unnoticed.
+    // The ref absorbs the second mount effect run of StrictMode.
+    const trackedTabRef = useRef<HelpCenterTab | null>(null);
+    useEffect(() => {
+        if (trackedTabRef.current === tab) {
+            return;
+        }
+        trackedTabRef.current = tab;
+        trackEvent(TRACKING_CATEGORIES.helpCenter, 'Onglet affiché', TABS.find(({ value }) => value === tab)?.label);
+    }, [tab]);
+
+    const anchorTrackedRef = useRef(false);
+    useEffect(() => {
+        if (!anchorTarget || anchorTrackedRef.current) {
+            return;
+        }
+        anchorTrackedRef.current = true;
+        trackEvent(
+            anchorTarget.tab === 'faq' ? TRACKING_CATEGORIES.faq : TRACKING_CATEGORIES.exercises,
+            'Lien direct ouvert',
+            anchorTarget.trackingName,
+        );
+    }, [anchorTarget]);
 
     useEffect(() => {
         if (!anchorTarget) {
@@ -126,6 +167,7 @@ const Component: React.FC = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="S’inscrire au webinaire - nouvelle fenêtre"
+                                onClick={() => trackWebinarLink('Inscription', nextWebinar)}
                             >
                                 S’inscrire
                             </a>
@@ -136,6 +178,7 @@ const Component: React.FC = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="Lien de connexion au webinaire - nouvelle fenêtre"
+                                onClick={() => trackWebinarLink('Lien de connexion', nextWebinar)}
                             >
                                 Lien de connexion
                             </a>
@@ -146,13 +189,13 @@ const Component: React.FC = () => {
                 <div className={classes.tabs}>
                     <Tabs label="Rubriques du centre d’aide" tabs={TABS} value={tab} onChange={setTab}>
                         {tab === 'videos' ? (
-                            <VideosPanel onPlay={setVideoSelection} onGoToExercises={() => setTab('exercices')} />
+                            <VideosPanel onPlay={playTutorial} onGoToExercises={() => setTab('exercices')} />
                         ) : null}
                         {tab === 'exercices' ? (
                             <ExercisesPanel
                                 expandedId={expandedExerciseId}
                                 onToggle={(id, expanded) => setExpandedExerciseId(expanded ? id : null)}
-                                onPlay={setVideoSelection}
+                                onPlay={playTutorial}
                             />
                         ) : null}
                         {tab === 'faq' ? (
@@ -188,31 +231,36 @@ const Component: React.FC = () => {
                     </h2>
                     <p className="fr-callout__text">
                         Contactez l’équipe AIGLE via le tchat intégré à l’application ou par courriel à{' '}
-                        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Afin d’accélérer le traitement de votre
-                        demande, précisez votre structure, votre territoire, la parcelle ou l’objet concerné, et joignez
-                        une capture d’écran lorsque c’est possible.
+                        <a href={`mailto:${CONTACT_EMAIL}`} onClick={trackMailContact}>
+                            {CONTACT_EMAIL}
+                        </a>
+                        . Afin d’accélérer le traitement de votre demande, précisez votre structure, votre territoire,
+                        la parcelle ou l’objet concerné, et joignez une capture d’écran lorsque c’est possible.
                     </p>
                     {isBrevoChatEnabled ? (
                         <button
                             type="button"
                             className="fr-btn fr-btn--icon-left fr-icon-chat-3-line"
-                            onClick={() => openBrevoChat(CONTACT_EMAIL)}
+                            onClick={() => {
+                                trackContact(TRACKING_CATEGORIES.helpCenter, 'Tchat');
+                                openBrevoChat(CONTACT_EMAIL);
+                            }}
                         >
                             Ouvrir le tchat
                         </button>
                     ) : (
-                        <a className="fr-btn fr-btn--icon-left fr-icon-mail-line" href={`mailto:${CONTACT_EMAIL}`}>
+                        <a
+                            className="fr-btn fr-btn--icon-left fr-icon-mail-line"
+                            href={`mailto:${CONTACT_EMAIL}`}
+                            onClick={trackMailContact}
+                        >
                             Écrire à l’équipe AIGLE
                         </a>
                     )}
                 </section>
             </div>
 
-            <VideoModal
-                selection={videoSelection}
-                onSelect={setVideoSelection}
-                onClose={() => setVideoSelection(null)}
-            />
+            <VideoModal selection={videoSelection} onSelect={playTutorial} onClose={() => setVideoSelection(null)} />
         </LayoutBase>
     );
 };
