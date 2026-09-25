@@ -498,11 +498,14 @@ export const EXERCISES: Exercise[] = [
     },
 ];
 
+export const PATH_VALIDATION_CHECKLIST_ID = 'validation-du-parcours';
+
 export const PATH_VALIDATION: ContentBlock[] = [
     { type: 'paragraph', text: 'À l’issue des exercices, vous devez être capable de :' },
     {
         type: 'checklist',
-        id: 'validation-du-parcours',
+        id: PATH_VALIDATION_CHECKLIST_ID,
+        // Progress is saved by position: append or reword freely; insert/remove/reorder needs a data migration.
         items: [
             'rechercher une commune ou une parcelle ;',
             'filtrer les objets selon leur statut ;',

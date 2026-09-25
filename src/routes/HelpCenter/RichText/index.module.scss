@@ -15,6 +15,11 @@
     margin-bottom: 0;
 }
 
+/* The messages group comes last but stays empty until an error: the element above it keeps the flush bottom. */
+.container .checklist > :has(+ .checklist-messages:empty) {
+    margin-bottom: 0;
+}
+
 .container {
     > * {
         margin-top: 0;

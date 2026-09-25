@@ -1,4 +1,5 @@
 import { Timestamped, Uuided } from '@/models/data';
+import { PathValidationProgress } from '@/models/help-center';
 import { FeatureFlag, UserGroup } from '@/models/user-group';
 
 export const userRoles = ['SUPER_ADMIN', 'ADMIN', 'REGULAR', 'DEACTIVATED'] as const;
@@ -24,4 +25,6 @@ export interface User extends Uuided, Timestamped {
     userUserGroups: UserUserGroup[];
     // Union of the feature flags of every group the user belongs to.
     featureFlags: FeatureFlag[];
+    // Users list/detail only, never on /users/me/.
+    pathValidation?: PathValidationProgress | null;
 }

@@ -4,7 +4,9 @@ import { useLocalStorage } from '@mantine/hooks';
 import clsx from 'clsx';
 import React, { ReactNode, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { PATH_VALIDATION_CHECKLIST_ID } from '../content/exercises';
 import { ContentBlock } from '../content/types';
+import { usePathValidation } from '../usePathValidation';
 import { buildAppFilterUrl, findSearchTerm, normalizeSearchText } from '../utils';
 import classes from './index.module.scss';
 
@@ -100,29 +102,52 @@ export const Inline: React.FC<InlineProps> = ({ text, highlightTerms = [] }: Inl
     </>
 );
 
-interface ChecklistProps {
-    id: string;
+interface ChecklistViewProps {
     items: string[];
     summary?: string;
+    checked: number[];
+    onToggle: (index: number, isChecked: boolean) => void;
+    onReset: () => void;
+    // No progress to show yet: the checklist is disabled and the badge says why.
+    status?: 'loading' | 'unavailable';
+    error?: string;
 }
 
-const Checklist: React.FC<ChecklistProps> = ({ id, items, summary }: ChecklistProps) => {
-    const { userMe } = useAuth();
-    // Keyed per user: workstations are often shared within a service, and logout keeps local storage.
-    const [storedChecked, setChecked] = useLocalStorage<number[]>({
-        key: `help-center-checklist-${userMe?.uuid ?? 'anonymous'}-${id}`,
-        defaultValue: [],
-    });
-    // Whatever sits in storage is untrusted: an older format or a manual edit must not crash the page.
-    const checked = Array.isArray(storedChecked) ? storedChecked.filter((index) => index < items.length) : [];
+const ChecklistView: React.FC<ChecklistViewProps> = ({
+    items,
+    summary,
+    checked,
+    onToggle,
+    onReset,
+    status,
+    error,
+}: ChecklistViewProps) => {
     const done = checked.length === items.length;
     const containerRef = useRef<HTMLFieldSetElement>(null);
 
+    let badgeLabel: ReactNode = (
+        <>
+            {checked.length} / {items.length} réalisé{checked.length > 1 ? 's' : ''}
+        </>
+    );
+    if (status === 'loading') {
+        badgeLabel = 'Chargement…';
+    } else if (status === 'unavailable') {
+        badgeLabel = 'Indisponible';
+    }
+
     return (
-        <fieldset ref={containerRef} className={clsx('fr-fieldset', classes.checklist)}>
+        <fieldset
+            ref={containerRef}
+            className={clsx('fr-fieldset', error && 'fr-fieldset--error', classes.checklist)}
+            disabled={!!status}
+            aria-busy={status === 'loading' || undefined}
+        >
             <legend className="fr-fieldset__legend fr-fieldset__legend--regular">
-                <span className={clsx('fr-badge fr-badge--sm', done ? 'fr-badge--success' : 'fr-badge--info')}>
-                    {checked.length} / {items.length} réalisé{checked.length > 1 ? 's' : ''}
+                <span
+                    className={clsx('fr-badge fr-badge--sm', done && !status ? 'fr-badge--success' : 'fr-badge--info')}
+                >
+                    {badgeLabel}
                 </span>
             </legend>
             {items.map((item, index) => (
@@ -134,13 +159,7 @@ const Checklist: React.FC<ChecklistProps> = ({ id, items, summary }: ChecklistPr
                             </span>
                         }
                         checked={checked.includes(index)}
-                        onChange={(isChecked) =>
-                            setChecked(
-                                isChecked
-                                    ? [...checked, index]
-                                    : checked.filter((checkedIndex) => checkedIndex !== index),
-                            )
-                        }
+                        onChange={(isChecked) => onToggle(index, isChecked)}
                     />
                 </div>
             ))}
@@ -158,7 +177,7 @@ const Checklist: React.FC<ChecklistProps> = ({ id, items, summary }: ChecklistPr
                         type="button"
                         className="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-refresh-line fr-btn--icon-left"
                         onClick={() => {
-                            setChecked([]);
+                            onReset();
                             // The button disappears with the last checked box: keep focus in the list.
                             containerRef.current?.querySelector<HTMLInputElement>('input[type=checkbox]')?.focus();
                         }}
@@ -167,7 +186,70 @@ const Checklist: React.FC<ChecklistProps> = ({ id, items, summary }: ChecklistPr
                     </button>
                 </div>
             ) : null}
+            <div className={clsx('fr-messages-group', classes['checklist-messages'])} aria-live="polite">
+                {error ? <p className="fr-message fr-message--error">{error}</p> : null}
+            </div>
         </fieldset>
+    );
+};
+
+interface LocalChecklistProps {
+    id: string;
+    items: string[];
+    summary?: string;
+}
+
+const LocalChecklist: React.FC<LocalChecklistProps> = ({ id, items, summary }: LocalChecklistProps) => {
+    const { userMe } = useAuth();
+    // Keyed per user: workstations are often shared within a service, and logout keeps local storage.
+    const [storedChecked, setChecked] = useLocalStorage<number[]>({
+        key: `help-center-checklist-${userMe?.uuid ?? 'anonymous'}-${id}`,
+        defaultValue: [],
+    });
+    // Whatever sits in storage is untrusted: an older format or a manual edit must not crash the page.
+    const checked = Array.isArray(storedChecked) ? storedChecked.filter((index) => index < items.length) : [];
+
+    return (
+        <ChecklistView
+            items={items}
+            summary={summary}
+            checked={checked}
+            onToggle={(index, isChecked) =>
+                setChecked(isChecked ? [...checked, index] : checked.filter((checkedIndex) => checkedIndex !== index))
+            }
+            onReset={() => setChecked([])}
+        />
+    );
+};
+
+interface PathValidationChecklistProps {
+    items: string[];
+    summary?: string;
+}
+
+const PathValidationChecklist: React.FC<PathValidationChecklistProps> = ({
+    items,
+    summary,
+}: PathValidationChecklistProps) => {
+    const { checked, isLoading, loadError, saveError, toggle, reset } = usePathValidation(items.length);
+
+    let error: string | undefined;
+    if (loadError) {
+        error = 'Votre progression n’a pas pu être chargée. Rechargez la page pour réessayer.';
+    } else if (saveError) {
+        error = 'Votre dernière modification n’a pas pu être enregistrée. Réessayez.';
+    }
+
+    return (
+        <ChecklistView
+            items={items}
+            summary={summary}
+            checked={checked}
+            onToggle={toggle}
+            onReset={reset}
+            status={isLoading ? 'loading' : loadError ? 'unavailable' : undefined}
+            error={error}
+        />
     );
 };
 
@@ -267,7 +349,11 @@ const Component: React.FC<ComponentProps> = ({ blocks, highlightTerms }: Compone
                         </div>
                     );
                 case 'checklist':
-                    return <Checklist key={index} id={block.id} items={block.items} summary={block.summary} />;
+                    return block.id === PATH_VALIDATION_CHECKLIST_ID ? (
+                        <PathValidationChecklist key={index} items={block.items} summary={block.summary} />
+                    ) : (
+                        <LocalChecklist key={index} id={block.id} items={block.items} summary={block.summary} />
+                    );
                 case 'appLink':
                     // A new tab keeps the instructions open next to the app, and the full load it
                     // implies is what makes the map and table read the filters from the url.
