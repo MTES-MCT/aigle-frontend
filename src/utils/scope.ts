@@ -1,4 +1,4 @@
-import { userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
+import { helpCenterEndpoints, userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import { UserRole } from '@/models/user';
 
 /**
@@ -81,6 +81,9 @@ const getActiveScopedUserGroupUuid = (): string | undefined => {
 const isScopeBootstrapPath = (path: string): boolean =>
     path.startsWith('/auth/') || [usersEndpoints.me, userGroupEndpoints.list].includes(path.split('?')[0]);
 
+/** Personal endpoints: the API ignores the group scope there, so it is neither sent nor required. */
+const SCOPE_AGNOSTIC_PATHS = [helpCenterEndpoints.pathValidation];
+
 export type RequestScope =
     | { readonly kind: 'send'; readonly uuid: string } // attach this uuid
     | { readonly kind: 'omit' } // no scope applies — send as-is
@@ -94,6 +97,10 @@ export const resolveRequestScope = (path: string, userRole: UserRole | undefined
     // Only a SUPER_ADMIN may send the header — the API 403s it for anyone else, and a
     // uuid left in localStorage by a previous session must not leak into theirs.
     if (userRole !== 'SUPER_ADMIN') {
+        return { kind: 'omit' };
+    }
+
+    if (SCOPE_AGNOSTIC_PATHS.includes(path.split('?')[0])) {
         return { kind: 'omit' };
     }
 

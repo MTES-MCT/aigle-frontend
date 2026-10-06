@@ -14,7 +14,7 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconCode, IconListDetails } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 const GEO_COLLECTIVITIES_LIMIT = 10;
 
@@ -113,11 +113,16 @@ const getGeoMultiSelectValues = (
     return res;
 };
 
+export type GeoCollectivitiesUserChange = 'added' | 'removed' | 'codesPasted' | 'codesRejected';
+
 interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     form: UseFormReturnType<T>;
     initialGeoSelectedValues?: GeoValues;
     className?: string;
     onChange?: (geoSelectedValues: GeoValues) => void;
+    // Opt-in, for tracking: a change the user made, with the number of collectivities of that type
+    // selected after it ('codesRejected': the number of codes that matched nothing).
+    onUserChange?: (collectivityType: CollectivityType, change: GeoCollectivitiesUserChange, count: number) => void;
     displayedCollectivityTypes?: Set<CollectivityType>;
     // Per collectivity type: when set, the field is disabled and the string is shown as a hover tooltip.
     disabledCollectivityTypes?: Partial<Record<CollectivityType, string>>;
@@ -128,6 +133,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     initialGeoSelectedValues,
     className,
     onChange,
+    onUserChange,
     displayedCollectivityTypes = new Set(['region', 'department', 'epci', 'commune']),
     disabledCollectivityTypes = {},
 }: ComponentProps<T>) => {
@@ -219,16 +225,23 @@ const Component = <T extends GeoCollectivitiesFormValues>({
         [regions, departments, epcis, communes, geoSelectedValues],
     );
 
+    // The latest selection, also after an await (raw mode), where the render's value may be stale.
+    const geoSelectedValuesRef = useRef(geoSelectedValues);
+
+    // Notifies outside any setState updater: StrictMode runs those twice.
+    const updateGeoSelectedValues = (collectivityType: CollectivityType, options: SelectOption[]) => {
+        const newValues = { ...geoSelectedValuesRef.current, [collectivityType]: options };
+        geoSelectedValuesRef.current = newValues;
+        setGeoSelectedValues(newValues);
+        onChange?.(newValues);
+    };
+
     const setSelected = (collectivityType: CollectivityType, options: SelectOption[]) => {
         const uuids = options.map((option) => option.value);
         // setFieldValue sets exactly this one field (no merge with siblings); the cast steps past
         // the generic form typing (T extends GeoCollectivitiesFormValues, so these hold string[]).
         (form.setFieldValue as (path: string, value: string[]) => void)(FIELD_CONFIG[collectivityType].formKey, uuids);
-        setGeoSelectedValues((prev) => {
-            const newValues = { ...prev, [collectivityType]: options };
-            onChange?.(newValues);
-            return newValues;
-        });
+        updateGeoSelectedValues(collectivityType, options);
     };
 
     const geoOnOptionSubmit = (uuid: string, collectivityType: CollectivityType, geoItems?: GeoCollectivity[]) => {
@@ -238,25 +251,15 @@ const Component = <T extends GeoCollectivitiesFormValues>({
             return;
         }
 
-        setGeoSelectedValues((prev) => {
-            const newValues = {
-                ...prev,
-                [collectivityType]: [...prev[collectivityType], geoZoneToGeoOption(option)],
-            };
-            onChange?.(newValues);
-            return newValues;
-        });
+        const options = [...geoSelectedValuesRef.current[collectivityType], geoZoneToGeoOption(option)];
+        updateGeoSelectedValues(collectivityType, options);
+        onUserChange?.(collectivityType, 'added', options.length);
     };
 
     const geoOnRemove = (uuid: string, collectivityType: CollectivityType) => {
-        setGeoSelectedValues((prev) => {
-            const newValues = {
-                ...prev,
-                [collectivityType]: prev[collectivityType].filter((geo) => geo.value !== uuid),
-            };
-            onChange?.(newValues);
-            return newValues;
-        });
+        const options = geoSelectedValuesRef.current[collectivityType].filter((geo) => geo.value !== uuid);
+        updateGeoSelectedValues(collectivityType, options);
+        onUserChange?.(collectivityType, 'removed', options.length);
     };
 
     // Resolve the current selection's uuids back to their codes (labels don't reliably carry
@@ -292,8 +295,17 @@ const Component = <T extends GeoCollectivitiesFormValues>({
 
     // Resolve the typed codes against the backend, keep the matches, toast the rejected ones.
     const applyRawMode = async (collectivityType: CollectivityType) => {
+        // Leaving raw mode without editing the codes gives back the same selection: not a change.
+        const reportPaste = (options: SelectOption[]) => {
+            const previousUuids = new Set(geoSelectedValuesRef.current[collectivityType].map((option) => option.value));
+            if (options.length !== previousUuids.size || options.some((option) => !previousUuids.has(option.value))) {
+                onUserChange?.(collectivityType, 'codesPasted', options.length);
+            }
+        };
+
         const codes = parseCodes(rawInputs[collectivityType]);
         if (codes.length === 0) {
+            reportPaste([]);
             setSelected(collectivityType, []);
             setRawModes((prev) => ({ ...prev, [collectivityType]: false }));
             return;
@@ -316,8 +328,12 @@ const Component = <T extends GeoCollectivitiesFormValues>({
                 }
             });
 
+            reportPaste(matched);
             setSelected(collectivityType, matched);
             setRawModes((prev) => ({ ...prev, [collectivityType]: false }));
+            if (rejected.length) {
+                onUserChange?.(collectivityType, 'codesRejected', rejected.length);
+            }
 
             const label = FIELD_CONFIG[collectivityType].label.toLowerCase();
             if (rejected.length) {

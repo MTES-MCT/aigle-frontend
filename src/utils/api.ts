@@ -1,7 +1,9 @@
 import { authEndpoints } from '@/api/endpoints';
 import { useAuth } from '@/store/slices/auth';
 import { resetBrevo } from '@/utils/brevo';
+import { forgetMatomoUser, isMatomoUserIdentified, trackEvent, trackEventOnce } from '@/utils/matomo';
 import { clearStoredUserGroupUuid, recoverFromUnknownScope, resolveRequestScope } from '@/utils/scope';
+import { isNetworkError, TRACKING_CATEGORIES } from '@/utils/tracking';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
@@ -161,33 +163,145 @@ const runRefresh = (): Promise<string> => {
     return refreshPromise;
 };
 
+const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const STATIC_SEGMENT = /^[a-z_-]+$/i;
+const ERROR_CODE = /^[a-z0-9_]{1,64}$/i;
+
+// '/api/detection-object/<uuid>/history/?x=1' -> '/api/detection-object/:uuid/history/': no id reaches Matomo.
+const getEndpointPattern = (path: string): string =>
+    path
+        .split('?')[0]
+        .split('/')
+        .map((segment) => {
+            if (!segment || STATIC_SEGMENT.test(segment)) {
+                return segment;
+            }
+
+            return UUID_SEGMENT.test(segment) ? ':uuid' : ':id';
+        })
+        .join('/');
+
+// A DRF validation error on a field named `code` (the geo zones have one) is a list of messages, not a code.
+const getErrorCode = (body: unknown): string | undefined => {
+    const code = (body as { code?: unknown } | null | undefined)?.code;
+    return typeof code === 'string' && ERROR_CODE.test(code) ? code : undefined;
+};
+
+// Once per page load and name: TanStack retries a failed query 3 times, and the map refetches on every pan.
+const trackApiError = (cause: string, method: HttpMethod, path: string, code?: string) =>
+    trackEventOnce(
+        TRACKING_CATEGORIES.errors,
+        'Erreur API reçue',
+        `${cause} ${method} ${getEndpointPattern(path)}${code ? ` ${code}` : ''}`,
+    );
+
+// The auth forms report their own failures.
+const isAuthPath = (path: string) => path.startsWith('/auth/');
+
+// The request itself, as opposed to the token refresh it may trigger, which reports its own failures.
+const fetchRequest = async (path: string, options: ApiFetchOptions): Promise<Response> => {
+    try {
+        return await doFetch(path, options);
+    } catch (error) {
+        if (isNetworkError(error) && !isAuthPath(path)) {
+            trackApiError('Réseau', options.method ?? 'GET', path);
+        }
+
+        throw error;
+    }
+};
+
+const SESSION_CLOSED_STORAGE_KEY = 'aigle.session-closed';
+const SESSION_EXPIRED = 'Jeton expiré';
+
+const trackSessionClosed = (reason: string) => trackEvent(TRACKING_CATEGORIES.account, 'Session fermée', reason);
+
+// An expiry found while bootstrapping is followed by a reload, which would drop the hit: the next load sends it.
+const reportSessionExpired = () => {
+    if (isMatomoUserIdentified()) {
+        trackSessionClosed(SESSION_EXPIRED);
+        return;
+    }
+
+    try {
+        sessionStorage.setItem(SESSION_CLOSED_STORAGE_KEY, SESSION_EXPIRED);
+    } catch {
+        // storage unavailable: the hit is lost
+    }
+};
+
+/** Sends the session expiry stashed by the load that logged the user out, if any. */
+export const trackPendingSessionClosed = () => {
+    let reason: string | null = null;
+
+    try {
+        reason = sessionStorage.getItem(SESSION_CLOSED_STORAGE_KEY);
+        sessionStorage.removeItem(SESSION_CLOSED_STORAGE_KEY);
+    } catch {
+        return;
+    }
+
+    if (reason === SESSION_EXPIRED) {
+        trackSessionClosed(reason);
+    }
+};
+
+// Only the refresh endpoint saying the token is invalid ends the session. A network error, a 429 or
+// a 5xx is the server's problem: the request fails, and the next one tries to refresh again.
+const isRefreshTokenRejected = (error: unknown): boolean =>
+    error instanceof ApiError && error.url === authEndpoints.refreshToken && [400, 401].includes(error.status);
+
+const handleRefreshFailure = (refreshError: unknown) => {
+    if (!isRefreshTokenRejected(refreshError)) {
+        if (refreshError instanceof ApiError) {
+            trackApiError(String(refreshError.status), 'POST', authEndpoints.refreshToken);
+        } else if (isNetworkError(refreshError)) {
+            trackApiError('Réseau', 'POST', authEndpoints.refreshToken);
+        }
+
+        return;
+    }
+
+    // Concurrent 401s share one refresh: only the first of them still finds the token.
+    const wasSignedIn = !!useAuth.getState().refreshToken;
+
+    useAuth.setState({
+        accessToken: undefined,
+        refreshToken: undefined,
+        userMe: undefined,
+    });
+    clearStoredUserGroupUuid();
+    // ponytail: clears the persisted visitor; this soft-logout doesn't reload, so a
+    // loaded widget lingers until the next navigation: the deliberate logout() reloads
+    resetBrevo();
+
+    if (wasSignedIn) {
+        reportSessionExpired();
+    }
+    forgetMatomoUser();
+};
+
 const fetchWithAuth = async (path: string, options: ApiFetchOptions): Promise<Response> => {
-    let response = await doFetch(path, options);
+    let response = await fetchRequest(path, options);
 
     if (response.status === 401 && path !== authEndpoints.refreshToken) {
-        try {
-            const newToken = await runRefresh();
+        let newToken: string;
 
-            response = await doFetch(path, {
-                ...options,
-                headers: {
-                    ...(options.headers ?? {}),
-                    Authorization: `JWT ${newToken}`,
-                },
-            });
+        try {
+            newToken = await runRefresh();
         } catch (refreshError) {
-            useAuth.setState({
-                accessToken: undefined,
-                refreshToken: undefined,
-                userMe: undefined,
-            });
-            clearStoredUserGroupUuid();
-            // ponytail: clears the persisted visitor; this soft-logout doesn't reload, so a
-            // loaded widget lingers until the next navigation — the deliberate logout() reloads
-            resetBrevo();
+            handleRefreshFailure(refreshError);
 
             throw refreshError;
         }
+
+        response = await fetchRequest(path, {
+            ...options,
+            headers: {
+                ...(options.headers ?? {}),
+                Authorization: `JWT ${newToken}`,
+            },
+        });
     }
 
     return response;
@@ -235,7 +349,14 @@ export const apiFetchRaw = async (path: string, options: ApiFetchOptions = {}): 
 
     if (!response.ok) {
         const errorBody = await parseErrorBody(response);
+        const errorCode = getErrorCode(errorBody);
 
+        // A 400 without a code is a form validation error, shown to the user.
+        if (!isAuthPath(path) && (response.status !== 400 || errorCode)) {
+            trackApiError(String(response.status), options.method ?? 'GET', path, errorCode);
+        }
+
+        // Can reload the page synchronously: the error is tracked first.
         recoverFromUnknownScope(response.status, errorBody);
 
         throw new ApiError(

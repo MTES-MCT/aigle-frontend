@@ -1,5 +1,7 @@
 import { utilsEndpoints } from '@/api/endpoints';
 import { apiFetchRaw } from '@/utils/api';
+import { triggerDownload } from '@/utils/download';
+import { notifications } from '@mantine/notifications';
 import { useMutation } from '@tanstack/react-query';
 
 const downloadPriorLetter = async (detectionObjectUuid: string) => {
@@ -16,22 +18,20 @@ const downloadPriorLetter = async (detectionObjectUuid: string) => {
         }
     }
 
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    triggerDownload(blob, filename);
 };
 
+// downloadPriorLetter rejects on failure, after this hook has notified the user.
 export const usePriorLetterDownload = () => {
     const mutation = useMutation({
         mutationFn: downloadPriorLetter,
         onError: (error) => {
             console.error('Error downloading prior letter:', error);
+            notifications.show({
+                color: 'red',
+                title: 'Erreur lors du téléchargement du courrier préalable',
+                message: "Le courrier préalable n'a pas pu être généré, veuillez réessayer.",
+            });
         },
     });
 

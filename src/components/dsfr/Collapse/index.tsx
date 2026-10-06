@@ -27,7 +27,9 @@ const Component: React.FC<ComponentProps> = ({ id, expanded, className, children
     const contentRef = useRef<HTMLDivElement>(null);
     const [contentHeight, setContentHeight] = useState(0);
     const [collapsing, setCollapsing] = useState(false);
-    const mountedRef = useRef(false);
+    // Compared rather than a "mounted" flag: StrictMode runs the effect twice on mount, and a flag
+    // would let the second run animate every collapse open for the length of the transition.
+    const previousExpandedRef = useRef(expanded);
 
     useLayoutEffect(() => {
         const node = contentRef.current;
@@ -43,10 +45,10 @@ const Component: React.FC<ComponentProps> = ({ id, expanded, className, children
     }, []);
 
     useEffect(() => {
-        if (!mountedRef.current) {
-            mountedRef.current = true;
+        if (previousExpandedRef.current === expanded) {
             return;
         }
+        previousExpandedRef.current = expanded;
 
         setCollapsing(true);
         const timeout = setTimeout(() => setCollapsing(false), TRANSITION_MS);

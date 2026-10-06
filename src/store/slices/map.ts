@@ -31,6 +31,7 @@ interface MapState {
     isDetailFetching?: boolean; // we want to prioritize the detail fetching over the detections fetching
 
     setMapSettings: (settings: MapSettings) => void;
+    clearInitialDetectionObjectUuid: () => void;
     resetLayers: () => void;
     getDisplayedTileSetUrls: () => string[];
     setBackgroundTileSetYearDisplayed: (year: string) => void;
@@ -66,13 +67,20 @@ const useMap = create<MapState>()((set, get) => ({
             otherObjectTypesUuids: new Set(otherObjectTypesUuids),
             customZoneLayers: initialMapGeoCustomZoneLayers,
             objectTypes: allObjectTypes,
-            initialDetectionObjectUuid: detectionObjectUuid,
+            // a bootstrap run again (StrictMode, a login after an expired session) finds the param removed from the url
+            initialDetectionObjectUuid: detectionObjectUuid ?? get().initialDetectionObjectUuid,
             userLastPosition: settings.userLastPosition,
         }));
         useObjectsFilter.getState().updateObjectsFilter(objectsFilter);
         get().eventEmitter.emit('LAYERS_UPDATED');
 
         document.documentElement.style.setProperty('--nbr-background-layers', backgroundLayerYears.length.toString());
+    },
+    // the uuid comes from the url the app was loaded with: once /map has opened it, a later visit must not reopen it
+    clearInitialDetectionObjectUuid: () => {
+        set({
+            initialDetectionObjectUuid: undefined,
+        });
     },
     setAnnotationLayerVisibility: (visible: boolean) => {
         set({

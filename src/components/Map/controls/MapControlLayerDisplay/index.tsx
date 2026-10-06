@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
+import { getBackgroundYearRank, getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { TileSetType, tileSetTypes } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
 import { TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { trackEvent } from '@/utils/matomo';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { Checkbox, Radio, Stack } from '@mantine/core';
 import { IconBoxMultiple } from '@tabler/icons-react';
 import classes from './index.module.scss';
@@ -17,9 +20,15 @@ interface ComponentInnerProps {
     layers: MapTileSetLayer[];
     customZoneLayers: MapGeoCustomZoneLayer[];
     displayLayersSelection: boolean;
+    tracked: boolean;
 }
 
-const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayers, displayLayersSelection }) => {
+const ComponentInner: React.FC<ComponentInnerProps> = ({
+    layers,
+    customZoneLayers,
+    displayLayersSelection,
+    tracked,
+}) => {
     const {
         setTileSetVisibility,
         setCustomZoneVisibility,
@@ -31,6 +40,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
         getBackgroundTileSetYearDisplayed,
         setBackgroundTileSetYearDisplayed,
         eventEmitter,
+        settings,
     } = useMap();
     const [backgroundTileSetYearSelected, setBackgroundTileSetYearSelected] = useState<string>(
         getBackgroundTileSetYearDisplayed() || '',
@@ -71,6 +81,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
         };
     }, []);
 
+    // From the checkboxes only: the add-object tool also resets the layers through the store.
+    const trackLayerToggled = (visible: boolean, layerName: string) => {
+        if (tracked) {
+            trackEvent(TRACKING_CATEGORIES.mapLayers, 'Couche modifiée', `${visible ? '+' : '-'}${layerName}`);
+        }
+    };
+
     return (
         <>
             <h2>{CONTROL_LABEL}</h2>
@@ -81,7 +98,17 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                             <h3 className={classes['layers-section-title']}>{TILE_SET_TYPES_NAMES_MAP.BACKGROUND}</h3>
                             <Radio.Group
                                 value={backgroundTileSetYearSelected}
-                                onChange={(year) => setBackgroundTileSetYearDisplayed(year)}
+                                onChange={(year) => {
+                                    if (tracked && year !== backgroundTileSetYearSelected) {
+                                        trackEvent(
+                                            TRACKING_CATEGORIES.mapLayers,
+                                            'Année du fond de carte changée',
+                                            `${getBackgroundYearRank(year, backgroundLayerYears || [])} : Couches`,
+                                            Number(year),
+                                        );
+                                    }
+                                    setBackgroundTileSetYearDisplayed(year);
+                                }}
                             >
                                 <Stack className={classes['layers-section-group']} gap="xs">
                                     {(backgroundLayerYears || []).map((year) => (
@@ -104,12 +131,16 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                                                     key={layer.tileSet.uuid}
                                                     checked={layer.displayed}
                                                     label={layer.tileSet.name}
-                                                    onChange={(event) =>
+                                                    onChange={(event) => {
+                                                        trackLayerToggled(
+                                                            event.currentTarget.checked,
+                                                            `${layer.tileSet.tileSetType} : ${layer.tileSet.name}`,
+                                                        );
                                                         setTileSetVisibility(
                                                             layer.tileSet.uuid,
                                                             event.currentTarget.checked,
-                                                        )
-                                                    }
+                                                        );
+                                                    }}
                                                 />
                                             ))}
                                         </Stack>
@@ -128,6 +159,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                                 label={<div className={classes['checkbox-label']}>{name}</div>}
                                 color={color}
                                 onChange={async (event) => {
+                                    trackLayerToggled(
+                                        event.currentTarget.checked,
+                                        `Zone : ${getZoneLayerTrackingName({ name, customZoneUuids }, settings)}`,
+                                    );
                                     setCustomZoneVisibility(customZoneUuids, event.currentTarget.checked);
                                 }}
                             />
@@ -139,9 +174,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                                     <i>Zones exclues par les filtres</i>
                                 </div>
                             }
-                            onChange={async (event) =>
-                                setCustomZoneNegativeFilterVisibility(event.currentTarget.checked)
-                            }
+                            onChange={async (event) => {
+                                trackLayerToggled(event.currentTarget.checked, 'Zones exclues par les filtres');
+                                setCustomZoneNegativeFilterVisibility(event.currentTarget.checked);
+                            }}
                         />
                     </Stack>
                 </div>
@@ -152,7 +188,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ layers, customZoneLayer
                             key="annotation"
                             checked={annotationLayerVisible}
                             label="Grille d'annotation"
-                            onChange={(event) => setAnnotationLayerVisibility(event.currentTarget.checked)}
+                            onChange={(event) => {
+                                trackLayerToggled(event.currentTarget.checked, 'Grille d’annotation');
+                                setAnnotationLayerVisibility(event.currentTarget.checked);
+                            }}
                         />
                     </Stack>
                 </div>
@@ -166,9 +205,16 @@ interface ComponentProps {
     isShowed: boolean;
     displayLayersSelection?: boolean;
     setIsShowed: (state: boolean) => void;
+    tracked?: boolean;
 }
 
-const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed, disabled, displayLayersSelection = true }) => {
+const Component: React.FC<ComponentProps> = ({
+    isShowed,
+    setIsShowed,
+    disabled,
+    displayLayersSelection = true,
+    tracked = false,
+}) => {
     const { layers, customZoneLayers } = useMap();
 
     if (!layers || !customZoneLayers) {
@@ -189,6 +235,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed, disabled, 
                 layers={layers}
                 customZoneLayers={customZoneLayers}
                 displayLayersSelection={displayLayersSelection}
+                tracked={tracked}
             />
         </MapControlCustom>
     );

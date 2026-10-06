@@ -16,10 +16,11 @@ import { UserGroup } from '@/models/user-group';
 import { userBulkConfig } from '@/routes/admin/user/UserList/bulkConfig';
 import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
-import { ROLES_NAMES_MAP, USER_GROUP_RIGHTS_ORDERED } from '@/utils/constants';
-import { Button, Checkbox, Input, MultiSelect, Stack, Table } from '@mantine/core';
+import { DEFAULT_DATETIME_FORMAT, ROLES_NAMES_MAP, USER_GROUP_RIGHTS_ORDERED } from '@/utils/constants';
+import { Badge, Button, Checkbox, Input, MultiSelect, Stack, Table, Tooltip } from '@mantine/core';
 import { IconCheck, IconSearch, IconUserPlus } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import isEqual from 'lodash/isEqual';
 import { Link } from 'react-router-dom';
 
@@ -123,6 +124,7 @@ const Component: React.FC = () => {
                     <Table.Th key="role">Rôle</Table.Th>,
                     <Table.Th key="isStaff">Interne</Table.Th>,
                     <Table.Th key="groups">Groupes</Table.Th>,
+                    <Table.Th key="pathValidation">Parcours</Table.Th>,
                 ]}
                 tableBodyRenderFns={[
                     (item: User) => <DateInfo date={item.createdAt} />,
@@ -150,6 +152,35 @@ const Component: React.FC = () => {
                             }}
                         />
                     ),
+                    (item: User) => {
+                        const progress = item.pathValidation;
+                        // Never started: blank, like the Interne column.
+                        if (!progress) {
+                            return null;
+                        }
+
+                        const done = progress.completedAt !== null;
+                        const date = progress.completedAt ?? progress.updatedAt;
+
+                        return (
+                            <Tooltip
+                                label={
+                                    date
+                                        ? `${done ? 'Parcours validé' : 'Dernière modification'} le ${format(date, DEFAULT_DATETIME_FORMAT)}`
+                                        : undefined
+                                }
+                                disabled={!date}
+                            >
+                                <Badge
+                                    variant="light"
+                                    color={done ? 'green' : 'gray'}
+                                    leftSection={done ? <IconCheck size={12} /> : undefined}
+                                >
+                                    {progress.checkedCount} / {progress.itemCount}
+                                </Badge>
+                            </Tooltip>
+                        );
+                    },
                 ]}
                 onItemClick={({ uuid }) => navigate(`/admin/users/form/${uuid}`)}
             />

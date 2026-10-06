@@ -1,7 +1,14 @@
 import React, { useMemo, useState } from 'react';
 
 import { userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
+import AdminFormError from '@/components/admin/AdminFormError';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import {
+    trackAdminFormRejectedByClient,
+    trackAdminFormRejectedByServer,
+    trackAdminUserCreated,
+    trackAdminUserUpdated,
+} from '@/components/admin/tracking';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
@@ -58,6 +65,8 @@ interface FormValues {
     userUserGroups: UserUserGroupInput[];
 }
 
+const FORM_FIELD_NAMES: (keyof FormValues)[] = ['email', 'userRole', 'password', 'isStaff', 'userUserGroups'];
+
 const postForm = (values: FormValues, uuid?: string) => {
     if (uuid) {
         const values_ = values.password.length === 0 ? omit(values, 'password') : values;
@@ -69,13 +78,17 @@ const postForm = (values: FormValues, uuid?: string) => {
 interface FormProps {
     uuid?: string;
     initialValues: FormValues;
+    // The groups the current user administers: the only ones they can add or change rights in.
     userGroups: UserGroup[];
+    // The edited user's own groups, which can include groups the current user does not administer.
+    memberUserGroups: UserGroup[];
 }
 
-const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
+const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups, memberUserGroups }) => {
     const [error, setError] = useState<ApiError>();
     const { navigate, buildPath } = useFilterNavigation();
     const { userMe } = useAuth();
+    const isSuperAdmin = userMe?.userRole === 'SUPER_ADMIN';
 
     const [searchGroupValue, setSearchGroupValue] = useState('');
     // Values held while the "mark as internal?" confirmation modal is open.
@@ -112,10 +125,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
 
     const mutation: UseMutationResult<ObjectType, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
-        onSuccess: () => {
+        onSuccess: (_, values) => {
+            if (uuid) {
+                trackAdminUserUpdated(initialValues, values);
+            } else {
+                trackAdminUserCreated(values);
+            }
             navigate(BACK_URL);
         },
         onError: (error) => {
+            trackAdminFormRejectedByServer('Utilisateur', error);
             setError(error);
             if (error.body && typeof error.body === 'object') {
                 form.setErrors(error.body as Record<string, string>);
@@ -124,7 +143,8 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
     });
 
     const handleSubmit = (values: FormValues) => {
-        if (!values.isStaff && emailLooksInternal(values.email)) {
+        // Only a SUPER_ADMIN may mark a user as internal: the API refuses it from an ADMIN.
+        if (isSuperAdmin && !values.isStaff && emailLooksInternal(values.email)) {
             setPendingValues(values);
             return;
         }
@@ -150,17 +170,12 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
 
     const label = uuid ? 'Modifier un utilisateur' : 'Ajouter un utilisateur';
 
-    const userUserGroupsMap: {
-        [uuid: string]: UserGroup;
-    } = useMemo(
-        () =>
-            userGroups?.reduce(
-                (prev, userGroup) => ({
-                    ...prev,
-                    [userGroup.uuid]: userGroup,
-                }),
-                {},
-            ) || {},
+    const userGroupsNames = useMemo(
+        () => new Map([...memberUserGroups, ...userGroups].map((userGroup) => [userGroup.uuid, userGroup.name])),
+        [memberUserGroups, userGroups],
+    );
+    const administeredUserGroupsUuids = useMemo(
+        () => new Set(userGroups.map((userGroup) => userGroup.uuid)),
         [userGroups],
     );
     const userUserGroupsOptions: SelectOption[] = useMemo(() => {
@@ -179,7 +194,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
     }, [userGroups, form.getValues().userUserGroups]);
 
     return (
-        <form onSubmit={form.onSubmit(handleSubmit)}>
+        <form onSubmit={form.onSubmit(handleSubmit, (errors) => trackAdminFormRejectedByClient('Utilisateur', errors))}>
             <Modal opened={!!pendingValues} onClose={() => setPendingValues(undefined)} title="Utilisateur interne ?">
                 <Text>L&apos;utilisateur est-il un utilisateur interne (équipe aigle) ?</Text>
                 <Group mt="lg" justify="flex-end">
@@ -190,11 +205,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
                 </Group>
             </Modal>
             <h1>{label}</h1>
-            {error ? (
-                <ErrorCard>
-                    <p>Voir les indications ci-dessous pour plus d&apos;info</p>
-                </ErrorCard>
-            ) : null}
+            {error ? <AdminFormError error={error} fieldNames={FORM_FIELD_NAMES} /> : null}
             <TextInput
                 mt="md"
                 withAsterisk
@@ -217,12 +228,14 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
             <Button mt="xs" variant="light" onClick={() => form.setFieldValue('password', generateRandomPassword())}>
                 Générer un mot de passe aléatoire
             </Button>
-            <Checkbox
-                mt="md"
-                label="Utilisateur interne"
-                key={form.key('isStaff')}
-                {...form.getInputProps('isStaff', { type: 'checkbox' })}
-            />
+            {isSuperAdmin ? (
+                <Checkbox
+                    mt="md"
+                    label="Utilisateur interne"
+                    key={form.key('isStaff')}
+                    {...form.getInputProps('isStaff', { type: 'checkbox' })}
+                />
+            ) : null}
             <Select
                 allowDeselect={false}
                 label="Rôle"
@@ -257,35 +270,42 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups }) => {
             <h3 className="form-sub-sub-title">Groupes de l&apos;utilisateur</h3>
             <Table withRowBorders={false} layout="fixed">
                 <Table.Tbody>
-                    {form.getValues().userUserGroups.map((userUserGroup, index) => (
-                        <Table.Tr key={userUserGroup.userGroupUuid}>
-                            <Table.Td>{userUserGroupsMap[userUserGroup.userGroupUuid].name}</Table.Td>
-                            <Table.Td colSpan={2}>
-                                <Group align="flex-end">
-                                    <MultiSelect
-                                        flex={1}
-                                        mt="md"
-                                        label="Droits"
-                                        placeholder="Lecture, écriture,..."
-                                        renderOption={(item) => <SelectItem item={item} />}
-                                        data={userGroupRights.map((right) => ({
-                                            value: right,
-                                            label: USER_GROUP_RIGHTS_NAMES_MAP[right],
-                                        }))}
-                                        key={form.key(`userUserGroups.${index}.userGroupRights`)}
-                                        {...form.getInputProps(`userUserGroups.${index}.userGroupRights`)}
-                                    />
+                    {form.getValues().userUserGroups.map((userUserGroup, index) => {
+                        const administered = administeredUserGroupsUuids.has(userUserGroup.userGroupUuid);
 
-                                    <ActionIcon
-                                        variant="transparent"
-                                        onClick={() => form.removeListItem('userUserGroups', index)}
-                                    >
-                                        <IconTrash />
-                                    </ActionIcon>
-                                </Group>
-                            </Table.Td>
-                        </Table.Tr>
-                    ))}
+                        return (
+                            <Table.Tr key={userUserGroup.userGroupUuid}>
+                                <Table.Td>{userGroupsNames.get(userUserGroup.userGroupUuid)}</Table.Td>
+                                <Table.Td colSpan={2}>
+                                    <Group align="flex-end">
+                                        <MultiSelect
+                                            flex={1}
+                                            mt="md"
+                                            label="Droits"
+                                            description={administered ? undefined : 'Groupe que vous n’administrez pas'}
+                                            disabled={!administered}
+                                            placeholder="Lecture, écriture,..."
+                                            renderOption={(item) => <SelectItem item={item} />}
+                                            data={userGroupRights.map((right) => ({
+                                                value: right,
+                                                label: USER_GROUP_RIGHTS_NAMES_MAP[right],
+                                            }))}
+                                            key={form.key(`userUserGroups.${index}.userGroupRights`)}
+                                            {...form.getInputProps(`userUserGroups.${index}.userGroupRights`)}
+                                        />
+
+                                        <ActionIcon
+                                            variant="transparent"
+                                            disabled={!administered}
+                                            onClick={() => form.removeListItem('userUserGroups', index)}
+                                        >
+                                            <IconTrash />
+                                        </ActionIcon>
+                                    </Group>
+                                </Table.Td>
+                            </Table.Tr>
+                        );
+                    })}
 
                     {form.getValues().userUserGroups.length === 0 ? (
                         <Table.Tr>
@@ -339,20 +359,19 @@ const ComponentInner: React.FC = () => {
 
         const user = await api<User>(usersEndpoints.detail(uuid));
         return {
-            ...user,
-            password: '',
-            userUserGroups: user.userUserGroups.map((userUserGroup) => ({
-                userGroupUuid: userUserGroup.userGroup.uuid,
-                userGroupRights: userUserGroup.userGroupRights,
-            })),
+            initialValues: {
+                ...user,
+                password: '',
+                userUserGroups: user.userUserGroups.map((userUserGroup) => ({
+                    userGroupUuid: userUserGroup.userGroup.uuid,
+                    userGroupRights: userUserGroup.userGroupRights,
+                })),
+            },
+            memberUserGroups: user.userUserGroups.map(({ userGroup }) => userGroup),
         };
     };
 
-    const {
-        isLoading,
-        error,
-        data: initialValues,
-    } = useQuery({
+    const { isLoading, error, data } = useQuery({
         queryKey: [usersEndpoints.detail(String(uuid))],
         enabled: !!uuid,
         queryFn: () => fetchData(),
@@ -373,7 +392,14 @@ const ComponentInner: React.FC = () => {
         return <ErrorCard>{error.message}</ErrorCard>;
     }
 
-    return <Form uuid={uuid} initialValues={initialValues || EMPTY_FORM_VALUES} userGroups={userGroups || []} />;
+    return (
+        <Form
+            uuid={uuid}
+            initialValues={data?.initialValues || EMPTY_FORM_VALUES}
+            userGroups={userGroups || []}
+            memberUserGroups={data?.memberUserGroups || []}
+        />
+    );
 };
 
 const Component: React.FC = () => {

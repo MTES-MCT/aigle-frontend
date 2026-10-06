@@ -17,6 +17,8 @@ import {
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
 import { getDetectionObjectLink } from '@/utils/link';
+import { trackEvent } from '@/utils/matomo';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { Badge, Button, Table } from '@mantine/core';
 import { IconExternalLink } from '@tabler/icons-react';
 import React from 'react';
@@ -32,7 +34,16 @@ interface FieldOrder {
 
 interface ParcelDataTableFilter extends DataTableFilter {
     parcelsUuids: string[];
+    ordering?: string;
 }
+
+// Opens the map in a new tab: same-host links are invisible to Matomo's link tracking.
+const trackOpenOnMap = (item: DetectionListItem) =>
+    trackEvent(
+        TRACKING_CATEGORIES.table,
+        'Objet ouvert sur la carte',
+        `${item.detectionValidationStatus} / ${item.detectionControlStatus}`,
+    );
 
 interface ComponentProps {
     parcelUuid: string;
@@ -60,6 +71,7 @@ const Component: React.FC<ComponentProps> = ({
             filter={{
                 ...dataTableFilter,
                 parcelsUuids: [parcelUuid],
+                ...(order ? { ordering: order.sortOrder === 'asc' ? order.field : `-${order.field}` } : {}),
             }}
             showSelection={selectionShowed}
             showRefresh={false}
@@ -94,6 +106,13 @@ const Component: React.FC<ComponentProps> = ({
                         size="compact-xs"
                         leftSection={<IconExternalLink size={14} />}
                         to={getDetectionObjectLink(item.detectionObjectUuid)}
+                        onClick={() => trackOpenOnMap(item)}
+                        onAuxClick={(event: React.MouseEvent) => {
+                            // Middle click: browsers send it as auxclick only, never as click.
+                            if (event.button === 1) {
+                                trackOpenOnMap(item);
+                            }
+                        }}
                     >
                         {item.detectionObjectId}
                     </Button>

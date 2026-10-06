@@ -69,3 +69,21 @@ export const getFiltersToMakeVisible = (
 
     return objectFiltersUpdated;
 };
+
+// The filters getFiltersToMakeVisible widened, as 'Type + Zones', or 'Aucun'.
+export const getForceVisibleTrackingName = (
+    currentObjectsFilters: ObjectsFilter,
+    objectFiltersUpdated: ObjectsFilter,
+): string => {
+    const widenedFilters = [
+        objectFiltersUpdated.objectTypesUuids.length !== currentObjectsFilters.objectTypesUuids.length && 'Type',
+        objectFiltersUpdated.detectionValidationStatuses.length !==
+            currentObjectsFilters.detectionValidationStatuses.length && 'Validation',
+        objectFiltersUpdated.detectionControlStatuses.length !==
+            currentObjectsFilters.detectionControlStatuses.length && 'Contrôle',
+        objectFiltersUpdated.prescripted !== currentObjectsFilters.prescripted && 'Prescription',
+        objectFiltersUpdated.customZonesUuids.length !== currentObjectsFilters.customZonesUuids.length && 'Zones',
+    ].filter(Boolean);
+
+    return widenedFilters.length ? widenedFilters.join(' + ') : 'Aucun';
+};

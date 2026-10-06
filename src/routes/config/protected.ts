@@ -1,5 +1,5 @@
 import About from '@/routes/About';
-import Help from '@/routes/Help';
+import HelpCenter from '@/routes/HelpCenter';
 import Map from '@/routes/Map/index';
 import Charts from '@/routes/Statistics/Charts';
 import Table from '@/routes/Table';
@@ -30,7 +30,7 @@ export const protectedRoutes: RouteGroup = {
         },
         {
             path: '/help',
-            component: Help,
+            component: HelpCenter,
             requiresAuth: true,
         },
     ],

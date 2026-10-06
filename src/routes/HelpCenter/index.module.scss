@@ -1,0 +1,61 @@
+@use './tokens' as tokens;
+
+/* The DSFR stylesheet loads after the CSS modules (main.tsx imports App before index.scss), so a
+   rule that must beat a DSFR class on the same element is nested under .container to outrank it. */
+
+.container {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: tokens.$space-group 0 tokens.$space-region;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$space-related;
+
+    h1 {
+        font-size: 2rem;
+        line-height: 2.5rem;
+    }
+}
+
+.lead {
+    font-size: 1.25rem;
+    line-height: 2rem;
+    text-wrap: pretty;
+}
+
+.download {
+    margin-top: tokens.$space-label;
+}
+
+@media (max-width: 47.99em) {
+    .lead {
+        font-size: 1.0625rem;
+        line-height: 1.625rem;
+    }
+}
+
+.tabs {
+    margin-top: tokens.$space-section;
+}
+
+/* index.scss zeroes --title-spacing on every element, DSFR's own gap under the callout title with it. */
+.container .callout-title {
+    margin-bottom: tokens.$space-heading;
+}
+
+/* index.scss drops DSFR's link underline on every [href]; a link in running text still needs one. */
+.container .callout a:not([class]) {
+    text-decoration: underline;
+}
+
+.container .webinar {
+    margin: tokens.$space-section 0 0;
+}
+
+/* Contact: the page's fallback, kept below the help content. */
+.container .contact {
+    margin: tokens.$space-region 0 0;
+}

@@ -3,6 +3,7 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
+import { useAuth } from '@/store/slices/auth';
 import { ColorSwatch, Input, Table } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import { isEqual } from 'lodash';
@@ -19,6 +20,7 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 
 const Component: React.FC = () => {
     const navigate = useNavigate();
+    const { userMe } = useAuth();
     const [filter, setFilter] = useState<DataFilter>(DATA_FILTER_INITIAL_VALUE);
 
     return (
@@ -58,7 +60,11 @@ const Component: React.FC = () => {
                     </div>
                 ),
             ]}
-            onItemClick={({ uuid }) => navigate(`/admin/custom-zones/category-form/${uuid}`)}
+            onItemClick={
+                userMe?.userRole === 'SUPER_ADMIN'
+                    ? ({ uuid }) => navigate(`/admin/custom-zones/category-form/${uuid}`)
+                    : undefined
+            }
         />
     );
 };

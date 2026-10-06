@@ -113,6 +113,7 @@ export const getCommonMapSettingsData = (settings: MapSettings) => {
     const { objectsFilter, detectionObjectUuid } = getInitialObjectFilters(
         Array.from(visibleObjectTypesUuids),
         initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
+        allObjectTypes.map(({ uuid }) => uuid),
     );
 
     return {

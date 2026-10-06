@@ -8,6 +8,7 @@ import { toFileSlug } from '@/utils/download';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { USER_COLUMNS, buildGroupColumns } from './tableColumns';
+import { trackCsvExported } from './tracking';
 
 const GROUPS_TABLE_PAGE_SIZE = 20;
 
@@ -33,6 +34,7 @@ export const GroupsTable: React.FC<{ onGroupSelected: (uuid: string) => void }> 
             initialSort={{ key: 'name', order: 'asc' }}
             searchPlaceholder="Rechercher un groupe"
             csvFileName="groupes-utilisateurs.csv"
+            onCsvDownload={() => trackCsvExported('Tableau des groupes')}
             // paginated on screen only: the CSV and the PDF are built from the full list
             pageSize={GROUPS_TABLE_PAGE_SIZE}
         />
@@ -65,6 +67,7 @@ export const GroupUsersTable: React.FC<{ userGroupUuid: string; groupName: strin
             initialSort={{ key: 'operationalActionsCount', order: 'desc' }}
             searchPlaceholder="Rechercher un utilisateur"
             csvFileName={`utilisateurs-${toFileSlug(groupName)}.csv`}
+            onCsvDownload={() => trackCsvExported('Utilisateurs du groupe')}
         />
     );
 };

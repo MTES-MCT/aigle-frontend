@@ -18,7 +18,7 @@ import {
     IconUser,
     IconUsers,
 } from '@tabler/icons-react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import classes from './index.module.scss';
 
 const ICON_SIZE = 16;
@@ -51,21 +51,24 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Données déployées"
-                        href="/admin/deployed-data"
+                        component={Link}
+                        to="/admin/deployed-data"
                         active={pathname.includes('/admin/deployed-data')}
                         leftSection={<IconReportAnalytics size={ICON_SIZE} />}
                     />
                 ) : null}
                 <NavLink
                     label="Utilisateurs"
-                    href="/admin/users"
+                    component={Link}
+                    to="/admin/users"
                     active={pathname.includes('/admin/users')}
                     leftSection={<IconUser size={ICON_SIZE} />}
                 />
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Groupes utilisateurs"
-                        href="/admin/user-groups"
+                        component={Link}
+                        to="/admin/user-groups"
                         active={pathname.includes('/admin/user-groups')}
                         leftSection={<IconUsers size={ICON_SIZE} />}
                     />
@@ -74,14 +77,16 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Collectivités"
-                        href="/admin/collectivites"
+                        component={Link}
+                        to="/admin/collectivites"
                         active={pathname.includes('/admin/collectivites')}
                         leftSection={<IconBuilding size={ICON_SIZE} />}
                     />
                 ) : null}
                 <NavLink
                     label="Zones à enjeux"
-                    href="/admin/custom-zones"
+                    component={Link}
+                    to="/admin/custom-zones"
                     active={pathname.includes('/admin/custom-zones')}
                     leftSection={<IconHexagon size={ICON_SIZE} />}
                 />
@@ -89,7 +94,8 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Types d'objets"
-                        href="/admin/object-types"
+                        component={Link}
+                        to="/admin/object-types"
                         active={pathname.includes('/admin/object-types')}
                         leftSection={<IconCube size={ICON_SIZE} />}
                     />
@@ -97,7 +103,8 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Thématiques"
-                        href="/admin/object-type-categories"
+                        component={Link}
+                        to="/admin/object-type-categories"
                         active={pathname.includes('/admin/object-type-categories')}
                         leftSection={<IconCategory size={ICON_SIZE} />}
                     />
@@ -106,7 +113,8 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Fonds de carte"
-                        href="/admin/tile-sets"
+                        component={Link}
+                        to="/admin/tile-sets"
                         active={pathname.includes('/admin/tile-sets')}
                         leftSection={<IconMap size={ICON_SIZE} />}
                     />
@@ -114,7 +122,8 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Commandes"
-                        href="/admin/run-command"
+                        component={Link}
+                        to="/admin/run-command"
                         active={pathname.includes('/admin/run-command')}
                         leftSection={<IconTerminal size={ICON_SIZE} />}
                     />
@@ -123,7 +132,8 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Imports"
-                        href="/admin/imports"
+                        component={Link}
+                        to="/admin/imports"
                         active={pathname.includes('/admin/imports')}
                         leftSection={<IconDatabaseImport size={ICON_SIZE} />}
                     />
@@ -132,7 +142,8 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
                         label="Journal des actions"
-                        href="/admin/user-action-logs"
+                        component={Link}
+                        to="/admin/user-action-logs"
                         active={pathname.includes('/admin/user-action-logs')}
                         leftSection={<IconHistory size={ICON_SIZE} />}
                     />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { ddtmActivityEndpoints } from '@/api/endpoints';
 import LayoutBase from '@/components/LayoutBase';
@@ -13,7 +13,6 @@ import {
     DdtmActivityUserGroupActivity,
     DdtmActivityUserGroupOption,
 } from '@/models/ddtm-activity';
-import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
 import { HEADER_HEIGHT_PX } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
@@ -22,8 +21,8 @@ import { useScrollIntoView } from '@mantine/hooks';
 import { IconChartBar, IconFileTypePdf, IconUsersGroup } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { Navigate } from 'react-router-dom';
 import {
+    ACTIVITY_CHART_SERIES,
     ACTIVITY_TIERS,
     ACTIVITY_TIER_ORDER,
     GRANULARITY_OPTIONS,
@@ -32,7 +31,7 @@ import {
     formatPeriod,
     groupsByTier,
 } from './activity';
-import { SeriesToggle } from './chartConfig';
+import { useSeriesToggle } from './chartConfig';
 import { ActivityChart, ControlStatusChart, CountBarChart } from './charts';
 import classes from './index.module.scss';
 import PeriodBreakdown from './PeriodBreakdown';
@@ -41,6 +40,13 @@ import { REPORT_GROUP_SECTION_ATTRIBUTE, ReportScopeContext, usePublishReportSco
 import { USER_COLUMNS, buildGroupColumns } from './tableColumns';
 import { GroupUsersTable, GroupsTable } from './tables';
 import { TierSwatch } from './tierUi';
+import {
+    GroupSelectionSource,
+    trackDashboardDisplayed,
+    trackGranularityChanged,
+    trackGroupSelected,
+    trackPeriodSelected,
+} from './tracking';
 
 /** The territory-wide chart, and the detail of whichever period the reader clicks. */
 const GroupsActivityChart: React.FC<{
@@ -53,7 +59,8 @@ const GroupsActivityChart: React.FC<{
     // category switched off in the legend closes its section, and closing a section hides
     // the category.
     const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-    const seriesToggle: SeriesToggle = {
+    // Guarded like the legend, so collapsing every section of the detail cannot empty the chart.
+    const seriesToggle = useSeriesToggle(ACTIVITY_CHART_SERIES, {
         hiddenSeries,
         toggle: (name) =>
             setHiddenSeries((previous) => {
@@ -61,7 +68,7 @@ const GroupsActivityChart: React.FC<{
                 next.has(name) ? next.delete(name) : next.add(name);
                 return next;
             }),
-    };
+    });
     const { data, isLoading, error } = useQuery({
         queryKey: [ddtmActivityEndpoints.groupsActivity, granularity],
         queryFn: ({ signal }) =>
@@ -99,6 +106,14 @@ const GroupsActivityChart: React.FC<{
         return <ErrorCard>{error ? error.message : 'Aucune donnée'}</ErrorCard>;
     }
 
+    const selectPeriod = (period: string | null) => {
+        // closing the detail (null) is not tracked
+        if (period !== null) {
+            trackPeriodSelected(granularity, data.activityByPeriod.filter((tier) => tier.period > period).length);
+        }
+        setClickedPeriod(period);
+    };
+
     return (
         <Stack gap="xs">
             <ActivityChart
@@ -107,7 +122,7 @@ const GroupsActivityChart: React.FC<{
                 deploymentPeriod={null}
                 emptyMessage={NO_GROUP_DEPLOYED_MESSAGE}
                 selectedPeriod={selectedPeriod}
-                onPeriodSelect={setClickedPeriod}
+                onPeriodSelect={selectPeriod}
                 seriesToggle={seriesToggle}
             />
             {selectedPeriod ? (
@@ -236,7 +251,10 @@ const GranularityControl: React.FC<{
         <SegmentedControl
             className={clsx(classes['granularity-control'], classes['no-print'])}
             value={granularity}
-            onChange={(value) => onChange(value as DdtmActivityGranularity)}
+            onChange={(value) => {
+                trackGranularityChanged(value as DdtmActivityGranularity);
+                onChange(value as DdtmActivityGranularity);
+            }}
             data={GRANULARITY_OPTIONS}
         />
         {/* a control is not report content: on paper it becomes the caption of the charts below */}
@@ -258,7 +276,7 @@ const TerritoryOverview: React.FC<{
     granularity: DdtmActivityGranularity;
     onGranularityChange: (granularity: DdtmActivityGranularity) => void;
     selectedGroupUuid: string | null;
-    onGroupSelected: (uuid: string) => void;
+    onGroupSelected: (uuid: string, source: GroupSelectionSource) => void;
 }> = ({ summary, caption, granularity, onGranularityChange, selectedGroupUuid, onGroupSelected }) => (
     <Stack gap="lg">
         <Text c="dimmed">{caption}</Text>
@@ -278,7 +296,7 @@ const TerritoryOverview: React.FC<{
             />
         </SimpleGrid>
 
-        <GroupsTable onGroupSelected={onGroupSelected} />
+        <GroupsTable onGroupSelected={(uuid) => onGroupSelected(uuid, 'Tableau des groupes')} />
 
         {/* Right above the charts it drives — the tables above are not affected. */}
         <GranularityControl granularity={granularity} onChange={onGranularityChange} />
@@ -286,7 +304,7 @@ const TerritoryOverview: React.FC<{
         <GroupsActivityChart
             granularity={granularity}
             selectedGroupUuid={selectedGroupUuid}
-            onGroupSelected={onGroupSelected}
+            onGroupSelected={(uuid) => onGroupSelected(uuid, 'Détail de la période')}
         />
     </Stack>
 );
@@ -310,7 +328,11 @@ const TerritoryDashboard: React.FC<{
     });
 
     // Select the group, then bring section 2 up under the fixed header (offset = HEADER_HEIGHT_PX).
-    const selectGroup = (uuid: string) => {
+    const selectGroup = (uuid: string, source: GroupSelectionSource) => {
+        // a click on the group already open only scrolls back to it
+        if (uuid !== selectedGroupUuid) {
+            trackGroupSelected(source);
+        }
         setSelectedGroupUuid(uuid);
         scrollIntoView({ alignment: 'start' });
     };
@@ -337,7 +359,13 @@ const TerritoryDashboard: React.FC<{
                     placeholder="Sélectionner un groupe utilisateur"
                     data={summary.userGroups.map((group) => ({ value: group.uuid, label: group.name }))}
                     value={selectedGroupUuid}
-                    onChange={setSelectedGroupUuid}
+                    onChange={(uuid) => {
+                        // clearing the select is not tracked
+                        if (uuid && uuid !== selectedGroupUuid) {
+                            trackGroupSelected('Liste déroulante');
+                        }
+                        setSelectedGroupUuid(uuid);
+                    }}
                     searchable
                     clearable
                 />
@@ -391,7 +419,15 @@ const OwnGroupDashboard: React.FC<{ groups: DdtmActivityUserGroupOption[] }> = (
                     label="Groupe utilisateur"
                     data={groups.map((group) => ({ value: group.uuid, label: group.name }))}
                     value={selected.uuid}
-                    onChange={(value) => value && setSelectedGroupUuid(value)}
+                    onChange={(value) => {
+                        if (!value) {
+                            return;
+                        }
+                        if (value !== selected.uuid) {
+                            trackGroupSelected('Mes groupes');
+                        }
+                        setSelectedGroupUuid(value);
+                    }}
                     searchable
                     allowDeselect={false}
                 />
@@ -456,8 +492,6 @@ const REPORT_SOURCES: ReportSources = {
 };
 
 const Component: React.FC = () => {
-    const { getCanViewStatistics } = useAuth();
-    const canViewStatistics = getCanViewStatistics();
     const { generating, download, publishScope } = useReportDownload(REPORT_SOURCES);
 
     // Which dashboard the user may see is the API's call, not ours: a super-admin is scoped
@@ -468,14 +502,18 @@ const Component: React.FC = () => {
         isLoading,
         error,
     } = useQuery({
-        enabled: canViewStatistics,
         queryKey: [ddtmActivityEndpoints.summary],
         queryFn: ({ signal }) => api<DdtmActivitySummary>(ddtmActivityEndpoints.summary, { signal }),
     });
 
-    if (!canViewStatistics) {
-        return <Navigate to="/" />;
-    }
+    // Once per visit of the page: a refetch (window focus...) resolves the summary again.
+    const dashboardTrackedRef = useRef(false);
+    useEffect(() => {
+        if (summary && !dashboardTrackedRef.current) {
+            dashboardTrackedRef.current = true;
+            trackDashboardDisplayed(summary);
+        }
+    }, [summary]);
 
     return (
         <LayoutBase title="Statistiques">

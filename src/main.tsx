@@ -1,5 +1,6 @@
 import App from '@/App';
 import { ENVIRONMENT, RELEASE } from '@/utils/constants';
+import { initMatomo } from '@/utils/matomo';
 import { createTheme, MantineColorsTuple, MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import * as Sentry from '@sentry/react';
@@ -94,6 +95,9 @@ Sentry.init({
         return breadcrumb;
     },
 });
+
+// Outside React: StrictMode would run an effect twice.
+initMatomo();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

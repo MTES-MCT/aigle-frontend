@@ -12,9 +12,11 @@ const CONTROL_LABEL = 'Filtrer les objets';
 interface ComponentProps {
     isShowed: boolean;
     setIsShowed: (state: boolean) => void;
+    trackingCategory?: string;
+    onUserChange?: () => void;
 }
 
-const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
+const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed, trackingCategory, onUserChange }) => {
     const { objectTypes, customZoneLayers, otherObjectTypesUuids } = useMap();
     const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
 
@@ -37,6 +39,8 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
                 mapGeoCustomZoneLayers={customZoneLayers}
                 updateObjectsFilter={updateObjectsFilter}
                 otherObjectTypesUuids={otherObjectTypesUuids}
+                trackingCategory={trackingCategory}
+                onUserChange={onUserChange}
             />
         </MapControlCustom>
     );

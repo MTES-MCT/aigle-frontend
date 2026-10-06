@@ -7,7 +7,7 @@ export type GeoZoneType = (typeof geoZoneTypes)[number];
 export interface GeoZone extends Uuided, Timestamped {
     name: string;
     geoZoneType: GeoZoneType;
-    code?: string;
+    code?: string | null;
 }
 
 export interface GeoZoneDetail extends GeoZone {

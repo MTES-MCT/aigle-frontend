@@ -6,8 +6,11 @@ import { authEndpoints } from '@/api/endpoints';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
+import { AUTH_ERROR_MESSAGES, AUTH_ERROR_TRACKING_NAMES, getAuthErrorCause } from '@/routes/auth/errors';
 import api, { ApiError } from '@/utils/api';
 import { DEFAULT_ROUTE } from '@/utils/constants';
+import { trackEvent } from '@/utils/matomo';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { IconMailCheck } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -49,9 +52,12 @@ const resetPassword = async (user: FormValues) => {
     await api(authEndpoints.resetPassword, { method: 'POST', body: user });
 };
 
+const trackResetRequested = (name: string) =>
+    trackEvent(TRACKING_CATEGORIES.account, 'Réinitialisation demandée', name);
+
 const Component: React.FC = () => {
     const [searchParams] = useSearchParams();
-    const [error, setError] = useState<ApiError>();
+    const [errorMessage, setErrorMessage] = useState<string>();
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
@@ -62,13 +68,23 @@ const Component: React.FC = () => {
         },
     });
 
-    const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
+    const mutation: UseMutationResult<void, Error, FormValues> = useMutation({
         mutationFn: resetPassword,
+        // The API answers the same whether the address has an account or not.
+        onSuccess: () => trackResetRequested('Envoyée'),
         onError: (error) => {
-            setError(error);
-            if (error.body) {
-                // @ts-expect-error types do not match
-                form.setErrors(error.body);
+            const cause = getAuthErrorCause(error);
+
+            if (cause !== 'rejected') {
+                trackResetRequested(AUTH_ERROR_TRACKING_NAMES[cause]);
+                setErrorMessage(AUTH_ERROR_MESSAGES[cause]);
+                return;
+            }
+
+            trackResetRequested('Adresse invalide');
+            setErrorMessage('Adresse email invalide');
+            if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -89,7 +105,7 @@ const Component: React.FC = () => {
             </InfoCard>
 
             <form className={classes.form} onSubmit={form.onSubmit(handleSubmit)}>
-                {error ? <ErrorCard className={classes['error-card']}>Identifiants invalides</ErrorCard> : null}
+                {errorMessage ? <ErrorCard className={classes['error-card']}>{errorMessage}</ErrorCard> : null}
                 <TextInput
                     withAsterisk
                     label="Email"

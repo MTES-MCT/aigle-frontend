@@ -5,8 +5,11 @@ import React, { useState } from 'react';
 import { authEndpoints } from '@/api/endpoints';
 import LayoutAuth from '@/components/auth/LayoutAuth';
 import ErrorCard from '@/components/ui/ErrorCard';
+import { AUTH_ERROR_MESSAGES, AUTH_ERROR_TRACKING_NAMES, getAuthErrorCause } from '@/routes/auth/errors';
 import api, { ApiError } from '@/utils/api';
 import { PASSWORD_MIN_LENGTH } from '@/utils/constants';
+import { trackEvent } from '@/utils/matomo';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { IconCheck } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
@@ -49,8 +52,17 @@ const resetPasswordConfirm = async (form: FormValues, uid: string, token: string
     });
 };
 
+const trackResetConfirmed = (name: string) =>
+    trackEvent(TRACKING_CATEGORIES.account, 'Nouveau mot de passe soumis', name);
+
+// The password validators answer on newPassword; anything else rejected is the uid or the token.
+const isPasswordRejected = (error: unknown) =>
+    error instanceof ApiError && !!error.body && typeof error.body === 'object' && 'newPassword' in error.body;
+
+type ResetConfirmError = { kind: 'link' } | { kind: 'password' } | { kind: 'other'; message: string };
+
 const Component: React.FC = () => {
-    const [error, setError] = useState<ApiError>();
+    const [error, setError] = useState<ResetConfirmError>();
     const { uid, token } = useParams<{ uid: string; token: string }>();
 
     const form: UseFormReturnType<FormValues> = useForm({
@@ -77,13 +89,28 @@ const Component: React.FC = () => {
         },
     });
 
-    const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
+    const mutation: UseMutationResult<void, Error, FormValues> = useMutation({
         mutationFn: (form) => resetPasswordConfirm(form, String(uid), String(token)),
+        onSuccess: () => trackResetConfirmed('Accepté'),
         onError: (error) => {
-            setError(error);
-            if (error.body) {
-                // @ts-expect-error types do not match
-                form.setErrors(error.body);
+            const cause = getAuthErrorCause(error);
+
+            if (cause !== 'rejected') {
+                trackResetConfirmed(AUTH_ERROR_TRACKING_NAMES[cause]);
+                setError({ kind: 'other', message: AUTH_ERROR_MESSAGES[cause] });
+                return;
+            }
+
+            if (isPasswordRejected(error)) {
+                trackResetConfirmed('Mot de passe refusé');
+                setError({ kind: 'password' });
+            } else {
+                trackResetConfirmed('Lien invalide ou expiré');
+                setError({ kind: 'link' });
+            }
+
+            if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -99,12 +126,22 @@ const Component: React.FC = () => {
     return (
         <LayoutAuth>
             <form className={classes.form} onSubmit={form.onSubmit(handleSubmit)}>
-                {error ? (
-                    <ErrorCard className={classes['error-card']} title="Erreur lors du changement de mot de passe">
+                {error?.kind === 'link' ? (
+                    <ErrorCard className={classes['error-card']} title="Lien de réinitialisation invalide ou expiré">
                         <p>
                             Essayez de <Link to="/reset-password">re-générer un lien de réinitialisation</Link>
                         </p>
                         <p>Si le problème persiste, contactez les administrateurs</p>
+                    </ErrorCard>
+                ) : null}
+                {error?.kind === 'password' ? (
+                    <ErrorCard className={classes['error-card']} title="Mot de passe refusé">
+                        <p>Choisissez un autre mot de passe : la raison du refus est indiquée sous le champ.</p>
+                    </ErrorCard>
+                ) : null}
+                {error?.kind === 'other' ? (
+                    <ErrorCard className={classes['error-card']} title="Erreur lors du changement de mot de passe">
+                        <p>{error.message}</p>
                     </ErrorCard>
                 ) : null}
                 <PasswordInput
@@ -124,7 +161,9 @@ const Component: React.FC = () => {
                     {...form.getInputProps('newPasswordConfirm')}
                 />
                 <div className="form-actions">
-                    <Button type="submit">Changer le mot de passe</Button>
+                    <Button type="submit" disabled={mutation.isPending} loading={mutation.isPending}>
+                        Changer le mot de passe
+                    </Button>
                 </div>
             </form>
         </LayoutAuth>

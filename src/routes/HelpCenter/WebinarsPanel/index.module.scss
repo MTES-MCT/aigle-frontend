@@ -1,0 +1,33 @@
+@use '../tokens' as tokens;
+
+.intro {
+    margin-bottom: tokens.$space-section;
+
+    p {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$space-block;
+
+    & + & {
+        margin-top: tokens.$space-region;
+    }
+}
+
+.section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: tokens.$space-heading tokens.$space-block;
+}
+
+.empty {
+    font-size: 1rem;
+    line-height: 1.5rem;
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 type FilterValue = string | string[];
@@ -47,13 +47,16 @@ export const useUrlFilter = <T extends { [K in keyof T]: FilterValue }>(
         setSearchParams((params) => applyFilter(params, filter), { replace: true });
     }, []);
 
+    // Not in a state updater, which can run mid-render: the url would then commit after the page's own effects.
+    const filterRef = useRef(filter);
+    filterRef.current = filter;
+
     const setFilter: React.Dispatch<React.SetStateAction<T>> = useCallback(
         (action) => {
-            setFilterState((prev) => {
-                const next = typeof action === 'function' ? action(prev) : action;
-                setSearchParams((params) => applyFilter(params, next), { replace: true });
-                return next;
-            });
+            const next = typeof action === 'function' ? action(filterRef.current) : action;
+            filterRef.current = next;
+            setFilterState(next);
+            setSearchParams((params) => applyFilter(params, next), { replace: true });
         },
         [setSearchParams],
     );

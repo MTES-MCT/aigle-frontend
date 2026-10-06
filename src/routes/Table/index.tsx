@@ -4,7 +4,9 @@ import DataTable from '@/components/DataTable';
 import DataTableSortableHeaderColumn, { SortOrder } from '@/components/DataTable/DataTableSortableHeaderColumn';
 import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import FilterObjects from '@/components/FilterObjects';
-import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
+import GeoCollectivitiesMultiSelects, {
+    GeoCollectivitiesUserChange,
+} from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutBase from '@/components/LayoutBase';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import SoloAccordion from '@/components/SoloAccordion';
@@ -25,11 +27,13 @@ import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import { formatParcel } from '@/utils/format';
 import { geoZoneToGeoOption } from '@/utils/geojson';
+import { trackEvent } from '@/utils/matomo';
+import { TRACKING_CATEGORIES, getFilterTrackingName } from '@/utils/tracking';
 import { ActionIcon, Affix, Button, Switch, Table, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { IconChevronDown, IconEdit } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 
 const getOrderParams = (
     order?: FieldOrder,
@@ -45,6 +49,16 @@ const getOrderParams = (
 };
 
 const ENDPOINT = parcelEndpoints.listItems;
+
+const COLLECTIVITY_CHANGE_TRACKING_NAMES: Record<GeoCollectivitiesUserChange, string> = {
+    added: 'ajout',
+    removed: 'retrait',
+    codesPasted: 'codes collés',
+    codesRejected: 'codes ignorés',
+};
+
+const trackSort = (field: string, sortOrder?: SortOrder) =>
+    trackEvent(TRACKING_CATEGORIES.table, 'Tri modifié', `${field} : ${sortOrder ?? 'aucun'}`);
 
 interface FieldOrder {
     sortOrder?: SortOrder;
@@ -72,7 +86,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     const [order, setOrder] = React.useState<FieldOrder | undefined>();
     const [selectionShowed, setSelectionShowed] = React.useState(false);
     const [editMultipleDetectionsModalShowed, setEditMultipleDetectionsModalShowed] = React.useState(false);
-    const { getAccessibleGeozones } = useAuth();
+    const { getAccessibleGeozones, userMe } = useAuth();
+    // The API only applies a bulk edit with WRITE rights (a scoped SUPER_ADMIN gets them on its group).
+    const canEditMultiple =
+        userMe?.userRole === 'SUPER_ADMIN' ||
+        !!userMe?.userUserGroups.some(({ userGroupRights }) => userGroupRights.includes('WRITE'));
+    // Filter the last settled result set was for: refetches, pages and sorts of one filter count once.
+    const lastSettledFilterKeyRef = useRef<string>();
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             communesUuids: getAccessibleGeozones('COMMUNE').map((zone) => zone.uuid),
@@ -89,6 +109,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         ...form.getValues(),
     };
     const orderParams = getOrderParams(order);
+    // The export lists detections: it can follow the parcel sort, but has no detections count to sort on (API 500).
+    const exportOrdering = order?.field === 'parcel' ? orderParams.ordering : undefined;
     const filter = useMemo(() => ({ ...dataTableFilter, ...orderParams }), [objectsFilter, form.getValues(), order]);
 
     return (
@@ -98,6 +120,22 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 filter={filter}
                 queryEnabled={form.getValues().communesUuids.length > 0 || form.getValues().epcisUuids.length > 0}
                 layout="auto"
+                onRowExpand={(_, rank) => trackEvent(TRACKING_CATEGORIES.table, 'Parcelle dépliée', undefined, rank)}
+                onDataSettled={(items) => {
+                    const filterKey = JSON.stringify(dataTableFilter);
+                    if (filterKey === lastSettledFilterKeyRef.current) {
+                        return;
+                    }
+
+                    lastSettledFilterKeyRef.current = filterKey;
+                    if (!items.length) {
+                        trackEvent(
+                            TRACKING_CATEGORIES.tableFilters,
+                            'Aucun résultat affiché',
+                            getFilterTrackingName(objectsFilter),
+                        );
+                    }
+                }}
                 getExpandedContent={(item: ParcelListItem) => (
                     <DetectionsTable
                         parcelUuid={item.uuid}
@@ -120,6 +158,14 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 department: [],
                             }}
                             displayedCollectivityTypes={new Set(['epci', 'commune'])}
+                            onUserChange={(collectivityType, change, count) =>
+                                trackEvent(
+                                    TRACKING_CATEGORIES.table,
+                                    'Périmètre modifié',
+                                    `${collectivityType} : ${COLLECTIVITY_CHANGE_TRACKING_NAMES[change]}`,
+                                    count,
+                                )
+                            }
                         />
 
                         <InfoCard>
@@ -132,24 +178,29 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             mapGeoCustomZoneLayers={mapGeoCustomZoneLayers}
                             updateObjectsFilter={updateObjectsFilter}
                             otherObjectTypesUuids={otherObjectTypesUuids}
+                            trackingCategory={TRACKING_CATEGORIES.tableFilters}
                         />
                     </SoloAccordion>
                 }
                 beforeTable={
                     <div>
-                        <TableDownloadButton {...form.getValues()} ordering={orderParams.ordering} />
+                        <TableDownloadButton {...form.getValues()} ordering={exportOrdering} />
                         <TableHeader {...form.getValues()} />
-                        <Switch
-                            mt="md"
-                            label="Edition multiple"
-                            checked={selectionShowed}
-                            onChange={(event) => {
-                                setSelectionShowed(event.currentTarget.checked);
-                                if (!event.currentTarget.checked) {
-                                    setSelectedUuids([]);
-                                }
-                            }}
-                        />
+                        {canEditMultiple ? (
+                            <Switch
+                                mt="md"
+                                label="Edition multiple"
+                                checked={selectionShowed}
+                                onChange={(event) => {
+                                    setSelectionShowed(event.currentTarget.checked);
+                                    if (event.currentTarget.checked) {
+                                        trackEvent(TRACKING_CATEGORIES.bulkEdit, 'Mode activé', 'Tableau');
+                                    } else {
+                                        setSelectedUuids([]);
+                                    }
+                                }}
+                            />
+                        ) : null}
                     </div>
                 }
                 tableHeader={[
@@ -157,18 +208,20 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <Table.Th key="geoCustomZones">Zones à enjeux</Table.Th>,
                     <DataTableSortableHeaderColumn
                         key="detectionsCount"
-                        onOrderChange={(sortOrder?: SortOrder) =>
-                            setOrder(sortOrder ? { sortOrder, field: 'detectionsCount' } : undefined)
-                        }
+                        onOrderChange={(sortOrder?: SortOrder) => {
+                            setOrder(sortOrder ? { sortOrder, field: 'detectionsCount' } : undefined);
+                            trackSort('detectionsCount', sortOrder);
+                        }}
                         sortOrder={order?.field === 'detectionsCount' ? order.sortOrder : undefined}
                     >
                         Nombre de détections
                     </DataTableSortableHeaderColumn>,
                     <DataTableSortableHeaderColumn
                         key="parcel"
-                        onOrderChange={(sortOrder?: SortOrder) =>
-                            setOrder(sortOrder ? { sortOrder, field: 'parcel' } : undefined)
-                        }
+                        onOrderChange={(sortOrder?: SortOrder) => {
+                            setOrder(sortOrder ? { sortOrder, field: 'parcel' } : undefined);
+                            trackSort('parcel', sortOrder);
+                        }}
                         sortOrder={order?.field === 'parcel' ? order.sortOrder : undefined}
                     >
                         Parcelle
@@ -206,7 +259,19 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     <Button
                         leftSection={<IconEdit />}
                         radius="xl"
-                        onClick={() => setEditMultipleDetectionsModalShowed(true)}
+                        onClick={() => {
+                            if (editMultipleDetectionsModalShowed) {
+                                return;
+                            }
+
+                            setEditMultipleDetectionsModalShowed(true);
+                            trackEvent(
+                                TRACKING_CATEGORIES.bulkEdit,
+                                'Formulaire ouvert',
+                                'Tableau',
+                                selectedUuids.length,
+                            );
+                        }}
                     >
                         Editer la sélection ({selectedUuids?.length})
                     </Button>
@@ -220,10 +285,14 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     setSelectedUuids([]);
 
                     if (dataUpdated) {
-                        queryClient.invalidateQueries({ queryKey: [ENDPOINT, detectionEndpoints.getList()] });
+                        // DataTable keys start with their endpoint alone: one prefix per list, plus the header counts.
+                        [ENDPOINT, detectionEndpoints.getList(), parcelEndpoints.overview].forEach((endpoint) =>
+                            queryClient.invalidateQueries({ queryKey: [endpoint] }),
+                        );
                     }
                 }}
                 detectionsUuids={selectedUuids}
+                trackingSource="Tableau"
             />
         </div>
     );

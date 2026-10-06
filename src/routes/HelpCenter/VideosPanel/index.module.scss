@@ -1,0 +1,31 @@
+@use '../tokens' as tokens;
+
+.intro {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$space-block;
+    margin-bottom: tokens.$space-section;
+
+    p {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+}
+
+.next {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$space-block;
+    margin-top: tokens.$space-section;
+
+    p {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+}
+
+.next .feedback {
+    margin-top: tokens.$space-heading;
+    color: var(--text-mention-grey);
+    font-size: 0.875rem;
+}

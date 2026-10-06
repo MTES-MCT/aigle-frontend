@@ -7,6 +7,7 @@ import { DETECTION_CONTROL_STATUSES_COLORS_MAP, DETECTION_CONTROL_STATUSES_NAMES
 import { downloadChartPng, toFileSlug } from '@/utils/download';
 import { BarChart } from '@mantine/charts';
 import { ActionIcon, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconDownload } from '@tabler/icons-react';
 import React, { useMemo, useRef } from 'react';
 import { ACTIVITY_CHART_SERIES, CONTROL_STATUS_ORDER, formatPeriod } from './activity';
@@ -15,54 +16,72 @@ import {
     BAR_PROPS,
     CHART_BAR_CHART_PROPS,
     CHART_CHROME,
-    SeriesToggle,
     deploymentMarker,
     makeSelectionShape,
     makeStackedBarProps,
     makeTooltipProps,
+    SeriesToggle,
     useSeriesToggle,
 } from './chartConfig';
 import classes from './index.module.scss';
 import { REPORT_CHART_ATTRIBUTE } from './report/context';
+import { trackChartPngExported, trackChartPngExportFailed } from './tracking';
 
 /**
  * Chart block: title + a PNG export of the rendered chart, for slides and reports. The data
- * attribute is how the PDF generator finds the chart and rasterises it.
+ * attribute is how the PDF generator finds the chart and rasterises it. `exportable={false}`
+ * drops the PNG button when the block holds a message instead of a chart.
  */
-const ChartSection: React.FC<{ title: string; fileNameContext?: string; children: React.ReactNode }> = ({
-    title,
-    fileNameContext,
-    children,
-}) => {
+const ChartSection: React.FC<{
+    title: string;
+    fileNameContext?: string;
+    exportable?: boolean;
+    children: React.ReactNode;
+}> = ({ title, fileNameContext, exportable = true, children }) => {
     const chartRef = useRef<HTMLDivElement>(null);
 
     return (
         <Stack gap="xs">
             <Group justify="space-between" wrap="nowrap">
                 <Text fw={600}>{title}</Text>
-                <Tooltip label="Télécharger le graphique (PNG)">
-                    <ActionIcon
-                        className={classes['no-print']}
-                        variant="subtle"
-                        size="lg"
-                        aria-label="Télécharger le graphique (PNG)"
-                        onClick={async () => {
-                            // the export serialises the live <svg>: capture only once the
-                            // columns have finished growing
-                            await whenChartsSettled();
+                {exportable ? (
+                    <Tooltip label="Télécharger le graphique (PNG)">
+                        <ActionIcon
+                            className={classes['no-print']}
+                            variant="subtle"
+                            size="lg"
+                            aria-label="Télécharger le graphique (PNG)"
+                            onClick={async () => {
+                                // the export serialises the live <svg>: capture only once the
+                                // columns have finished growing
+                                await whenChartsSettled();
 
-                            if (chartRef.current) {
-                                downloadChartPng(
+                                if (!chartRef.current) {
+                                    return;
+                                }
+
+                                const downloaded = await downloadChartPng(
                                     chartRef.current,
                                     `${toFileSlug(`${fileNameContext || ''} ${title}`)}.png`,
                                     fileNameContext ? `${fileNameContext} — ${title}` : title,
                                 );
-                            }
-                        }}
-                    >
-                        <IconDownload size={18} />
-                    </ActionIcon>
-                </Tooltip>
+
+                                if (downloaded) {
+                                    trackChartPngExported(title);
+                                } else {
+                                    trackChartPngExportFailed(title);
+                                    notifications.show({
+                                        color: 'red',
+                                        title: 'Erreur',
+                                        message: "Le graphique n'a pas pu être exporté.",
+                                    });
+                                }
+                            }}
+                        >
+                            <IconDownload size={18} />
+                        </ActionIcon>
+                    </Tooltip>
+                ) : null}
             </Group>
             <div ref={chartRef} {...{ [REPORT_CHART_ATTRIBUTE]: title }}>
                 {children}
@@ -204,7 +223,11 @@ export const ControlStatusChart: React.FC<{
     );
 
     return (
-        <ChartSection title="Changements de statut de contrôle par période" fileNameContext={fileNameContext}>
+        <ChartSection
+            title="Changements de statut de contrôle par période"
+            fileNameContext={fileNameContext}
+            exportable={series.length > 0}
+        >
             {series.length ? (
                 <BarChart
                     {...CHART_CHROME}

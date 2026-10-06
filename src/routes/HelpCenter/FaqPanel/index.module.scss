@@ -1,0 +1,106 @@
+@use '../tokens' as tokens;
+
+/* DSFR loads after the CSS modules: overrides of a DSFR class sit under .layout to outrank it. */
+
+@media (min-width: 62em) {
+    .layout {
+        display: grid;
+        grid-template-columns: 16rem minmax(0, 1fr);
+        align-items: start;
+        gap: tokens.$space-section;
+    }
+
+    /* The theme menu stays in view while scrolling through 78 questions (see Tabs: overflow clip). */
+    .layout .sidemenu {
+        position: sticky;
+        top: calc(116.5px + #{tokens.$space-block});
+        max-height: calc(100vh - 116.5px - #{tokens.$space-section});
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+    }
+}
+
+.layout .sidemenu-title {
+    margin-bottom: tokens.$space-label;
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.layout .theme-link {
+    gap: tokens.$space-heading;
+    padding: 0.3125rem tokens.$space-related;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+
+    &[aria-current] {
+        font-weight: 700;
+    }
+}
+
+.theme-count {
+    margin-left: auto;
+    color: var(--text-mention-grey);
+    font-size: 0.75rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+.intro {
+    margin-bottom: tokens.$space-group;
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.filters {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$space-block;
+    margin-bottom: tokens.$space-section;
+}
+
+/* Outranks DSFR's `.fr-input-group:not(:last-child)` margin, which would double the flex gap. */
+.layout .filters .field {
+    margin: 0;
+}
+
+.count {
+    margin-top: -(tokens.$space-heading);
+    color: var(--text-mention-grey);
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+}
+
+.category {
+    margin-bottom: tokens.$space-region;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    h3 {
+        margin-bottom: tokens.$space-heading;
+    }
+}
+
+.answer {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$space-block;
+
+    /* Stretched so a wide table scrolls inside its own wrapper instead of widening the answer. */
+    > :first-child {
+        min-width: 0;
+    }
+
+    > :last-child {
+        align-self: flex-start;
+    }
+}
+
+.empty {
+    display: flex;
+    flex-direction: column;
+    gap: tokens.$space-group;
+}
