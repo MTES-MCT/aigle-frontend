@@ -1,9 +1,11 @@
 import { detectionObjectEndpoints } from '@/api/endpoints';
+import { useDetectionTracking } from '@/components/DetectionDetail/tracking';
 import SelectItem from '@/components/ui/SelectItem';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { ObjectType } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
 import api, { ApiError } from '@/utils/api';
+import { TRACKING_CATEGORIES, getErrorTrackingName } from '@/utils/tracking';
 import { Button, Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -21,11 +23,15 @@ const postForm = async (detectionUuid: string, values: FormValues) => {
     await api(detectionObjectEndpoints.detail(detectionUuid), { method: 'PATCH', body: values });
 };
 
+// The comment saves after every pause in the typing: it is counted once per object and page load.
+const commentTrackedDetectionObjectUuids = new Set<string>();
+
 interface ComponentProps {
     detectionObject: DetectionObjectDetail;
 }
 const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
     const { objectTypes, eventEmitter } = useMap();
+    const { trackEvent, trackEventOnce } = useDetectionTracking();
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
             objectTypeUuid: detectionObject.objectType.uuid,
@@ -33,6 +39,12 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
         },
     });
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
+    // the type and the comment share one PATCH: what changed is told apart from the last saved values
+    const lastSavedRef = useRef({
+        objectTypeUuid: detectionObject.objectType.uuid,
+        objectTypeName: detectionObject.objectType.name,
+        comment: detectionObject.comment || '',
+    });
 
     const [commentInputShowed, setCommentInputShowed] = useState(false);
 
@@ -65,7 +77,33 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
 
     const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(detectionObject.uuid, values),
-        onSuccess: () => {
+        onSuccess: (_data, values) => {
+            const lastSaved = lastSavedRef.current;
+            const objectTypeName = objectTypesMap[values.objectTypeUuid]?.name ?? 'Inconnu';
+
+            if (values.objectTypeUuid !== lastSaved.objectTypeUuid) {
+                trackEvent(
+                    TRACKING_CATEGORIES.detection,
+                    'Type d’objet modifié',
+                    `${lastSaved.objectTypeName} → ${objectTypeName}`,
+                );
+            }
+
+            if (values.comment !== lastSaved.comment && !commentTrackedDetectionObjectUuids.has(detectionObject.uuid)) {
+                commentTrackedDetectionObjectUuids.add(detectionObject.uuid);
+                trackEvent(
+                    TRACKING_CATEGORIES.detection,
+                    'Commentaire enregistré',
+                    lastSaved.comment ? 'Modifié' : 'Nouveau',
+                );
+            }
+
+            lastSavedRef.current = {
+                objectTypeUuid: values.objectTypeUuid,
+                objectTypeName,
+                comment: values.comment,
+            };
+
             queryClient.setQueryData(
                 [detectionObjectEndpoints.detail(detectionObject.uuid)],
                 (prev: DetectionObjectDetail) => {
@@ -89,16 +127,26 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
                 message: `L'objet #${detectionObject.id} a été mise à jour avec succès.`,
             });
         },
-        onError: (error) => {
+        onError: (error, values) => {
+            const field =
+                values.objectTypeUuid !== lastSavedRef.current.objectTypeUuid ? 'Type d’objet' : 'Commentaire';
+            trackEventOnce(
+                TRACKING_CATEGORIES.detection,
+                'Enregistrement échoué',
+                `${field} : ${getErrorTrackingName(error)}`,
+            );
+
             if (error.body) {
                 // @ts-expect-error types do not match
                 form.setErrors(error.body);
-                notifications.show({
-                    color: 'red',
-                    title: 'Erreur',
-                    message: "Une erreur est survenue lors de la mise à jour de l'objet",
-                });
             }
+
+            // also for a network failure, which has no body
+            notifications.show({
+                color: 'red',
+                title: 'Erreur',
+                message: "Une erreur est survenue lors de la mise à jour de l'objet",
+            });
         },
     });
 

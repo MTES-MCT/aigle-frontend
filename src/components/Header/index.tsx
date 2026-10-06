@@ -2,9 +2,13 @@ import React from 'react';
 
 import marianneImg from '@/assets/marianne.svg';
 import UserGroupSelector from '@/components/UserGroupSelector';
+import { UserRole } from '@/models/user';
 import { useAuth } from '@/store/slices/auth';
+import { useMap } from '@/store/slices/map';
 import { ENVIRONMENT } from '@/utils/constants';
+import { trackEvent } from '@/utils/matomo';
 import { isScopeBoundaryCrossed } from '@/utils/scope';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -26,15 +30,22 @@ const getSearchParamsForPath = (path: string) => {
     return window.location.search;
 };
 
+/**
+ * The admin section is unscoped, the rest of the app is scoped to the selected user
+ * group. Crossing that boundary is a scope change for a SUPER_ADMIN, so the browser
+ * follows the href: a full load leaves no stale state behind. It is also needed by
+ * anyone whose session started in the admin section, which leaves the map stores empty.
+ */
+const isFullLoadNeeded = (userRole: UserRole | undefined, path: string) =>
+    isScopeBoundaryCrossed(window.location.pathname, path) &&
+    (userRole === 'SUPER_ADMIN' || !useMap.getState().settings);
+
 const NavMenu: React.FC = () => {
     const { userMe, logout, getCanViewStatistics } = useAuth();
     const navigate = useNavigate();
 
     const handleNavigate = (path: string) => (e: React.MouseEvent) => {
-        // The admin section is unscoped, the rest of the app is scoped to the
-        // selected user group. Crossing that boundary is a scope change, so let
-        // the browser follow the href: a full load leaves no stale state behind.
-        if (userMe?.userRole === 'SUPER_ADMIN' && isScopeBoundaryCrossed(window.location.pathname, path)) {
+        if (isFullLoadNeeded(userMe?.userRole, path)) {
             return;
         }
 
@@ -104,7 +115,10 @@ const NavMenu: React.FC = () => {
                     <a
                         className="fr-btn fr-icon-lock-line fr-btn--tertiary-no-outline"
                         href="/"
-                        onClick={() => logout()}
+                        onClick={() => {
+                            trackEvent(TRACKING_CATEGORIES.account, 'Session fermée', 'Déconnexion');
+                            logout();
+                        }}
                     >
                         Se déconnecter
                     </a>
@@ -147,11 +161,7 @@ const Component: React.FC = () => {
                                     href="/"
                                     title="Accueil - Aigle - Ministère de la transition écologique"
                                     onClick={(e) => {
-                                        // Leaving /admin flips the scope — reload instead.
-                                        if (
-                                            userMe?.userRole === 'SUPER_ADMIN' &&
-                                            isScopeBoundaryCrossed(window.location.pathname, '/')
-                                        ) {
+                                        if (isFullLoadNeeded(userMe?.userRole, '/')) {
                                             return;
                                         }
 

@@ -112,6 +112,10 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object | undefi
     highlightOnHover?: boolean;
     // When defined, renders the auto-refresh picker; value is the initial cadence (snapped to nearest preset).
     refetchInterval?: number | false;
+    // Opt-in: a row the user expands (collapses are not reported), with its 1-based rank in the whole list.
+    onRowExpand?: (item: T_DATA, rank: number) => void;
+    // Opt-in: each result set the table settles on, never the previous page shown while loading.
+    onDataSettled?: (data: T_DATA[]) => void;
 }
 
 const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
@@ -136,6 +140,8 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
     striped = true,
     highlightOnHover = true,
     refetchInterval,
+    onRowExpand,
+    onDataSettled,
 }: ComponentProps<T_DATA, T_FILTER>) => {
     const [pagination, setPagination] = useState<PaginationOffsetLimit>({
         ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
@@ -181,13 +187,24 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
         }
     };
 
-    const { isLoading, error, data, isFetching, refetch } = useQuery({
+    const { isLoading, error, data, isFetching, isPlaceholderData, refetch } = useQuery({
         queryKey: [endpoint, pagination.limit, pagination.offset, ...(filter ? Object.values(filter) : [])],
         queryFn: ({ signal }) => fetchData(signal, pagination),
         placeholderData: keepPreviousData,
         enabled: queryEnabled,
         refetchInterval: refetchControlShown ? userRefetchInterval : false,
     });
+
+    // Kept in a ref so that a new callback on each parent render does not report the same data again.
+    const onDataSettledRef = useRef(onDataSettled);
+    useEffect(() => {
+        onDataSettledRef.current = onDataSettled;
+    });
+    useEffect(() => {
+        if (data && !isPlaceholderData) {
+            onDataSettledRef.current?.(data);
+        }
+    }, [data, isPlaceholderData]);
 
     const paginationPage = getPaginationPage(pagination);
     const colsCount = tableHeader.length + (showSelection ? 1 : 0) + (showCopyUuidCol ? 1 : 0);
@@ -241,6 +258,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                 className={classes['select-limit']}
                                 data={LIMITS.map(String)}
                                 value={String(pagination.limit)}
+                                allowDeselect={false}
                                 onChange={(limit) =>
                                     setPagination((prev) => ({
                                         ...prev,
@@ -287,7 +305,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                             </Table.Td>
                                         </Table.Tr>
                                     ) : null}
-                                    {data?.map((item) => (
+                                    {data?.map((item, index) => (
                                         <React.Fragment key={item.uuid}>
                                             <Table.Tr
                                                 bg={
@@ -329,6 +347,13 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                                                       onItemClick && onItemClick(item);
 
                                                                       if (getExpandedContent) {
+                                                                          // Read here, not in the updater: StrictMode runs updaters twice.
+                                                                          if (!rowsExpanded.has(item.uuid)) {
+                                                                              onRowExpand?.(
+                                                                                  item,
+                                                                                  pagination.offset + index + 1,
+                                                                              );
+                                                                          }
                                                                           setRowsExpanded((prev) => {
                                                                               const newSet = new Set(prev);
                                                                               if (newSet.has(item.uuid)) {

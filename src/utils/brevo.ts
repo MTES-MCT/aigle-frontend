@@ -1,5 +1,7 @@
 import { User } from '@/models/user';
 import { ENVIRONMENT } from '@/utils/constants';
+import { trackEventOnce } from '@/utils/matomo';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 
 // Brevo Conversations, the support chat widget. Loaded from here rather than from
 // index.html so it only exists for a signed-in user: it has nothing to offer on
@@ -17,6 +19,29 @@ type BrevoCommandQueue = ((...args: unknown[]) => void) & { q?: unknown[][] };
 
 // A content blocker or a proxy can stop the widget script: commands would then only pile up in the queue.
 let widgetFailedToLoad = false;
+
+// Brevo's analytic event for the first message the visitor sends; opening the chat has none.
+const CHAT_STARTED_EVENT = 'Chat initiated by visitor';
+
+// The widget is hidden on the admin section, and only loads once signed in.
+const CHAT_PAGE_NAMES: Record<string, string> = {
+    '/map': 'Carte',
+    '/table': 'Tableau',
+    '/statistics': 'Statistiques',
+    '/help': 'Centre d’aide',
+    '/about': 'A propos',
+};
+
+// The page the conversation starts from, never what the user wrote.
+const trackChatStarted = (...args: unknown[]) => {
+    if (args.includes(CHAT_STARTED_EVENT)) {
+        trackEventOnce(
+            TRACKING_CATEGORIES.support,
+            'Conversation démarrée',
+            CHAT_PAGE_NAMES[window.location.pathname] ?? 'Autre',
+        );
+    }
+};
 
 declare global {
     interface Window {
@@ -49,6 +74,7 @@ export const setupBrevo = (user: User) => {
                 visitorBubbleBg: '#117f58',
                 agentBubbleBg: '#ededed',
             },
+            onAnalyticEvent: trackChatStarted,
         };
 
         // commands issued before the widget finishes loading are replayed on init

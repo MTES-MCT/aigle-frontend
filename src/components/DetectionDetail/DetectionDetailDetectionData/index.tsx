@@ -1,5 +1,6 @@
 import { detectionDataEndpoints, detectionEndpoints } from '@/api/endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
+import { useDetectionTracking } from '@/components/DetectionDetail/tracking';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoBubble from '@/components/ui/InfoBubble';
 import InfoCard from '@/components/ui/InfoCard';
@@ -24,6 +25,7 @@ import {
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
 } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
+import { TRACKING_CATEGORIES, getErrorTrackingName } from '@/utils/tracking';
 import { Button, Checkbox, LoadingOverlay, Loader as MantineLoader, Select, Text } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -32,7 +34,7 @@ import { bbox } from '@turf/turf';
 import clsx from 'clsx';
 import { format, parse } from 'date-fns';
 import { Polygon } from 'geojson';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import classes from './index.module.scss';
 
@@ -99,10 +101,17 @@ const postForm = async (
     };
 };
 
+// A change the agent made, sent once the PATCH it triggers succeeds.
+interface TrackedChange {
+    action: string;
+    name: string;
+}
+
 interface FormProps {
     detectionObjectUuid: string;
     prescriptionDurationYears: number | null;
     tileSetUuid?: string;
+    tileSetYear: string;
     uuid?: string;
     geometry?: Polygon;
     initialValues: FormValues;
@@ -113,6 +122,7 @@ const Form: React.FC<FormProps> = ({
     detectionObjectUuid,
     prescriptionDurationYears,
     tileSetUuid,
+    tileSetYear,
     uuid,
     geometry,
     initialValues,
@@ -120,6 +130,9 @@ const Form: React.FC<FormProps> = ({
 }) => {
     const [error, setError] = useState<ApiError>();
     const { eventEmitter } = useMap();
+    const { trackEvent, trackEventOnce } = useDetectionTracking();
+    // filled by the handlers, taken by the next save: the watchers below also save values the agent did not pick
+    const pendingChangesRef = useRef<TrackedChange[]>([]);
 
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
@@ -135,13 +148,30 @@ const Form: React.FC<FormProps> = ({
         initialValues.legitimateDate,
     ]);
 
-    const mutation: UseMutationResult<FormValues, ApiError, FormValues> = useMutation({
+    const mutation: UseMutationResult<FormValues, ApiError, FormValues, TrackedChange[]> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, geometry, tileSetUuid, detectionObjectUuid, uuid),
-        onSuccess: () => {
+        onMutate: () => {
+            const changes = pendingChangesRef.current;
+            pendingChangesRef.current = [];
+            return changes;
+        },
+        onSuccess: (_data, _values, changes) => {
+            changes?.forEach(({ action, name }) => trackEvent(TRACKING_CATEGORIES.detection, action, name));
+
+            // without a uuid, only the 'Créer l'objet' submit saves
+            if (!uuid) {
+                trackEvent(TRACKING_CATEGORIES.detection, 'Détection ajoutée', tileSetYear);
+            }
+
             eventEmitter.emit('UPDATE_DETECTIONS');
             eventEmitter.emit('UPDATE_DETECTION_DETAIL');
         },
         onError: (error) => {
+            trackEventOnce(
+                TRACKING_CATEGORIES.detection,
+                'Enregistrement échoué',
+                `${uuid ? 'Statuts' : 'Création'} : ${getErrorTrackingName(error)}`,
+            );
             console.error(error);
             setError(error);
             if (error.body) {
@@ -169,12 +199,21 @@ const Form: React.FC<FormProps> = ({
         mutation.mutate(values);
     };
 
+    // only for a change of an existing detection: the watchers save it right away
+    const stashChange = (action: string, from: string | null, to: string | null, name: string) => {
+        if (uuid && to && from !== to) {
+            pendingChangesRef.current.push({ action, name });
+        }
+    };
+
+    const controlStatusInputProps = form.getInputProps('detectionControlStatus');
+
     return (
         <form onSubmit={form.onSubmit(handleSubmit)} className={classes.form}>
             {!uuid ? (
                 <InfoCard title="Ajout d'un objet" withCloseButton={false}>
                     <p>Cet objet n&apos;exsite pas actuellement. Vous êtes sur le point de le créer.</p>
-                    <Button mt="xs" type="submit" fullWidth disabled={disabled}>
+                    <Button mt="xs" type="submit" fullWidth disabled={disabled || mutation.status === 'pending'}>
                         Créer l&apos;objet
                     </Button>
                 </InfoCard>
@@ -244,7 +283,16 @@ const Form: React.FC<FormProps> = ({
                             color={DETECTION_VALIDATION_STATUSES_COLORS_MAP[status]}
                             key={status}
                             disabled={mutation.status === 'pending'}
-                            onClick={() => form.setFieldValue('detectionValidationStatus', status)}
+                            onClick={() => {
+                                const currentStatus = form.getValues().detectionValidationStatus;
+                                stashChange(
+                                    'Statut de validation modifié',
+                                    currentStatus,
+                                    status,
+                                    `${currentStatus} → ${status}`,
+                                );
+                                form.setFieldValue('detectionValidationStatus', status);
+                            }}
                         >
                             {DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
                         </Button>
@@ -277,12 +325,16 @@ const Form: React.FC<FormProps> = ({
                     key={form.key('detectionPrescriptionStatus')}
                     disabled={disabled || mutation.status === 'pending'}
                     checked={form.getValues().detectionPrescriptionStatus === 'PRESCRIBED'}
-                    onChange={(event) =>
-                        form.setFieldValue(
-                            'detectionPrescriptionStatus',
-                            event.currentTarget.checked ? 'PRESCRIBED' : 'NOT_PRESCRIBED',
-                        )
-                    }
+                    onChange={(event) => {
+                        const prescriptionStatus = event.currentTarget.checked ? 'PRESCRIBED' : 'NOT_PRESCRIBED';
+                        stashChange(
+                            'Prescription modifiée',
+                            form.getValues().detectionPrescriptionStatus,
+                            prescriptionStatus,
+                            prescriptionStatus,
+                        );
+                        form.setFieldValue('detectionPrescriptionStatus', prescriptionStatus);
+                    }}
                 />
             ) : null}
 
@@ -297,7 +349,17 @@ const Form: React.FC<FormProps> = ({
                 key={form.key('detectionControlStatus')}
                 disabled={disabled || mutation.status === 'pending'}
                 rightSection={mutation.status === 'pending' ? <MantineLoader size="xs" /> : null}
-                {...form.getInputProps('detectionControlStatus')}
+                {...controlStatusInputProps}
+                onChange={(controlStatus) => {
+                    const currentStatus = form.getValues().detectionControlStatus;
+                    stashChange(
+                        'Statut de contrôle modifié',
+                        currentStatus,
+                        controlStatus,
+                        `${currentStatus} → ${controlStatus}`,
+                    );
+                    controlStatusInputProps.onChange(controlStatus);
+                }}
             />
             {form.getValues().detectionControlStatus === 'OFFICIAL_REPORT_DRAWN_UP' ? (
                 <DateInput
@@ -306,6 +368,8 @@ const Form: React.FC<FormProps> = ({
                     dateParser={(value: string) => parse(value, 'dd/MM/yyyy', new Date())}
                     valueFormat="DD/MM/YYYY"
                     placeholder="26/02/2023"
+                    // without it, a year being typed is saved as year 0002
+                    minDate={new Date(1980, 1, 1)}
                     description="Optionel"
                     clearable
                     disabled={disabled || mutation.status === 'pending'}
@@ -342,6 +406,7 @@ const Component: React.FC<ComponentProps> = ({
     detectionRefreshing,
 }) => {
     const [detectionSelected, setDetectionSelected] = useState<DetectionWithTile | undefined>(initialDetection);
+    const { trackEvent } = useDetectionTracking();
 
     const previewBounds = useMemo(() => {
         const detection = detectionSelected || initialDetection;
@@ -383,7 +448,19 @@ const Component: React.FC<ComponentProps> = ({
                     label: `${tileSet.name} - ${formatDateOnly(tileSet.date)}`,
                 }))}
                 value={tileSetSelected.uuid}
-                onChange={(tileSetUuid) => selectTileSet(String(tileSetUuid))}
+                onChange={(tileSetUuid) => {
+                    const tileSetPreview = detectionObject.tileSets.find(({ tileSet }) => tileSet.uuid === tileSetUuid);
+
+                    if (tileSetPreview && tileSetUuid !== tileSetSelected.uuid) {
+                        trackEvent(
+                            TRACKING_CATEGORIES.detection,
+                            'Millésime sélectionné',
+                            `Liste : ${formatDateOnly(tileSetPreview.tileSet.date, 'yyyy')}`,
+                        );
+                    }
+
+                    selectTileSet(String(tileSetUuid));
+                }}
             />
 
             <div className={classes['detection-tile-preview-form-container']}>
@@ -438,6 +515,7 @@ const Component: React.FC<ComponentProps> = ({
                     disabled={!detectionObject.userGroupRights.includes('WRITE')}
                     geometry={initialDetection.geometry}
                     tileSetUuid={tileSetSelected.uuid}
+                    tileSetYear={formatDateOnly(tileSetSelected.date, 'yyyy')}
                 />
             </div>
         </div>

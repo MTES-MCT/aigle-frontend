@@ -12,16 +12,21 @@ import { ObjectType } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
 import api, { ApiError } from '@/utils/api';
 import { DETECTION_CONTROL_STATUSES_NAMES_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
+import { trackEvent, trackEventOnce } from '@/utils/matomo';
+import { TRACKING_CATEGORIES, getErrorTrackingName } from '@/utils/tracking';
 import { Button, Modal, Select } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconSelectAll } from '@tabler/icons-react';
-import { UseMutationResult, useMutation } from '@tanstack/react-query';
+import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import React, { useMemo } from 'react';
 import classes from './index.module.scss';
 
 const NO_EDIT_TEXT = 'Ne pas éditer';
+const MUTATION_KEY = [detectionEndpoints.multiple];
+
+type TrackingSource = 'Carte' | 'Tableau';
 
 type DetectionControlStatusNullable = DetectionControlStatus | null;
 type DetectionValidationStatusNullable = DetectionValidationStatus | null;
@@ -57,9 +62,11 @@ interface FormProps {
     objectTypes: ObjectType[];
     detectionsUuids: string[];
     hide: (dataUpdated?: boolean) => void;
+    cancel: () => void;
+    trackingSource?: TrackingSource;
 }
 
-const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
+const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide, cancel, trackingSource }) => {
     const { eventEmitter } = useMap();
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
@@ -79,8 +86,27 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
     }, [objectTypes]);
 
     const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
+        mutationKey: MUTATION_KEY,
         mutationFn: (values: FormValues) => postForm(values, detectionsUuids),
-        onSuccess: () => {
+        onSuccess: (_data, values) => {
+            // one event per field set: those left on 'Ne pas éditer' are not sent
+            if (trackingSource) {
+                [
+                    values.detectionValidationStatus && `Validation : ${values.detectionValidationStatus}`,
+                    values.detectionControlStatus && `Contrôle : ${values.detectionControlStatus}`,
+                    values.objectTypeUuid && `Type : ${objectTypesMap[values.objectTypeUuid]?.name ?? 'Inconnu'}`,
+                ]
+                    .filter((name): name is string => !!name)
+                    .forEach((name) =>
+                        trackEvent(
+                            TRACKING_CATEGORIES.bulkEdit,
+                            'Modification enregistrée',
+                            name,
+                            detectionsUuids.length,
+                        ),
+                    );
+            }
+
             eventEmitter.emit('UPDATE_DETECTIONS');
             notifications.show({
                 title: 'Edition multiple',
@@ -89,15 +115,28 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
             hide(true);
         },
         onError: (error) => {
+            if (trackingSource) {
+                trackEventOnce(
+                    TRACKING_CATEGORIES.bulkEdit,
+                    'Enregistrement échoué',
+                    getErrorTrackingName(error),
+                    detectionsUuids.length,
+                );
+            }
+
             if (error.body) {
                 // @ts-expect-error types do not match
                 form.setErrors(error.body);
-                notifications.show({
-                    color: 'red',
-                    title: "Une erreur est survenue lors de l'édition multiple",
-                    message: ((error.body as Record<string, string>)?.detail as string) || '',
-                });
             }
+
+            // also for a network failure, which has no body
+            notifications.show({
+                color: 'red',
+                title: "Une erreur est survenue lors de l'édition multiple",
+                message:
+                    ((error.body as Record<string, string>)?.detail as string) ||
+                    "Les détections n'ont pas été modifiées, veuillez réessayer.",
+            });
         },
     });
 
@@ -152,7 +191,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide }) => {
             />
 
             <div className="form-actions">
-                <Button type="button" variant="outline" onClick={() => hide()}>
+                <Button type="button" variant="outline" onClick={cancel}>
                     Annuler
                 </Button>
 
@@ -172,9 +211,12 @@ interface ComponentProps {
     isShowed: boolean;
     hide: (dataUpdated?: boolean) => void;
     detectionsUuids?: string[];
+    // where the modal is opened from; no event is sent without it
+    trackingSource?: TrackingSource;
 }
-const Component: React.FC<ComponentProps> = ({ isShowed, detectionsUuids, hide }) => {
+const Component: React.FC<ComponentProps> = ({ isShowed, detectionsUuids, hide, trackingSource }) => {
     const { objectTypes, layers } = useMap();
+    const queryClient = useQueryClient();
 
     if (!isShowed || !detectionsUuids) {
         return null;
@@ -184,10 +226,26 @@ const Component: React.FC<ComponentProps> = ({ isShowed, detectionsUuids, hide }
         return <Loader />;
     }
 
+    // 'Annuler', the X, Escape or a click outside: the parents' hide also runs after a save
+    const cancel = () => {
+        // closed while the save is in flight: that save still lands and sends its own outcome
+        if (trackingSource && !queryClient.isMutating({ mutationKey: MUTATION_KEY })) {
+            trackEvent(TRACKING_CATEGORIES.bulkEdit, 'Formulaire annulé', trackingSource, detectionsUuids.length);
+        }
+
+        hide();
+    };
+
     return (
-        <Modal opened={isShowed} onClose={hide} title="Edition multiple">
+        <Modal opened={isShowed} onClose={cancel} title="Edition multiple">
             {objectTypes ? (
-                <Form objectTypes={objectTypes} detectionsUuids={detectionsUuids} hide={hide} />
+                <Form
+                    objectTypes={objectTypes}
+                    detectionsUuids={detectionsUuids}
+                    hide={hide}
+                    cancel={cancel}
+                    trackingSource={trackingSource}
+                />
             ) : (
                 <Loader />
             )}

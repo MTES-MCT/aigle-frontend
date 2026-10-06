@@ -123,7 +123,7 @@ const Component: React.FC = () => {
     return (
         <>
             <a
-                className={clsx('fr-link fr-link--download', classes.link)}
+                className={clsx('fr-link fr-link--download matomo_ignore', classes.link)}
                 href={pdfDoc}
                 download={FILE_NAME}
                 aria-busy={status.state === 'loading' || undefined}

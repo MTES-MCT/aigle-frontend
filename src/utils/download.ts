@@ -10,6 +10,8 @@ const LEGEND_SWATCH_SIZE = 10;
 const LEGEND_SWATCH_GAP = 6;
 const LEGEND_ITEM_GAP = 18;
 const LEGEND_FONT = '12px Marianne, arial, sans-serif';
+// Safari cancels a download whose blob url is revoked while it starts.
+const OBJECT_URL_REVOKE_DELAY_MS = 40000;
 
 // Properties carrying the rendered look. Read from getComputedStyle (which resolves the
 // CSS variables, classes and `currentColor` a detached SVG file has no access to) and
@@ -38,15 +40,19 @@ export const toFileSlug = (text: string) =>
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
 
+// Every programmatic download of the app goes through here. matomo_ignore keeps it out of Matomo's
+// link tracking, which would log each one as a Download with a unique blob: url: exports are
+// tracked by explicit events instead.
 export const triggerDownload = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
+    link.className = 'matomo_ignore';
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), OBJECT_URL_REVOKE_DELAY_MS);
 };
 
 const toCsvCell = (value: string | number | null): string => {
@@ -101,8 +107,9 @@ const drawLegend = (
 };
 
 /**
- * Rasterises the <svg> rendered inside `container` — titled, and with the Mantine legend
- * re-drawn — onto a canvas. Resolves to null when the container holds no chart.
+ * Rasterises the <svg> rendered inside `container` (titled, and with the Mantine legend
+ * re-drawn) onto a canvas. Resolves to null when the container holds no chart, and rejects
+ * when there is one but it could not be drawn.
  */
 const renderChartToCanvas = (container: HTMLElement, title?: string): Promise<HTMLCanvasElement | null> => {
     const svg = container.querySelector('svg');
@@ -152,7 +159,7 @@ const renderChartToCanvas = (container: HTMLElement, title?: string): Promise<HT
         new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }),
     );
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const image = new Image();
 
         image.onload = () => {
@@ -179,24 +186,54 @@ const renderChartToCanvas = (container: HTMLElement, title?: string): Promise<HT
             }
 
             URL.revokeObjectURL(svgUrl);
-            resolve(canvas);
+            if (context) {
+                resolve(canvas);
+            } else {
+                reject(new Error('Chart rasterisation failed: no 2d context'));
+            }
         };
         image.onerror = () => {
             URL.revokeObjectURL(svgUrl);
-            resolve(null);
+            reject(new Error('Chart rasterisation failed: the svg did not load as an image'));
         };
         image.src = svgUrl;
     });
 };
 
-/** Saves the <svg> rendered inside `container`, titled and with its Mantine legend, as a PNG. */
-export const downloadChartPng = async (container: HTMLElement, fileName: string, title?: string) => {
-    const canvas = await renderChartToCanvas(container, title);
-    canvas?.toBlob((blob) => blob && triggerDownload(blob, fileName));
+/** Whether `container` holds a rendered chart, i.e. something the PNG and PDF exports can draw. */
+export const containsChart = (container: HTMLElement) => !!container.querySelector('svg');
+
+/**
+ * Saves the <svg> rendered inside `container`, titled and with its Mantine legend, as a PNG.
+ * Resolves to whether a file was downloaded: false when there is no chart or it failed to render.
+ */
+export const downloadChartPng = async (container: HTMLElement, fileName: string, title?: string): Promise<boolean> => {
+    try {
+        const canvas = await renderChartToCanvas(container, title);
+        const blob = canvas && (await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve)));
+
+        if (!blob) {
+            return false;
+        }
+
+        triggerDownload(blob, fileName);
+        return true;
+    } catch (error) {
+        console.error(error);
+        return false;
+    }
 };
 
-/** The same rendering as a data URL: how a live chart gets into a generated PDF. */
+/**
+ * The same rendering as a data URL: how a live chart gets into a generated PDF. Null when there
+ * is no chart or it failed to render: `containsChart` tells the two apart.
+ */
 export const chartToPngDataUrl = async (container: HTMLElement, title?: string) => {
-    const canvas = await renderChartToCanvas(container, title);
-    return canvas ? canvas.toDataURL('image/png') : null;
+    try {
+        const canvas = await renderChartToCanvas(container, title);
+        return canvas ? canvas.toDataURL('image/png') : null;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
 };

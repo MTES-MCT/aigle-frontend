@@ -2,6 +2,7 @@ import React from 'react';
 
 import { parcelEndpoints } from '@/api/endpoints';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
+import ErrorCard from '@/components/ui/ErrorCard';
 import InfoBubble from '@/components/ui/InfoBubble';
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
@@ -12,7 +13,7 @@ import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
 import { GREEN, RED } from '@/utils/colors';
 import { formatBigInt } from '@/utils/format';
-import { LoadingOverlay } from '@mantine/core';
+import { Button, LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import classes from './index.module.scss';
 
@@ -130,7 +131,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     ...collectivities
 }: ComponentInnerProps) => {
     const queryEnabled = collectivities.communesUuids.length > 0 || collectivities.epcisUuids.length > 0;
-    const { data, isFetching } = useQuery({
+    const { data, isFetching, error, refetch } = useQuery({
         queryKey: [
             parcelEndpoints.overview,
             Object.values(objectsFilter),
@@ -149,7 +150,16 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     }
 
     if (!data) {
-        return <Loader />;
+        return error ? (
+            <ErrorCard>
+                Le décompte des parcelles n&apos;a pas pu être chargé.
+                <Button display="block" mt="xs" size="compact-sm" variant="light" color="red" onClick={() => refetch()}>
+                    Réessayer
+                </Button>
+            </ErrorCard>
+        ) : (
+            <Loader />
+        );
     }
 
     return (

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 
+import { getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
 import SelectItem from '@/components/ui/SelectItem';
 import { detectionControlStatuses, detectionValidationStatusesSelectable } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
@@ -12,6 +13,7 @@ import {
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
     OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
+import { trackEvent } from '@/utils/matomo';
 import {
     CUSTOM_PRESET_ID,
     CUSTOM_PRESET_LABEL,
@@ -51,12 +53,29 @@ interface FormValues {
 
 const formatScore = (score: number) => Math.round(score * 100);
 
+// Each keyboard step and each click on the slider ends a change: only the value the agent settles on is sent.
+const SCORE_TRACKING_DELAY_MS = 1000;
+
+const getPrescriptedTrackingName = (prescripted: ObjectsFilter['prescripted']) => {
+    if (prescripted === null) {
+        return 'ALL';
+    }
+
+    return prescripted ? 'PRESCRIBED' : 'NOT_PRESCRIBED';
+};
+
+type TrackedListField = 'objectTypesUuids' | 'detectionValidationStatuses' | 'detectionControlStatuses';
+
 interface ComponentProps {
     objectTypes: ObjectType[];
     objectsFilter: ObjectsFilter;
     mapGeoCustomZoneLayers: MapGeoCustomZoneLayer[];
     otherObjectTypesUuids: Set<string>;
     updateObjectsFilter: (objectsFilter: ObjectsFilter) => void;
+    // Matomo category of the filter events: none are sent without it.
+    trackingCategory?: string;
+    // Called on every change the agent makes, never on a restored or programmatic one.
+    onUserChange?: () => void;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -65,8 +84,11 @@ const Component: React.FC<ComponentProps> = ({
     objectsFilter,
     mapGeoCustomZoneLayers,
     updateObjectsFilter,
+    trackingCategory,
+    onUserChange,
 }) => {
-    const { eventEmitter } = useMap();
+    const { eventEmitter, settings } = useMap();
+    const scoreTrackingRef = useRef<{ timer: ReturnType<typeof setTimeout>; from: number } | null>(null);
     const {
         objectTypesUuids,
         detectionValidationStatuses: detectionValidationStatusesFilter,
@@ -182,11 +204,100 @@ const Component: React.FC<ComponentProps> = ({
     );
     const selectedPresetId = useMemo(() => getMatchingPresetId(objectsFilter) ?? CUSTOM_PRESET_ID, [objectsFilter]);
 
+    useEffect(
+        () => () => {
+            if (scoreTrackingRef.current) {
+                clearTimeout(scoreTrackingRef.current.timer);
+            }
+        },
+        [],
+    );
+
+    const trackFilterEvent = (action: string, name: string) => {
+        if (trackingCategory) {
+            trackEvent(trackingCategory, action, name);
+        }
+    };
+
+    const getObjectTypeTrackingName = (uuid: string) => objectTypesMap[uuid]?.name ?? 'Inconnu';
+
+    // One event per value ticked or unticked: 'Validation : +SUSPECT', 'Contrôle : -CONTROLLED_FIELD'.
+    const trackListChanges = (
+        dimension: string,
+        previous: string[],
+        next: string[],
+        getLabel: (value: string) => string = (value) => value,
+    ) => {
+        next.filter((value) => !previous.includes(value)).forEach((value) =>
+            trackFilterEvent('Filtre modifié', `${dimension} : +${getLabel(value)}`),
+        );
+        previous
+            .filter((value) => !next.includes(value))
+            .forEach((value) => trackFilterEvent('Filtre modifié', `${dimension} : -${getLabel(value)}`));
+    };
+
+    // Diffs the agent's own change before the form takes it. Presets, url restores and 'Rendre visible' go
+    // through setValues instead, so they are never counted.
+    const getTrackedListInputProps = (
+        field: TrackedListField,
+        dimension: string,
+        getLabel?: (value: string) => string,
+    ) => {
+        const inputProps = form.getInputProps(field);
+
+        return {
+            ...inputProps,
+            onChange: (value: string[]) => {
+                trackListChanges(dimension, form.getValues()[field], value, getLabel);
+                onUserChange?.();
+                inputProps.onChange(value);
+            },
+        };
+    };
+
+    const changePrescripted = (prescripted: ObjectsFilter['prescripted']) => {
+        if (form.getValues().prescripted !== prescripted) {
+            trackFilterEvent('Filtre modifié', `Prescription : =${getPrescriptedTrackingName(prescripted)}`);
+            onUserChange?.();
+        }
+        form.setFieldValue('prescripted', prescripted);
+    };
+
+    const changeScore = (score: number) => {
+        const previousScore = form.getValues().score;
+        if (score !== previousScore) {
+            onUserChange?.();
+        }
+        form.setFieldValue('score', score);
+
+        if (!trackingCategory) {
+            return;
+        }
+
+        const pending = scoreTrackingRef.current;
+        const from = pending ? pending.from : previousScore;
+        if (pending) {
+            clearTimeout(pending.timer);
+        }
+
+        scoreTrackingRef.current = {
+            from,
+            timer: setTimeout(() => {
+                scoreTrackingRef.current = null;
+                if (formatScore(score) !== formatScore(from)) {
+                    trackEvent(trackingCategory, 'Score modifié', String(formatScore(score)));
+                }
+            }, SCORE_TRACKING_DELAY_MS),
+        };
+    };
+
     const applyPreset = (presetId: string | null) => {
         const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === presetId);
         if (!preset) {
             return;
         }
+        trackFilterEvent('Filtre rapide appliqué', preset.id);
+        onUserChange?.();
         form.setValues(preset.filter);
         updateObjectsFilter({ ...objectsFilter, ...preset.filter });
     };
@@ -223,7 +334,7 @@ const Component: React.FC<ComponentProps> = ({
                             key={form.key('score')}
                             {...form.getInputProps('score')}
                             onChange={undefined}
-                            onChangeEnd={(value) => form.setFieldValue('score', value)}
+                            onChangeEnd={changeScore}
                             aria-label="Changer le seuil du score"
                         />
                         {formatScore(form.getValues().score)}
@@ -238,7 +349,7 @@ const Component: React.FC<ComponentProps> = ({
                             size="xs"
                             variant={form.getValues().prescripted === null ? 'filled' : 'outline'}
                             type="button"
-                            onClick={() => form.setFieldValue('prescripted', null)}
+                            onClick={() => changePrescripted(null)}
                         >
                             Prescrits et non-prescrits
                         </Button>
@@ -247,7 +358,7 @@ const Component: React.FC<ComponentProps> = ({
                             size="xs"
                             variant={form.getValues().prescripted === true ? 'filled' : 'outline'}
                             type="button"
-                            onClick={() => form.setFieldValue('prescripted', true)}
+                            onClick={() => changePrescripted(true)}
                         >
                             Prescrits
                         </Button>
@@ -256,7 +367,7 @@ const Component: React.FC<ComponentProps> = ({
                             size="xs"
                             variant={form.getValues().prescripted === false ? 'filled' : 'outline'}
                             type="button"
-                            onClick={() => form.setFieldValue('prescripted', false)}
+                            onClick={() => changePrescripted(false)}
                         >
                             Non-prescrits
                         </Button>
@@ -277,7 +388,7 @@ const Component: React.FC<ComponentProps> = ({
                                 <SelectItem item={item} color={objectTypesMap[item.option.value].color} />
                             )}
                             key={form.key('objectTypesUuids')}
-                            {...form.getInputProps('objectTypesUuids')}
+                            {...getTrackedListInputProps('objectTypesUuids', 'Type d’objet', getObjectTypeTrackingName)}
                         />
 
                         <Tooltip
@@ -291,6 +402,11 @@ const Component: React.FC<ComponentProps> = ({
                                 className={classes['object-types-selectall-button']}
                                 onClick={() => {
                                     const objectTypesUuidsSelected = form.getValues().objectTypesUuids;
+                                    trackFilterEvent(
+                                        'Filtre modifié',
+                                        `Type d’objet : ${objectTypesUuidsSelected.length ? '-' : '+'}TOUS`,
+                                    );
+                                    onUserChange?.();
                                     form.setFieldValue(
                                         'objectTypesUuids',
                                         objectTypesUuidsSelected.length ? [] : objectTypes.map(({ uuid }) => uuid),
@@ -315,6 +431,11 @@ const Component: React.FC<ComponentProps> = ({
                                                 variant="transparent"
                                                 size={16}
                                                 onClick={() => {
+                                                    trackFilterEvent(
+                                                        'Filtre modifié',
+                                                        `Type d’objet : -${getObjectTypeTrackingName(uuid)}`,
+                                                    );
+                                                    onUserChange?.();
                                                     form.setFieldValue('objectTypesUuids', (prev) =>
                                                         prev.filter((typeUuid) => typeUuid !== uuid),
                                                     );
@@ -343,7 +464,7 @@ const Component: React.FC<ComponentProps> = ({
                             mt="xl"
                             label="Statuts de validation"
                             key={form.key('detectionValidationStatuses')}
-                            {...form.getInputProps('detectionValidationStatuses')}
+                            {...getTrackedListInputProps('detectionValidationStatuses', 'Validation')}
                         >
                             <Stack gap="xs" mt="sm">
                                 {detectionValidationStatusesSelectable.map((status) => (
@@ -370,7 +491,7 @@ const Component: React.FC<ComponentProps> = ({
                             mt="xl"
                             label="Statuts de contrôle"
                             key={form.key('detectionControlStatuses')}
-                            {...form.getInputProps('detectionControlStatuses')}
+                            {...getTrackedListInputProps('detectionControlStatuses', 'Contrôle')}
                         >
                             <Stack gap="xs" mt="sm">
                                 {detectionControlStatuses.map((status) => (
@@ -404,7 +525,14 @@ const Component: React.FC<ComponentProps> = ({
                                     label={name}
                                     color={color}
                                     onChange={(event) => {
+                                        const zoneTrackingName = getZoneLayerTrackingName(
+                                            { name, customZoneUuids: customZoneUuids_ },
+                                            settings,
+                                        );
+
                                         if (event.currentTarget.checked) {
+                                            trackFilterEvent('Filtre modifié', `Zone à enjeux : +${zoneTrackingName}`);
+                                            onUserChange?.();
                                             form.setFieldValue(
                                                 'customZonesUuids',
                                                 Array.from(new Set([...customZonesUuids, ...customZoneUuids_])),
@@ -423,8 +551,11 @@ const Component: React.FC<ComponentProps> = ({
                                                     title: 'Zone à enjeux',
                                                     message: 'Au moins une zone à enjeux doit rester sélectionnée',
                                                 });
+                                                trackFilterEvent('Filtre refusé', 'Dernière zone à enjeux');
                                                 return;
                                             }
+                                            trackFilterEvent('Filtre modifié', `Zone à enjeux : -${zoneTrackingName}`);
+                                            onUserChange?.();
                                             form.setFieldValue('customZonesUuids', next);
                                         }
                                     }}

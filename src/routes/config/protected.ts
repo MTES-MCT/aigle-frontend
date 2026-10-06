@@ -3,6 +3,7 @@ import HelpCenter from '@/routes/HelpCenter';
 import Map from '@/routes/Map/index';
 import Charts from '@/routes/Statistics/Charts';
 import Table from '@/routes/Table';
+import { useAuth } from '@/store/slices/auth';
 import { RouteGroup } from './types';
 
 export const protectedRoutes: RouteGroup = {
@@ -17,6 +18,7 @@ export const protectedRoutes: RouteGroup = {
             path: '/statistics',
             component: Charts,
             requiresAuth: true,
+            isAccessible: () => useAuth.getState().getCanViewStatistics(),
         },
         {
             path: '/table',

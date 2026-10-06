@@ -1,10 +1,12 @@
 import { detectionObjectEndpoints } from '@/api/endpoints';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { useMap } from '@/store/slices/map';
-import api from '@/utils/api';
+import api, { ApiError } from '@/utils/api';
 import { useQuery } from '@tanstack/react-query';
 import { centroid, getCoord } from '@turf/turf';
 import { useCallback, useEffect } from 'react';
+
+const MAX_RETRIES = 3;
 
 interface UseDetectionObjectDetailOptions {
     onSuccess?: (detectionObject: DetectionObjectDetail) => void;
@@ -47,6 +49,9 @@ export const useDetectionObjectDetail = (
             return detectionObject;
         },
         enabled: !!detectionObjectUuid,
+        // a deleted or out-of-scope object answers the same on every retry
+        retry: (failureCount, error) =>
+            !(error instanceof ApiError && error.status < 500) && failureCount < MAX_RETRIES,
     });
 
     useEffect(() => {

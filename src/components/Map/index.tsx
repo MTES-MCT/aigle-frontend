@@ -3,6 +3,7 @@ import Map, { GeolocateControl, Layer, MapRef, Source, ViewStateChangeEvent } fr
 
 import { detectionEndpoints, detectionObjectEndpoints, utilsEndpoints } from '@/api/endpoints';
 import DetectionDetail from '@/components/DetectionDetail';
+import { markDetectionObjectOpened } from '@/components/DetectionDetail/tracking';
 import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import MapAddAnnotationModal from '@/components/Map/MapAddAnnotationModal';
 import MapControlBackgroundSlider from '@/components/Map/controls/MapControlBackgroundSlider';
@@ -13,7 +14,17 @@ import MapControlSearchAddress from '@/components/Map/controls/MapControlSearchA
 import MapControlSearchParcel from '@/components/Map/controls/MapControlSearchParcel';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import { processDetections } from '@/components/Map/utils/process-detections';
-import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
+import {
+    DRAW_TOOL_TRACKING_NAMES,
+    DrawMode,
+    MapPanel,
+    trackMapPanelOpened,
+    trackSignalementCancelled,
+    trackSignalementDownloaded,
+    trackSignalementFailed,
+    trackSignalementStarted,
+} from '@/components/Map/utils/tracking';
+import SignalementPDFData, { SignalementFailureReason } from '@/components/signalement-pdf/SignalementPDFData';
 import { DetectionGeojsonData, DetectionProperties } from '@/models/detection';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { DetectionObjectDetail } from '@/models/detection-object';
@@ -25,6 +36,8 @@ import api, { ApiError } from '@/utils/api';
 import { MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
+import { trackEvent } from '@/utils/matomo';
+import { getErrorTrackingName, getFilterTrackingName, TRACKING_CATEGORIES } from '@/utils/tracking';
 import { Button, LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { useViewportSize } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -34,12 +47,17 @@ import { IconCancel } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
 import { FeatureCollection, Polygon } from 'geojson';
+import { isEqual } from 'lodash';
 import mapboxgl from 'mapbox-gl';
 import DrawRectangle, { DrawStyles } from 'mapbox-gl-draw-rectangle-restrict-area';
 import classes from './index.module.scss';
 
 const ZOOM_LIMIT_TO_DISPLAY_DETECTIONS = 9;
 const ZOOM_LIMIT_TO_DISPLAY_ANNOTATION_GRID = 13;
+// up to this zoom, a viewport spans about a commune or more
+const ZOOM_LIMIT_WIDE_VIEW = 13;
+// a tap runs onMapClick from onTouchEnd, then the browser may synthesize a click on the same spot
+const TAP_CLICK_DEDUPE_DELAY_MS = 800;
 
 const getMapInitialViewState = (
     initialPosition?: GeoJSON.Position | null,
@@ -68,8 +86,6 @@ const getMapInitialViewState = (
           ? { longitude: initialPosition[0], latitude: initialPosition[1] }
           : {}),
 });
-
-type DrawMode = 'MULTIPLE_EDIT' | 'ADD_DETECTION' | 'MULTIPLE_DOWNLOAD';
 
 // Each toolbar button always enters its own built-in mode name. Remapping the behaviour
 // onto those names (instead of calling changeMode() after the fact) is what keeps
@@ -206,6 +222,7 @@ interface MultipleDownloadPage {
 
 interface MultipleDownloadState {
     runId: number;
+    startedAt: number;
     nbrDetections: number;
     // undefined while the details of the selected detections are still being fetched
     pages?: MultipleDownloadPage[];
@@ -253,6 +270,30 @@ const MultipleDownloadBlocker: React.FC<{ state: MultipleDownloadState; onCancel
 };
 
 type LeftSection = 'SEARCH_ADDRESS' | 'FILTER_DETECTION' | 'LEGEND' | 'LAYER_DISPLAY' | 'SEARCH_PARCEL';
+
+type MapDataQuery = 'detections' | 'customZones' | 'annotationGrid';
+
+const MAP_DATA_ERROR_MESSAGES: Record<MapDataQuery, string> = {
+    detections: "Les détections n'ont pas pu être chargées",
+    customZones: "Les zones à enjeux n'ont pas pu être affichées",
+    annotationGrid: "La grille d'annotation n'a pas pu être chargée",
+};
+
+// Once per page load: a failing query fails again on every pan.
+const notifiedMapDataErrors = new Set<MapDataQuery>();
+
+const notifyMapDataError = (query: MapDataQuery) => {
+    if (notifiedMapDataErrors.has(query)) {
+        return;
+    }
+
+    notifiedMapDataErrors.add(query);
+    notifications.show({
+        color: 'red',
+        title: 'Une erreur est survenue',
+        message: `${MAP_DATA_ERROR_MESSAGES[query]}, déplacez la carte ou rechargez la page pour réessayer`,
+    });
+};
 
 const EMPTY_GEOJSON_FEATURE_COLLECTION: FeatureCollection = {
     type: 'FeatureCollection',
@@ -373,6 +414,12 @@ const Component: React.FC<ComponentProps> = ({
     // an already-buffered response, a queued rAF or a generation callback in flight
     const multipleDownloadRunIdRef = useRef(0);
     const multipleDownloadAbortRef = useRef<AbortController | null>(null);
+    // read by cancelMultipleDownload, which is created once
+    const multipleDownloadRef = useRef(multipleDownload);
+    multipleDownloadRef.current = multipleDownload;
+
+    // the object whose opening was last tracked: a re-click on it, or the click following a tap, is not a new one
+    const trackedDetectionObjectUuidRef = useRef<string | null>(initialDetectionObjectUuid ?? null);
 
     const { width } = useViewportSize();
 
@@ -398,6 +445,8 @@ const Component: React.FC<ComponentProps> = ({
         data,
         refetch,
         isFetching: isDetectionsFetching,
+        isPlaceholderData: isDetectionsPlaceholderData,
+        error: detectionsError,
     } = useQuery({
         queryKey: [
             DETECTION_ENDPOINT,
@@ -412,6 +461,57 @@ const Component: React.FC<ComponentProps> = ({
         enabled:
             displayDetections && !!mapBounds && !isDetailFetching && (objectsFilter?.customZonesUuids.length ?? 0) > 0,
     });
+
+    useEffect(() => {
+        if (detectionsError) {
+            notifyMapDataError('detections');
+        }
+    }, [detectionsError]);
+
+    // Armed with the viewport of a filter change the agent makes, checked once the detections it refetches settle.
+    const emptyViewportCheckBoundsRef = useRef<MapBounds | null>(null);
+    const trackedEmptyViewportsRef = useRef(new Set<string>());
+    const mapBoundsRef = useRef(mapBounds);
+    mapBoundsRef.current = mapBounds;
+
+    const armEmptyViewportCheck = useCallback(() => {
+        emptyViewportCheckBoundsRef.current = mapBoundsRef.current ?? null;
+    }, []);
+
+    useEffect(() => {
+        const armedBounds = emptyViewportCheckBoundsRef.current;
+
+        if (!armedBounds || isDetectionsFetching || isDetectionsPlaceholderData) {
+            return;
+        }
+        emptyViewportCheckBoundsRef.current = null;
+
+        // moved since the change: the result is no longer the filter's alone
+        if (
+            !mapRef ||
+            !mapBounds ||
+            !objectsFilter ||
+            !data ||
+            data.features.length ||
+            !isEqual(armedBounds, mapBounds)
+        ) {
+            return;
+        }
+
+        const zoom = mapRef.getZoom();
+        if (zoom <= ZOOM_LIMIT_TO_DISPLAY_DETECTIONS) {
+            return;
+        }
+
+        const name = `${getFilterTrackingName(objectsFilter)} : ${zoom <= ZOOM_LIMIT_WIDE_VIEW ? 'Vue large' : 'Vue rapprochée'}`;
+        const key = `${name}|${Object.values(mapBounds).join(',')}`;
+        if (trackedEmptyViewportsRef.current.has(key)) {
+            return;
+        }
+
+        trackedEmptyViewportsRef.current.add(key);
+        trackEvent(TRACKING_CATEGORIES.mapFilters, 'Aucun résultat affiché', name);
+    }, [data, isDetectionsFetching, isDetectionsPlaceholderData, mapBounds]);
 
     const handleMapRef = useCallback((node?: mapboxgl.Map) => {
         if (!node) {
@@ -533,6 +633,16 @@ const Component: React.FC<ComponentProps> = ({
 
         const getDetectionUuidsFromPolygon = (polygon: Polygon, drawMode: DrawMode): string[] | undefined => {
             const title = DRAW_MODE_TITLES_MAP[drawMode];
+            const trackSelectionRefused = (reason: string, nbrSelected?: number) => {
+                if (syncViewStateToUrl) {
+                    trackEvent(
+                        TRACKING_CATEGORIES.mapTools,
+                        'Sélection refusée',
+                        `${DRAW_TOOL_TRACKING_NAMES[drawMode]} : ${reason}`,
+                        nbrSelected,
+                    );
+                }
+            };
 
             // the selection is computed against the detections already loaded for the
             // viewport: a selection made mid-refetch would silently use the previous ones
@@ -542,6 +652,7 @@ const Component: React.FC<ComponentProps> = ({
                     message: 'Les détections sont en cours de chargement, veuillez réessayer dans un instant',
                     color: 'red',
                 });
+                trackSelectionRefused('Détections en cours de chargement');
                 return;
             }
 
@@ -561,6 +672,7 @@ const Component: React.FC<ComponentProps> = ({
                     message: `Vous avez sélectionné ${detectionUuids.length} objets. La sélection est limitée à ${MULTIPLE_SELECTION_MAX} détections.`,
                     color: 'red',
                 });
+                trackSelectionRefused(`Plus de ${MULTIPLE_SELECTION_MAX} détections`, detectionUuids.length);
                 return;
             }
 
@@ -570,6 +682,10 @@ const Component: React.FC<ComponentProps> = ({
                     message: "Aucune détection n'a été sélectionnée",
                     color: 'red',
                 });
+                // below this zoom no detection is loaded, so the selection could not catch any
+                trackSelectionRefused(
+                    mapRef.getZoom() <= ZOOM_LIMIT_TO_DISPLAY_DETECTIONS ? 'Zoom insuffisant' : 'Aucune détection',
+                );
                 return;
             }
 
@@ -587,6 +703,11 @@ const Component: React.FC<ComponentProps> = ({
 
             if (!newDrawMode) {
                 return;
+            }
+
+            // only the toolbar enters a draw mode: cancelDraw's own mode change is silent
+            if (syncViewStateToUrl) {
+                trackEvent(TRACKING_CATEGORIES.mapTools, 'Outil activé', DRAW_TOOL_TRACKING_NAMES[newDrawMode]);
             }
 
             setLeftSectionShowed(undefined);
@@ -640,6 +761,9 @@ const Component: React.FC<ComponentProps> = ({
             }
 
             if (drawMode === 'MULTIPLE_EDIT') {
+                if (syncViewStateToUrl) {
+                    trackEvent(TRACKING_CATEGORIES.bulkEdit, 'Formulaire ouvert', 'Carte', detectionUuids.length);
+                }
                 setMultipleEditDetectionsUuids(detectionUuids);
                 return;
             }
@@ -650,7 +774,12 @@ const Component: React.FC<ComponentProps> = ({
 
             // set before awaiting anything, so the blocker is painted on the click that closes
             // the selection rather than once the detections have been fetched
-            setMultipleDownload({ runId, nbrDetections: detectionUuids.length, nbrProcessed: 0 });
+            setMultipleDownload({
+                runId,
+                startedAt: Date.now(),
+                nbrDetections: detectionUuids.length,
+                nbrProcessed: 0,
+            });
 
             try {
                 const detectionObjectsDetails = await api<DetectionObjectDetail[]>(detectionObjectEndpoints.list, {
@@ -680,15 +809,25 @@ const Component: React.FC<ComponentProps> = ({
                         message: "Aucune détection sélectionnée n'est rattachée à une parcelle",
                         color: 'red',
                     });
+                    if (syncViewStateToUrl) {
+                        trackSignalementFailed('Sélection multiple', 'Aucune parcelle');
+                    }
                     return;
                 }
 
+                if (syncViewStateToUrl) {
+                    trackSignalementStarted('Sélection multiple', pages.length);
+                }
                 setMultipleDownload((prev) => (prev?.runId === runId ? { ...prev, pages } : prev));
             } catch {
+                // a cancel bumps the run id first, so its abort never reaches this point
                 if (multipleDownloadRunIdRef.current !== runId) {
                     return;
                 }
 
+                if (syncViewStateToUrl) {
+                    trackSignalementFailed('Sélection multiple', 'Récupération');
+                }
                 setMultipleDownload(undefined);
                 notifications.show({
                     title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD,
@@ -731,12 +870,26 @@ const Component: React.FC<ComponentProps> = ({
             cancelDraw();
         };
 
+        // Switching tools mid-shape stops the current mode, which emits the half-drawn shape as a draw.create
+        // of the previous tool. Captured on the container, this runs before the toolbar button's own handler.
+        const dropShapeBeforeToolSwitch = (event: MouseEvent) => {
+            if (
+                drawModeRef.current &&
+                event.target instanceof Element &&
+                event.target.closest(`.${MapboxDraw.constants.classes.CONTROL_BUTTON}`)
+            ) {
+                drawControlRef.current?.deleteAll();
+            }
+        };
+        const mapContainer = mapRef.getContainer();
+
         mapRef.on('draw.modechange', handleModeChange);
         mapRef.on('draw.create', handleCreate);
         mapRef.on('draw.delete', armDrawEndedGesture);
         mapRef.on('mousedown', disarmDrawEndedGesture);
         mapRef.on('touchstart', disarmDrawEndedGesture);
         document.addEventListener('keydown', handleKeyDown);
+        mapContainer.addEventListener('click', dropShapeBeforeToolSwitch, true);
 
         return () => {
             mapRef.off('draw.modechange', handleModeChange);
@@ -745,6 +898,7 @@ const Component: React.FC<ComponentProps> = ({
             mapRef.off('mousedown', disarmDrawEndedGesture);
             mapRef.off('touchstart', disarmDrawEndedGesture);
             document.removeEventListener('keydown', handleKeyDown);
+            mapContainer.removeEventListener('click', dropShapeBeforeToolSwitch, true);
         };
     }, [mapRef]);
 
@@ -793,7 +947,11 @@ const Component: React.FC<ComponentProps> = ({
             signal,
         });
     };
-    const { data: annotationGrid, refetch: refetchAnnotationGrid } = useQuery({
+    const {
+        data: annotationGrid,
+        refetch: refetchAnnotationGrid,
+        error: annotationGridError,
+    } = useQuery({
         queryKey: [
             utilsEndpoints.annotationGrid,
             ...Object.values(mapBounds || {}),
@@ -804,6 +962,12 @@ const Component: React.FC<ComponentProps> = ({
         placeholderData: keepPreviousData,
         enabled: annotationLayerVisible && !!mapBounds && !isDetailFetching,
     });
+
+    useEffect(() => {
+        if (annotationGridError) {
+            notifyMapDataError('annotationGrid');
+        }
+    }, [annotationGridError]);
 
     const fetchCustomZoneGeometries = async (signal: AbortSignal, mapBounds?: MapBounds) => {
         if (!mapBounds || (customZoneLayersDisplayedUuids.length === 0 && !customZoneNegativeFilterVisible)) {
@@ -819,7 +983,7 @@ const Component: React.FC<ComponentProps> = ({
             signal,
         });
     };
-    const { data: customZonesData } = useQuery({
+    const { data: customZonesData, error: customZonesError } = useQuery({
         queryKey: [
             utilsEndpoints.customGeometry,
             ...Object.values(mapBounds || {}),
@@ -831,6 +995,12 @@ const Component: React.FC<ComponentProps> = ({
         placeholderData: keepPreviousData,
         enabled: !!mapBounds && !isDetailFetching,
     });
+
+    useEffect(() => {
+        if (customZonesError) {
+            notifyMapDataError('customZones');
+        }
+    }, [customZonesError]);
 
     useEffect(() => {
         const updateDetections = () => {
@@ -902,6 +1072,12 @@ const Component: React.FC<ComponentProps> = ({
     }, []);
 
     const cancelMultipleDownload = useCallback(() => {
+        const cancelledRun = multipleDownloadRef.current;
+        multipleDownloadRef.current = undefined;
+        if (cancelledRun && syncViewStateToUrl) {
+            trackSignalementCancelled('Sélection multiple', cancelledRun.startedAt);
+        }
+
         // bumping the run id first neutralises everything already in flight, then unmounting
         // SignalementPDFData stops the previews, the pdf render queue and the download itself
         multipleDownloadRunIdRef.current += 1;
@@ -916,6 +1092,7 @@ const Component: React.FC<ComponentProps> = ({
     }, []);
 
     const closeDetectionDetail = useCallback(() => {
+        trackedDetectionObjectUuidRef.current = null;
         setDetectionDetailsShowed(null);
         setLeftSectionShowed(undefined);
         setObjectFromCoordinates(() => ({
@@ -941,6 +1118,23 @@ const Component: React.FC<ComponentProps> = ({
             clickAbortRef.current = null;
         }
     }, []);
+
+    const trackDetectionOpened = (detectionObjectUuid: string, name: string) => {
+        if (!syncViewStateToUrl || trackedDetectionObjectUuidRef.current === detectionObjectUuid) {
+            return;
+        }
+
+        trackedDetectionObjectUuidRef.current = detectionObjectUuid;
+        trackEvent(TRACKING_CATEGORIES.detection, 'Fiche ouverte', name);
+        // lets the panel report what blocks the agent on this opening, and only this one
+        markDetectionObjectOpened(detectionObjectUuid);
+    };
+
+    const trackClickSearch = (name: string) => {
+        if (syncViewStateToUrl) {
+            trackEvent(TRACKING_CATEGORIES.map, 'Recherche au clic effectuée', name);
+        }
+    };
 
     const onMapClick = (event: mapboxgl.MapLayerMouseEvent | mapboxgl.MapLayerTouchEvent) => {
         if (isDragging) {
@@ -971,6 +1165,10 @@ const Component: React.FC<ComponentProps> = ({
 
             const clickedFeature = features[0];
             const detectionProperties = clickedFeature.properties as DetectionProperties;
+            trackDetectionOpened(
+                detectionProperties.detectionObjectUuid,
+                `Carte : ${detectionProperties.detectionValidationStatus}`,
+            );
             setDetectionDetailsShowed({
                 detectionObjectUuid: detectionProperties.detectionObjectUuid,
                 detectionUuid: detectionProperties.uuid,
@@ -1038,12 +1236,14 @@ const Component: React.FC<ComponentProps> = ({
                     error instanceof ApiError &&
                     (error.body as { code?: string } | undefined)?.code === 'OUTSIDE_CUSTOM_ZONE'
                 ) {
+                    trackClickSearch('Hors zone à enjeux');
                     notifications.show({
                         color: 'red',
                         title: 'Recherche impossible',
                         message: 'Impossible de rechercher une détection en zone urbaine',
                     });
                 } else {
+                    trackClickSearch(`Erreur ${getErrorTrackingName(error)}`);
                     notifications.show({
                         color: 'red',
                         title: 'Une erreur est survenue',
@@ -1054,6 +1254,7 @@ const Component: React.FC<ComponentProps> = ({
             }
 
             if (!objectFromCoordinates) {
+                trackClickSearch('Aucun objet');
                 setObjectFromCoordinates(() => ({
                     fetchStatus: 'IDLE',
                     objectFromCoordinates: undefined,
@@ -1065,6 +1266,13 @@ const Component: React.FC<ComponentProps> = ({
                 return;
             }
 
+            // below this zoom the detection was just not loaded, though the message says it is filtered out
+            trackClickSearch(
+                target.getZoom() <= ZOOM_LIMIT_TO_DISPLAY_DETECTIONS
+                    ? 'Détection trouvée (zoom insuffisant)'
+                    : 'Détection masquée trouvée',
+            );
+            trackDetectionOpened(objectFromCoordinates.uuid, 'Détection masquée');
             notifications.show({
                 title: 'Un objet masqué par les filtres actuels a été détecté ici',
                 message: 'Vous pouvez le rendre visible dans le panneau latéral',
@@ -1111,15 +1319,43 @@ const Component: React.FC<ComponentProps> = ({
         setIsDragging(true);
     };
 
+    const lastTapAtRef = useRef(0);
+
     const handleTouchEnd = (e: mapboxgl.MapLayerTouchEvent) => {
         e.preventDefault();
         if (!isDragging) {
+            lastTapAtRef.current = Date.now();
             onMapClick(e);
         }
     };
 
-    const handleZoom = () => {
-        setIsDragging(true);
+    const handleClick = (e: mapboxgl.MapLayerMouseEvent) => {
+        if (Date.now() - lastTapAtRef.current < TAP_CLICK_DEDUPE_DELAY_MS) {
+            return;
+        }
+
+        onMapClick(e);
+    };
+
+    const trackGeolocate = (name: string) => {
+        if (syncViewStateToUrl) {
+            trackEvent(TRACKING_CATEGORIES.map, 'Géolocalisation utilisée', name);
+        }
+    };
+
+    // from the controls' own buttons: draw mode and closeDetectionDetail also close the sections
+    const showLeftSection = (section: LeftSection, panel: MapPanel) => (state: boolean) => {
+        if (state && syncViewStateToUrl) {
+            trackMapPanelOpened(panel);
+        }
+        setLeftSectionShowed(state ? section : undefined);
+    };
+
+    // a flyTo/easeTo has no originalEvent: a tap made during that animation is still a tap
+    const handleZoom = (e: ViewStateChangeEvent) => {
+        if (e.originalEvent) {
+            setIsDragging(true);
+        }
     };
 
     const handleZoomEnd = () => {
@@ -1144,7 +1380,7 @@ const Component: React.FC<ComponentProps> = ({
                 onLoad={loadDataFromBounds}
                 onMoveEnd={loadDataFromBounds}
                 interactiveLayerIds={[GEOJSON_DETECTIONS_LAYER_ID]}
-                onClick={onMapClick}
+                onClick={handleClick}
                 onDblClick={onMapDblClick}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleMove}
@@ -1162,7 +1398,7 @@ const Component: React.FC<ComponentProps> = ({
                 {...(settings?.globalGeometryBbox ? { maxBounds: bbox(settings.globalGeometryBbox) } : {})}
             >
                 {/* first, so the search bar stays at the far left of the top-left controls */}
-                <MapControlSearchAddress onSearch={onAddressSearch} />
+                <MapControlSearchAddress onSearch={onAddressSearch} tracked={syncViewStateToUrl} />
                 <GeolocateControl
                     position="top-left"
                     style={{
@@ -1174,45 +1410,54 @@ const Component: React.FC<ComponentProps> = ({
                             width < 992 ? 'translate(-50%, -50%)' : 'translate(calc(-50% - 36px*3 - 10px*3), -50%)', // if screen is big, there is button at the right, if small, no buttons
                         background: 'none',
                     }}
+                    onGeolocate={() => trackGeolocate('Succès')}
+                    // 1 is PERMISSION_DENIED, 2 and 3 a position that could not be obtained in time
+                    onError={(error) => trackGeolocate(error.code === 1 ? 'Refusée' : 'Indisponible')}
+                    // fired instead of onGeolocate outside the maxBounds of the map
+                    onOutOfMaxBounds={() => trackGeolocate('Hors zone')}
                 />
                 {displayDetections ? (
                     <>
                         <MapControlSearchParcel
                             isShowed={leftSectionShowed === 'SEARCH_PARCEL'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'SEARCH_PARCEL' : undefined);
-                            }}
+                            setIsShowed={showLeftSection('SEARCH_PARCEL', 'Recherche')}
+                            tracked={syncViewStateToUrl}
                         />
                         <MapControlFilterDetection
                             isShowed={leftSectionShowed === 'FILTER_DETECTION'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'FILTER_DETECTION' : undefined);
-                            }}
+                            setIsShowed={showLeftSection('FILTER_DETECTION', 'Filtres')}
+                            trackingCategory={syncViewStateToUrl ? TRACKING_CATEGORIES.mapFilters : undefined}
+                            onUserChange={syncViewStateToUrl ? armEmptyViewportCheck : undefined}
                         />
-                        {displayTileSetControls ? <MapControlBackgroundSlider /> : null}
+                        {displayTileSetControls ? <MapControlBackgroundSlider tracked={syncViewStateToUrl} /> : null}
                         <MapControlLegend
                             isShowed={leftSectionShowed === 'LEGEND'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'LEGEND' : undefined);
-                            }}
+                            setIsShowed={showLeftSection('LEGEND', 'Légende')}
                         />
                         <MapControlLayerDisplay
                             isShowed={leftSectionShowed === 'LAYER_DISPLAY'}
-                            setIsShowed={(state: boolean) => {
-                                setLeftSectionShowed(state ? 'LAYER_DISPLAY' : undefined);
-                            }}
+                            setIsShowed={showLeftSection('LAYER_DISPLAY', 'Couches')}
                             displayLayersSelection={displayLayersSelection}
                             disabled={drawMode !== null}
+                            tracked={syncViewStateToUrl}
                         />
                         <MapAddAnnotationModal
                             isShowed={!!addAnnotationPolygon}
                             hide={() => setAddAnnotationPolygon(undefined)}
+                            onCancel={() => {
+                                if (syncViewStateToUrl) {
+                                    trackEvent(TRACKING_CATEGORIES.mapTools, 'Ajout annulé');
+                                }
+                                setAddAnnotationPolygon(undefined);
+                            }}
                             polygon={addAnnotationPolygon}
+                            tracked={syncViewStateToUrl}
                         />
                         <EditMultipleDetectionsModal
                             isShowed={!!multipleEditDetectionsUuids}
                             hide={() => setMultipleEditDetectionsUuids(undefined)}
                             detectionsUuids={multipleEditDetectionsUuids}
+                            trackingSource={syncViewStateToUrl ? 'Carte' : undefined}
                         />
                         {isDetectionsFetching || objectFromCoordinates.fetchStatus === 'LOADING' ? (
                             <div className={classes['loaders-container']}>
@@ -1503,10 +1748,12 @@ const Component: React.FC<ComponentProps> = ({
                             // previews already captured by the previous run
                             key={multipleDownload.runId}
                             previewParams={multipleDownload.pages}
-                            onGenerationFinished={(error?: string) => {
+                            onGenerationFinished={(error?: string, failureReason?: SignalementFailureReason) => {
                                 if (multipleDownloadRunIdRef.current !== multipleDownload.runId) {
                                     return;
                                 }
+                                // one outcome per run: whatever this run reports after it is stale
+                                multipleDownloadRunIdRef.current += 1;
 
                                 if (error) {
                                     notifications.show({
@@ -1514,6 +1761,14 @@ const Component: React.FC<ComponentProps> = ({
                                         message: error,
                                         color: 'red',
                                     });
+                                }
+
+                                if (syncViewStateToUrl) {
+                                    if (error) {
+                                        trackSignalementFailed('Sélection multiple', failureReason);
+                                    } else {
+                                        trackSignalementDownloaded('Sélection multiple', multipleDownload.startedAt);
+                                    }
                                 }
 
                                 setMultipleDownload(undefined);

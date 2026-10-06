@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { getGeoListEndpoint, parcelEndpoints } from '@/api/endpoints';
 import MapControlCustom from '@/components/Map/controls/MapControlCustom';
-import SignalementPDFData from '@/components/signalement-pdf/SignalementPDFData';
+import {
+    trackSignalementDownloaded,
+    trackSignalementFailed,
+    trackSignalementStarted,
+} from '@/components/Map/utils/tracking';
+import SignalementPDFData, { SignalementFailureReason } from '@/components/signalement-pdf/SignalementPDFData';
 import { Paginated } from '@/models/data';
 import { GeoCommune } from '@/models/geo/geo-commune';
 import { Parcel } from '@/models/parcel';
@@ -10,6 +15,8 @@ import { SelectOption } from '@/models/ui/select-option';
 import { useMap } from '@/store/slices/map';
 import api from '@/utils/api';
 import { geoZoneToGeoOption } from '@/utils/geojson';
+import { trackEvent } from '@/utils/matomo';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { Autocomplete, Button, Loader as MantineLoader } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { useDebouncedValue } from '@mantine/hooks';
@@ -89,6 +96,8 @@ const fetchParcel = async (values: FormValues): Promise<Parcel | null> => {
 
 const CONTROL_LABEL = 'Rechercher une parcelle';
 
+type ParcelLookupFailure = 'Introuvable' | 'Erreur';
+
 interface FormValues {
     commune: SelectOption | null;
     section: string;
@@ -97,9 +106,10 @@ interface FormValues {
 
 interface ComponentInnerProps {
     setIsShowed: (state: boolean) => void;
+    tracked: boolean;
 }
 
-const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
+const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed, tracked }) => {
     const { eventEmitter } = useMap();
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues: {
@@ -125,6 +135,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
 
     const [parcelUuid, setParcelUuid] = useState<string | null>(null);
     const [signalementPdfLoading, setSignalementPdfLoading] = useState(false);
+    // set on the click, cleared by the first outcome: one outcome per generation
+    const signalementStartedAtRef = useRef<number | null>(null);
 
     const { data: communesOptions, isLoading: communesLoading } = useQuery<SelectOption[]>({
         queryKey: ['communes', debouncedSearchCommuneValue],
@@ -151,8 +163,18 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
         queryFn: () => fetchParcel(form.getValues()),
     });
 
-    const loadParcel = async () => {
-        const { data: parcel } = await search();
+    const loadParcel = async (): Promise<Parcel | ParcelLookupFailure> => {
+        const { data: parcel, isError } = await search();
+
+        // checked first: a failed refetch keeps the data of the previous search
+        if (isError) {
+            notifications.show({
+                color: 'red',
+                title: 'Une erreur est survenue',
+                message: "La parcelle n'a pas pu être recherchée, veuillez réessayer",
+            });
+            return 'Erreur';
+        }
 
         if (!parcel) {
             notifications.show({
@@ -160,7 +182,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
                 title: 'Parcelle introuvable',
                 message: 'Les critères de recherche ne correspondent pas à une parcelle',
             });
-            return;
+            return 'Introuvable';
         }
 
         setParcelUuid(parcel.uuid);
@@ -170,7 +192,11 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
     const handleSubmit = async () => {
         const parcel = await loadParcel();
 
-        if (!parcel) {
+        if (tracked) {
+            trackEvent(TRACKING_CATEGORIES.map, 'Parcelle recherchée', typeof parcel === 'string' ? parcel : 'Trouvée');
+        }
+
+        if (typeof parcel === 'string') {
             return;
         }
 
@@ -275,7 +301,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
                 onClick={async () => {
                     const parcel = await loadParcel();
 
-                    if (!parcel) {
+                    if (typeof parcel === 'string') {
+                        if (tracked) {
+                            trackSignalementFailed(
+                                'Recherche parcelle',
+                                parcel === 'Erreur' ? 'Récupération' : 'Parcelle introuvable',
+                            );
+                        }
                         return;
                     }
 
@@ -283,6 +315,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
                         title: 'Génération de la fiche de signalement en cours',
                         message: 'Le téléchargement se lancera dans quelques instants',
                     });
+                    if (tracked) {
+                        trackSignalementStarted('Recherche parcelle', 1);
+                    }
+                    signalementStartedAtRef.current = Date.now();
                     setSignalementPdfLoading(true);
                 }}
                 loading={signalementPdfLoading}
@@ -297,13 +333,27 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
                             parcelUuid: String(parcelUuid),
                         },
                     ]}
-                    onGenerationFinished={(error?: string) => {
+                    onGenerationFinished={(error?: string, failureReason?: SignalementFailureReason) => {
+                        const startedAt = signalementStartedAtRef.current;
+                        if (startedAt === null) {
+                            return;
+                        }
+                        signalementStartedAtRef.current = null;
+
                         if (error) {
                             notifications.show({
                                 title: 'Erreur lors de la génération de la fiche de signalement',
                                 message: error,
                                 color: 'red',
                             });
+                        }
+
+                        if (tracked) {
+                            if (error) {
+                                trackSignalementFailed('Recherche parcelle', failureReason);
+                            } else {
+                                trackSignalementDownloaded('Recherche parcelle', startedAt);
+                            }
                         }
 
                         setSignalementPdfLoading(false);
@@ -317,9 +367,10 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ setIsShowed }) => {
 interface ComponentProps {
     isShowed: boolean;
     setIsShowed: (state: boolean) => void;
+    tracked?: boolean;
 }
 
-const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
+const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed, tracked = false }) => {
     return (
         <MapControlCustom
             label={CONTROL_LABEL}
@@ -329,7 +380,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
             isShowed={isShowed}
             setIsShowed={setIsShowed}
         >
-            <ComponentInner setIsShowed={setIsShowed} />
+            <ComponentInner setIsShowed={setIsShowed} tracked={tracked} />
         </MapControlCustom>
     );
 };

@@ -10,6 +10,7 @@ import { ParcelDetail, ParcelDetectionObject } from '@/models/parcel';
 import { TileSet } from '@/models/tile-set';
 import api from '@/utils/api';
 import { PARCEL_COLOR } from '@/utils/constants';
+import { triggerDownload } from '@/utils/download';
 import { formatDateOnly, formatParcel } from '@/utils/format';
 import { extendBbox } from '@/utils/geojson';
 import { Document, usePDF } from '@react-pdf/renderer';
@@ -37,12 +38,21 @@ const getSignalementPDFDocumentName = (parcel?: ParcelDetail) => {
     return name;
 };
 
+// Why a generation stopped, for the caller's tracking: the message is shown, never sent.
+export type SignalementFailureReason = 'Parcelle sans détection' | 'Récupération' | 'Erreur de génération';
+
+const FAILURE_MESSAGES: Record<SignalementFailureReason, string> = {
+    'Parcelle sans détection': 'Cette parcelle ne comporte aucune détection à signaler.',
+    Récupération: "Les informations de la parcelle n'ont pas pu être récupérées.",
+    'Erreur de génération': "Le document n'a pas pu être généré",
+};
+
 interface DocumentContainerProps {
-    onGenerationFinished: (error?: string) => void;
+    onFinished: (failureReason?: SignalementFailureReason) => void;
     pdfProps: SignalementPDFPageProps[];
 }
 
-const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinished, pdfProps }) => {
+const DocumentContainer: React.FC<DocumentContainerProps> = ({ onFinished, pdfProps }) => {
     const pdfDocument = (
         <Document>
             {pdfProps.map((props, index) => (
@@ -55,23 +65,12 @@ const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinis
 
     useEffect(() => {
         if (instance.blob) {
-            const url = URL.createObjectURL(instance.blob);
-            const a = document.createElement('a');
+            triggerDownload(
+                instance.blob,
+                getSignalementPDFDocumentName(pdfProps.length === 1 ? pdfProps[0].parcel : undefined),
+            );
 
-            a.href = url;
-
-            if (pdfProps.length === 1) {
-                a.download = getSignalementPDFDocumentName(pdfProps[0].parcel);
-            } else {
-                a.download = getSignalementPDFDocumentName();
-            }
-
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            onGenerationFinished();
+            onFinished();
         }
     }, [instance.blob]);
 
@@ -81,7 +80,7 @@ const DocumentContainer: React.FC<DocumentContainerProps> = ({ onGenerationFinis
             return;
         }
 
-        onGenerationFinished("Le document n'a pas pu être généré");
+        onFinished('Erreur de génération');
     }, [instance.error]);
 
     return <></>;
@@ -143,21 +142,20 @@ const getPreviewGeometries = (
 
 interface PreviewImagesProps {
     setFinalData: (previewImages: PreviewImage[], parcel: ParcelDetail) => void;
-    onInvalidParcel: () => void;
+    onFailure: (failureReason: SignalementFailureReason) => void;
     parcelUuid: string;
     detectionObjectUuid?: string;
 }
 
-const PreviewImages: React.FC<PreviewImagesProps> = ({
-    parcelUuid,
-    detectionObjectUuid,
-    setFinalData,
-    onInvalidParcel,
-}) => {
+const PreviewImages: React.FC<PreviewImagesProps> = ({ parcelUuid, detectionObjectUuid, setFinalData, onFailure }) => {
     const [previewImages, setPreviewImages] = useState<Record<string, PreviewImage>>({});
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const { data: parcel, isLoading: parcelIsLoading } = useQuery({
+    const {
+        data: parcel,
+        isLoading: parcelIsLoading,
+        isError: parcelIsError,
+    } = useQuery({
         // the payload is scoped to the detection object, so two objects sharing a parcel
         // must not share a cache entry
         queryKey: [parcelEndpoints.downloadInfos(String(parcelUuid)), detectionObjectUuid],
@@ -180,8 +178,14 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({
             return;
         }
 
-        onInvalidParcel();
+        onFailure('Parcelle sans détection');
     }, [parcel, parcelIsLoading]);
+
+    useEffect(() => {
+        if (parcelIsError) {
+            onFailure('Récupération');
+        }
+    }, [parcelIsError]);
 
     const previewBounds = useMemo(() => {
         if (!parcel || !parcel.geometry) {
@@ -204,6 +208,9 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({
             try {
                 src = (canvas as HTMLCanvasElement).toDataURL('image/png');
             } catch (e) {
+                // a preview reports itself loaded only once, so this page would never be done
+                console.error(e);
+                onFailure('Erreur de génération');
                 return;
             }
 
@@ -216,7 +223,7 @@ const PreviewImages: React.FC<PreviewImagesProps> = ({
                 },
             }));
         },
-        [previewImages],
+        [previewImages, onFailure],
     );
 
     if (parcelIsLoading || !parcel || !previewBounds || !tileSetsToRender) {
@@ -291,7 +298,8 @@ interface PagePreviewParams {
 interface ComponentProps {
     previewParams: PagePreviewParams[];
     setNbrDetectionObjectsProcessed?: (nbr: number) => void;
-    onGenerationFinished: (error?: string) => void;
+    // called once per generation: with the message to show and its reason when it failed
+    onGenerationFinished: (error?: string, failureReason?: SignalementFailureReason) => void;
 }
 const Component: React.FC<ComponentProps> = ({
     previewParams,
@@ -308,6 +316,20 @@ const Component: React.FC<ComponentProps> = ({
     // the parent re-creates this callback on every render, so it cannot be an effect dependency
     const setNbrProcessedRef = useRef(setNbrDetectionObjectsProcessed);
     setNbrProcessedRef.current = setNbrDetectionObjectsProcessed;
+
+    const onGenerationFinishedRef = useRef(onGenerationFinished);
+    onGenerationFinishedRef.current = onGenerationFinished;
+    const generationFinishedRef = useRef(false);
+
+    // a generation ends once: what the other pages report after a failure is dropped
+    const finishGeneration = useCallback((failureReason?: SignalementFailureReason) => {
+        if (generationFinishedRef.current) {
+            return;
+        }
+        generationFinishedRef.current = true;
+
+        onGenerationFinishedRef.current(failureReason && FAILURE_MESSAGES[failureReason], failureReason);
+    }, []);
 
     // reported on its own, the loop below stops counting before the last page
     useEffect(() => {
@@ -345,9 +367,7 @@ const Component: React.FC<ComponentProps> = ({
                 <PreviewImages
                     {...pagePreviewProps}
                     key={`download-${pagePreviewProps.detectionObjectUuid || pagePreviewProps.parcelUuid}`}
-                    onInvalidParcel={() =>
-                        onGenerationFinished('Cette parcelle ne comporte aucune détection à signaler.')
-                    }
+                    onFailure={finishGeneration}
                     setFinalData={(previewImages: PreviewImage[], parcel: ParcelDetail) => {
                         setPdfProps((prev) => {
                             const centerPoint = parcel.geometry
@@ -371,7 +391,7 @@ const Component: React.FC<ComponentProps> = ({
             ))}
 
             {pagePreviewsDone.length === previewParams.length ? (
-                <DocumentContainer pdfProps={pdfProps} onGenerationFinished={onGenerationFinished} />
+                <DocumentContainer pdfProps={pdfProps} onFinished={finishGeneration} />
             ) : null}
         </div>
     );

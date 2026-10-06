@@ -1,7 +1,9 @@
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
+import { useDetectionTracking } from '@/components/DetectionDetail/tracking';
 import { DetectionWithTile } from '@/models/detection';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
+import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { Button } from '@mantine/core';
 import { bbox } from '@turf/turf';
 import clsx from 'clsx';
@@ -14,6 +16,7 @@ interface ComponentProps {
 }
 const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelected }) => {
     const [fullHistoryShowed, setFullHistoryShowed] = useState(false);
+    const { trackEvent } = useDetectionTracking();
     // a new identity here re-frames every preview map, so it must only change with the object
     const previewBounds = useMemo(
         () => bbox(detectionObject.detections[0].tile.geometry) as [number, number, number, number],
@@ -69,7 +72,22 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
             </div>
 
             {detectionObject.tileSets.length > 3 ? (
-                <Button variant="subtle" fullWidth onClick={() => setFullHistoryShowed((state) => !state)}>
+                <Button
+                    variant="subtle"
+                    fullWidth
+                    onClick={() => {
+                        if (!fullHistoryShowed) {
+                            trackEvent(
+                                TRACKING_CATEGORIES.detection,
+                                'Historique complet affiché',
+                                undefined,
+                                detectionObject.tileSets.length,
+                            );
+                        }
+
+                        setFullHistoryShowed(!fullHistoryShowed);
+                    }}
+                >
                     {fullHistoryShowed ? 'Voir moins' : "Voir tout l'historique"}
                 </Button>
             ) : null}
