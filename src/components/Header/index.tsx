@@ -41,7 +41,7 @@ const isFullLoadNeeded = (userRole: UserRole | undefined, path: string) =>
     (userRole === 'SUPER_ADMIN' || !useMap.getState().settings);
 
 const NavMenu: React.FC = () => {
-    const { userMe, logout, getCanViewStatistics } = useAuth();
+    const { userMe, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleNavigate = (path: string) => (e: React.MouseEvent) => {
@@ -67,18 +67,16 @@ const NavMenu: React.FC = () => {
                         Carte
                     </a>
                 </li>
-                {getCanViewStatistics() ? (
-                    <li>
-                        <a
-                            className="fr-btn fr-btn--tertiary-no-outline"
-                            href="/statistics"
-                            onClick={handleNavigate('/statistics')}
-                        >
-                            <IconReportAnalytics className={classes['link-icon']} size={16} />
-                            Stats
-                        </a>
-                    </li>
-                ) : null}
+                <li>
+                    <a
+                        className="fr-btn fr-btn--tertiary-no-outline"
+                        href="/statistics"
+                        onClick={handleNavigate('/statistics')}
+                    >
+                        <IconReportAnalytics className={classes['link-icon']} size={16} />
+                        Stats
+                    </a>
+                </li>
                 <li>
                     <a className="fr-btn fr-btn--tertiary-no-outline" href="/table" onClick={handleNavigate('/table')}>
                         <IconTable className={classes['link-icon']} size={16} />

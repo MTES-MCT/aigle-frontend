@@ -183,24 +183,28 @@ const Form: React.FC<FormProps> = ({
                 key={form.key('geoCustomZonesUuids')}
                 {...form.getInputProps('geoCustomZonesUuids')}
             />
-            <h2 className="form-sub-title">Fonctionnalités</h2>
+            {featureFlagOptions?.length ? (
+                <>
+                    <h2 className="form-sub-title">Fonctionnalités</h2>
 
-            {(featureFlagOptions || []).map(({ value, label }) => (
-                <Switch
-                    mt="md"
-                    key={value}
-                    label={label}
-                    checked={form.values.featureFlags.includes(value)}
-                    onChange={(event) =>
-                        form.setFieldValue(
-                            'featureFlags',
-                            event.currentTarget.checked
-                                ? [...form.values.featureFlags, value]
-                                : form.values.featureFlags.filter((featureFlag) => featureFlag !== value),
-                        )
-                    }
-                />
-            ))}
+                    {featureFlagOptions.map(({ value, label }) => (
+                        <Switch
+                            mt="md"
+                            key={value}
+                            label={label}
+                            checked={form.values.featureFlags.includes(value)}
+                            onChange={(event) =>
+                                form.setFieldValue(
+                                    'featureFlags',
+                                    event.currentTarget.checked
+                                        ? [...form.values.featureFlags, value]
+                                        : form.values.featureFlags.filter((featureFlag) => featureFlag !== value),
+                                )
+                            }
+                        />
+                    ))}
+                </>
+            ) : null}
 
             <h2 className="form-sub-title">Collectivités accessibles par le groupe</h2>
 

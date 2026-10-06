@@ -18,7 +18,6 @@ interface AuthState {
     logout: () => void;
     getUserGroupType: () => UserGroupType;
     hasFeatureFlag: (featureFlag: FeatureFlag) => boolean;
-    getCanViewStatistics: () => boolean;
     getAccessibleGeozones: (geoZoneType?: GeoZoneType) => GeoZone[];
 
     isAuthenticated: () => boolean;
@@ -70,19 +69,6 @@ const useAuth = create<AuthState>()(
                 // A session persisted before feature flags existed has no list yet, and
                 // gets one back on the next /users/me.
                 return get().userMe?.featureFlags?.includes(featureFlag) === true;
-            },
-            getCanViewStatistics: () => {
-                const userMe = get().userMe;
-
-                // Internal staff and super-admins keep the dashboard whatever their groups
-                // hold, while the DDTM rollout goes on. A super-admin reads the dashboard of
-                // the group they are scoped to (X-User-Group-Uuid), like everywhere else in
-                // the app.
-                if (userMe?.isStaff === true || userMe?.userRole === 'SUPER_ADMIN') {
-                    return true;
-                }
-
-                return get().hasFeatureFlag('STATS');
             },
             getAccessibleGeozones: (geoZoneType?: GeoZoneType) => {
                 const userMe = get().userMe;

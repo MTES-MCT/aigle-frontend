@@ -13,7 +13,6 @@ import {
     DdtmActivityUserGroupActivity,
     DdtmActivityUserGroupOption,
 } from '@/models/ddtm-activity';
-import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
 import { HEADER_HEIGHT_PX } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
@@ -22,7 +21,6 @@ import { useScrollIntoView } from '@mantine/hooks';
 import { IconChartBar, IconFileTypePdf, IconUsersGroup } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { Navigate } from 'react-router-dom';
 import {
     ACTIVITY_CHART_SERIES,
     ACTIVITY_TIERS,
@@ -494,8 +492,6 @@ const REPORT_SOURCES: ReportSources = {
 };
 
 const Component: React.FC = () => {
-    const { getCanViewStatistics } = useAuth();
-    const canViewStatistics = getCanViewStatistics();
     const { generating, download, publishScope } = useReportDownload(REPORT_SOURCES);
 
     // Which dashboard the user may see is the API's call, not ours: a super-admin is scoped
@@ -506,7 +502,6 @@ const Component: React.FC = () => {
         isLoading,
         error,
     } = useQuery({
-        enabled: canViewStatistics,
         queryKey: [ddtmActivityEndpoints.summary],
         queryFn: ({ signal }) => api<DdtmActivitySummary>(ddtmActivityEndpoints.summary, { signal }),
     });
@@ -519,10 +514,6 @@ const Component: React.FC = () => {
             trackDashboardDisplayed(summary);
         }
     }, [summary]);
-
-    if (!canViewStatistics) {
-        return <Navigate to="/" />;
-    }
 
     return (
         <LayoutBase title="Statistiques">
