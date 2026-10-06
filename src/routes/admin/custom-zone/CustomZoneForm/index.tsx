@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 
 import { customZoneEndpoints } from '@/api/endpoints';
+import AdminFormError from '@/components/admin/AdminFormError';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import {
+    trackAdminFormRejectedByClient,
+    trackAdminFormRejectedByServer,
+    trackAdminZoneCreated,
+} from '@/components/admin/tracking';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import api, { ApiError } from '@/utils/api';
-import { Button, ColorInput, Select, TextInput } from '@mantine/core';
+import { Box, Button, ColorInput, Select, TextInput } from '@mantine/core';
 import { isNotEmpty, useForm, UseFormReturnType } from '@mantine/form';
 import { IconHexagonPlus2 } from '@tabler/icons-react';
 import { useMutation, UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -14,6 +20,7 @@ import { Link, useParams } from 'react-router-dom';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import InfoCard from '@/components/ui/InfoCard';
 import { useFilterNavigation } from '@/hooks/useFilterNavigation';
+import { CollectivityType, collectivityTypes } from '@/models/geo/_common';
 import {
     GeoCustomZoneDetail,
     GeoCustomZoneStatus,
@@ -42,6 +49,26 @@ interface FormValues {
     regionsUuids: string[];
     geoCustomZoneCategoryUuid?: string;
 }
+
+const FORM_FIELD_NAMES: (keyof FormValues)[] = [
+    'name',
+    'nameShort',
+    'color',
+    'geoCustomZoneStatus',
+    'geoCustomZoneType',
+    'communesUuids',
+    'epcisUuids',
+    'departmentsUuids',
+    'regionsUuids',
+    'geoCustomZoneCategoryUuid',
+];
+
+// The API ignores the perimeter sent by anyone but a SUPER_ADMIN.
+const PERIMETER_READ_ONLY_REASON = 'Seule l’équipe Aigle peut modifier le périmètre d’une zone';
+const PERIMETER_READ_ONLY = collectivityTypes.reduce<Partial<Record<CollectivityType, string>>>(
+    (disabled, collectivityType) => ({ ...disabled, [collectivityType]: PERIMETER_READ_ONLY_REASON }),
+    {},
+);
 
 const postForm = (values: FormValues, uuid?: string) => {
     const values_ = {
@@ -82,10 +109,14 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
     const mutation: UseMutationResult<GeoCustomZoneDetail, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
-        onSuccess: () => {
+        onSuccess: (_, values) => {
+            if (!uuid) {
+                trackAdminZoneCreated(values.geoCustomZoneCategoryUuid);
+            }
             navigate(BACK_URL);
         },
         onError: (error) => {
+            trackAdminFormRejectedByServer('Zone', error);
             setError(error);
             if (error.body && typeof error.body === 'object') {
                 form.setErrors(error.body as Record<string, string>);
@@ -97,18 +128,15 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
         mutation.mutate(values);
     };
 
-    const cannotEdit = userMe?.userRole !== 'SUPER_ADMIN' && initialValues.geoCustomZoneType === 'COMMON';
+    const isSuperAdmin = userMe?.userRole === 'SUPER_ADMIN';
+    const cannotEdit = !isSuperAdmin && initialValues.geoCustomZoneType === 'COMMON';
 
     const label = uuid ? 'Modifier une zone' : 'Ajouter une zone';
 
     return (
-        <form onSubmit={form.onSubmit(handleSubmit)}>
+        <form onSubmit={form.onSubmit(handleSubmit, (errors) => trackAdminFormRejectedByClient('Zone', errors))}>
             <h1>{label}</h1>
-            {error ? (
-                <ErrorCard>
-                    <p>Voir les indications ci-dessous pour plus d&apos;info</p>
-                </ErrorCard>
-            ) : null}
+            {error ? <AdminFormError error={error} fieldNames={FORM_FIELD_NAMES} /> : null}
             {cannotEdit ? (
                 <InfoCard withCloseButton={false}>
                     <p>Vous ne pouvez pas modifier cette zone car elle est gérée niveau global</p>
@@ -189,7 +217,22 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                 />
             ) : null}
 
-            <GeoCollectivitiesMultiSelects form={form} initialGeoSelectedValues={initialGeoSelectedValues} />
+            {isSuperAdmin || uuid ? (
+                <GeoCollectivitiesMultiSelects
+                    form={form}
+                    initialGeoSelectedValues={initialGeoSelectedValues}
+                    disabledCollectivityTypes={isSuperAdmin ? undefined : PERIMETER_READ_ONLY}
+                />
+            ) : (
+                <Box mt="md">
+                    <InfoCard withCloseButton={false}>
+                        <p>
+                            Le périmètre de la zone sera défini par l&apos;équipe Aigle : la zone restera inactive
+                            jusque-là.
+                        </p>
+                    </InfoCard>
+                </Box>
+            )}
 
             <div className="form-actions">
                 <Button

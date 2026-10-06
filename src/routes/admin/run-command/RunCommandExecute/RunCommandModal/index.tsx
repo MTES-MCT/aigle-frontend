@@ -3,8 +3,9 @@ import ErrorCard from '@/components/ui/ErrorCard';
 import { CommandParameter, CommandWithParameters } from '@/models/command';
 import api, { ApiError } from '@/utils/api';
 import { Button, Checkbox, Modal, NumberInput, SegmentedControl, Textarea, TextInput } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconPlayerPlay } from '@tabler/icons-react';
-import { useMutation, UseMutationResult } from '@tanstack/react-query';
+import { useMutation, UseMutationResult, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import classes from './index.module.scss';
 
@@ -145,16 +146,32 @@ const Component: React.FC<ComponentProps> = ({ isShowed, hide, command, initialP
         });
     }, [paramsValues, command, formMode, isValidJson]);
 
+    const queryClient = useQueryClient();
     const mutation: UseMutationResult<void, ApiError, ParamsValues> = useMutation({
         mutationFn: (values: ParamsValues) => postForm(String(command?.name), values),
+        onSuccess: () => {
+            notifications.show({
+                color: 'green',
+                title: 'Commande lancée',
+                message: 'Son avancement est visible dans l’onglet Tâches.',
+            });
+            queryClient.invalidateQueries({ queryKey: [runCommandEndpoints.tasks] });
+            hide();
+        },
     });
 
     const handleSubmit = (values: ParamsValues) => {
         mutation.mutate(values);
     };
 
+    // The modal is reused for the next command: an error left in the mutation would be shown there.
+    const close = () => {
+        mutation.reset();
+        hide();
+    };
+
     return (
-        <Modal opened={isShowed} onClose={hide} title={`Executer ${command ? command.name : null}`}>
+        <Modal opened={isShowed} onClose={close} title={`Executer ${command ? command.name : null}`}>
             {mutation.error ? <ErrorCard>{mutation.error.message}</ErrorCard> : null}
 
             {command ? (
@@ -200,7 +217,7 @@ const Component: React.FC<ComponentProps> = ({ isShowed, hide, command, initialP
                     )}
 
                     <div className="form-actions">
-                        <Button type="button" variant="outline" onClick={() => hide()}>
+                        <Button type="button" variant="outline" onClick={close}>
                             Annuler
                         </Button>
 

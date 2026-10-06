@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
+import { trackAdminImportRejected } from '@/components/admin/tracking';
 import api, { ApiError } from '@/utils/api';
+import { triggerDownload } from '@/utils/download';
 import { Alert, Button, Group, Loader, Modal, Stack, Stepper, Table, Text } from '@mantine/core';
 import { Dropzone, MIME_TYPES } from '@mantine/dropzone';
 import { notifications } from '@mantine/notifications';
@@ -56,15 +58,21 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
                 method: 'POST',
                 body: form,
             });
+            // The preview answers 200 even when rows are refused: they come in its body.
+            if (data.errors.length) {
+                trackAdminImportRejected(config.entityLabel, 'aperçu', data.errors.length);
+            }
             setPreviewData(data);
             setStep('preview');
         } catch (err) {
             const apiErr = err as ApiError<{ errors?: BulkError[] }>;
             const errs = apiErr?.body?.errors;
             if (errs && errs.length) {
+                trackAdminImportRejected(config.entityLabel, 'aperçu', errs.length);
                 setPreviewData({ rowsCount: 0, preview: [], errors: errs });
                 setStep('preview');
             } else {
+                trackAdminImportRejected(config.entityLabel, 'erreur technique');
                 setErrorMessage(apiErr?.message || 'Erreur lors de la lecture du fichier');
             }
         } finally {
@@ -95,8 +103,10 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
             const apiErr = err as ApiError<{ errors?: BulkError[] }>;
             const errs = apiErr?.body?.errors;
             if (errs && errs.length) {
+                trackAdminImportRejected(config.entityLabel, 'import', errs.length);
                 setPreviewData({ rowsCount: 0, preview: [], errors: errs });
             } else {
+                trackAdminImportRejected(config.entityLabel, 'erreur technique');
                 setErrorMessage(apiErr?.message || "Erreur lors de l'import");
             }
             setStep('preview');
@@ -107,15 +117,7 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
         const headers = config.columns.map((col) => col.name).join(CSV_SEP);
         const examples = config.columns.map((col) => col.example ?? '').join(CSV_SEP);
         const content = BOM + headers + '\n' + examples + '\n';
-        const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${config.fileBaseName}-template.csv`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        triggerDownload(new Blob([content], { type: 'text/csv;charset=utf-8' }), `${config.fileBaseName}-template.csv`);
     };
 
     const stepIndex = step === 'upload' ? 0 : step === 'preview' ? 1 : 2;
@@ -167,7 +169,10 @@ const ImportDialog = ({ config, opened, onClose }: Props) => {
 
                         <Dropzone
                             onDrop={(files) => files[0] && submitFile(files[0])}
-                            onReject={() => setErrorMessage('Fichier invalide (CSV requis, taille max 5 Mo)')}
+                            onReject={() => {
+                                trackAdminImportRejected(config.entityLabel, 'dépôt');
+                                setErrorMessage('Fichier invalide (CSV requis, taille max 5 Mo)');
+                            }}
                             accept={[MIME_TYPES.csv, 'text/csv', 'application/vnd.ms-excel']}
                             maxSize={MAX_FILE_SIZE}
                             multiple={false}

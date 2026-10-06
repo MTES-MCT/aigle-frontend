@@ -1,4 +1,5 @@
 import { ApiError, apiFetchRaw } from '@/utils/api';
+import { triggerDownload } from '@/utils/download';
 import { notifications } from '@mantine/notifications';
 
 export const triggerExport = async (endpoint: string, fallbackName: string, params?: Record<string, unknown>) => {
@@ -8,14 +9,7 @@ export const triggerExport = async (endpoint: string, fallbackName: string, para
         const disposition = response.headers.get('content-disposition') || '';
         const match = disposition.match(/filename\*?="?([^";]+)"?/i);
         const filename = match ? decodeURIComponent(match[1]) : fallbackName;
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        triggerDownload(blob, filename);
     } catch (err) {
         const apiErr = err as ApiError;
         notifications.show({

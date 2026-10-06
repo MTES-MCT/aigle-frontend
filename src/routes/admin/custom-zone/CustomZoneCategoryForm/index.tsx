@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 
 import { customZoneEndpoints } from '@/api/endpoints';
+import AdminFormError from '@/components/admin/AdminFormError';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import { trackAdminFormRejectedByServer } from '@/components/admin/tracking';
 import ErrorCard from '@/components/ui/ErrorCard';
+import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
 import { useFilterNavigation } from '@/hooks/useFilterNavigation';
+import { useAuth } from '@/store/slices/auth';
 import api, { ApiError } from '@/utils/api';
 import { Button, ColorInput, TextInput } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
@@ -21,6 +25,8 @@ interface FormValues {
     nameShort: string;
     color: string;
 }
+
+const FORM_FIELD_NAMES: (keyof FormValues)[] = ['name', 'nameShort', 'color'];
 
 const postForm = (values: FormValues, uuid?: string) => {
     if (!uuid) {
@@ -43,6 +49,9 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
     const [error, setError] = useState<ApiError>();
     const { navigate, buildPath } = useFilterNavigation();
+    const { userMe } = useAuth();
+    // The API lets only a SUPER_ADMIN write categories: anyone else gets a read-only form.
+    const readOnly = userMe?.userRole !== 'SUPER_ADMIN';
     const form: UseFormReturnType<FormValues> = useForm({
         initialValues,
     });
@@ -53,10 +62,10 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
             navigate(BACK_URL);
         },
         onError: (error) => {
+            trackAdminFormRejectedByServer('Catégorie', error);
             setError(error);
-            if (error.body) {
-                // @ts-expect-error types do not match
-                form.setErrors(error.body);
+            if (error.body && typeof error.body === 'object') {
+                form.setErrors(error.body as Record<string, string>);
             }
         },
     });
@@ -69,14 +78,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
             <h1>{label}</h1>
-            {error ? (
-                <ErrorCard>
-                    <p>Voir les indications ci-dessous pour plus d&apos;info</p>
-                </ErrorCard>
+            {error ? <AdminFormError error={error} fieldNames={FORM_FIELD_NAMES} /> : null}
+            {readOnly ? (
+                <InfoCard withCloseButton={false}>
+                    <p>Seule l&apos;équipe Aigle peut créer ou modifier une catégorie de zones.</p>
+                </InfoCard>
             ) : null}
             <TextInput
                 mt="md"
                 withAsterisk
+                disabled={readOnly}
                 label="Nom de la catégorie"
                 placeholder="Ma catégorie"
                 key={form.key('name')}
@@ -84,6 +95,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
             />
             <TextInput
                 mt="md"
+                disabled={readOnly}
                 label="Nom court de la catégorie"
                 placeholder="Cat"
                 key={form.key('nameShort')}
@@ -92,6 +104,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
             <ColorInput
                 mt="md"
                 withAsterisk
+                disabled={readOnly}
                 label="Couleur de la catégorie"
                 placeholder="#000000"
                 key={form.key('color')}
@@ -110,7 +123,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues }: FormProps) => {
                 </Button>
 
                 <Button
-                    disabled={mutation.status === 'pending'}
+                    disabled={mutation.status === 'pending' || readOnly}
                     loading={mutation.status === 'pending'}
                     type="submit"
                     leftSection={<IconHexagonalPrismPlus />}

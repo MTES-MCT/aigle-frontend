@@ -7,6 +7,7 @@ import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { customZoneBulkConfig } from '@/routes/admin/custom-zone/CustomZoneList/bulkConfig';
 import CustomZoneCategoryDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneCategoryDataTable';
 import CustomZoneDataTable from '@/routes/admin/custom-zone/CustomZoneList/CustomZoneDataTable';
+import { useAuth } from '@/store/slices/auth';
 import { Button } from '@mantine/core';
 import { IconHexagonPlus2, IconHexagonalPrismPlus } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
@@ -17,6 +18,7 @@ const CUSTOM_ZONES_TAB = 'custom-zones';
 const TAB_INITIAL_VALUE = { tab: CUSTOM_ZONES_TAB };
 
 const Component: React.FC = () => {
+    const { userMe } = useAuth();
     const [{ tab }, setTab] = useUrlFilter(TAB_INITIAL_VALUE);
     const [filter, setFilter] = useState<CustomZoneDataFilter>(CUSTOM_ZONE_DATA_FILTER_INITIAL_VALUE);
 
@@ -45,15 +47,17 @@ const Component: React.FC = () => {
                     {tabSelected.value === CUSTOM_ZONES_TAB ? (
                         <BulkImportExportButtons config={customZoneBulkConfig} exportParams={filter} />
                     ) : null}
-                    <Button
-                        leftSection={<IconHexagonalPrismPlus />}
-                        variant="outline"
-                        mr="md"
-                        component={Link}
-                        to="/admin/custom-zones/category-form"
-                    >
-                        Ajouter une catégorie
-                    </Button>
+                    {userMe?.userRole === 'SUPER_ADMIN' ? (
+                        <Button
+                            leftSection={<IconHexagonalPrismPlus />}
+                            variant="outline"
+                            mr="md"
+                            component={Link}
+                            to="/admin/custom-zones/category-form"
+                        >
+                            Ajouter une catégorie
+                        </Button>
+                    ) : null}
                     <Button leftSection={<IconHexagonPlus2 />} component={Link} to="/admin/custom-zones/form">
                         Ajouter une zone
                     </Button>

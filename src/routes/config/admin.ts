@@ -82,13 +82,13 @@ export const adminRoutes: RouteGroup = {
         {
             path: '/admin/custom-zones/category-form',
             component: CustomZoneCategoryForm,
-            roles: ['ADMIN', 'SUPER_ADMIN'],
+            roles: ['SUPER_ADMIN'],
             requiresAuth: true,
         },
         {
             path: '/admin/custom-zones/category-form/:uuid',
             component: CustomZoneCategoryForm,
-            roles: ['ADMIN', 'SUPER_ADMIN'],
+            roles: ['SUPER_ADMIN'],
             requiresAuth: true,
         },
 
