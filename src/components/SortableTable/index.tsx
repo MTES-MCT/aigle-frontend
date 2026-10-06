@@ -39,6 +39,8 @@ interface ComponentProps<T> {
     searchPlaceholder?: string;
     /** Renders the CSV export button. */
     csvFileName?: string;
+    /** Called once the CSV has been handed to the browser. */
+    onCsvDownload?: () => void;
     /** Renders one page at a time, with a pager below the table. */
     pageSize?: number;
 }
@@ -50,6 +52,7 @@ const Component = <T,>({
     initialSort,
     searchPlaceholder,
     csvFileName,
+    onCsvDownload,
     pageSize,
 }: ComponentProps<T>) => {
     const [sort, setSort] = useState<{ key: string; order: SortOrder } | undefined>(initialSort);
@@ -106,12 +109,13 @@ const Component = <T,>({
                                 variant="subtle"
                                 size="lg"
                                 aria-label="Télécharger le tableau (CSV)"
-                                onClick={() =>
+                                onClick={() => {
                                     downloadCsv(csvFileName, [
                                         columns.map((column) => column.label),
                                         ...rows.map((item) => columns.map((column) => column.value(item))),
-                                    ])
-                                }
+                                    ]);
+                                    onCsvDownload?.();
+                                }}
                             >
                                 <IconDownload size={18} />
                             </ActionIcon>

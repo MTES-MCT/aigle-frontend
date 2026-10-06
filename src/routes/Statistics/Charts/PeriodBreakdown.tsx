@@ -15,6 +15,7 @@ import {
 import { SeriesToggle } from './chartConfig';
 import classes from './index.module.scss';
 import { TierSwatch } from './tierUi';
+import { trackCsvExported } from './tracking';
 
 /**
  * The column clicked in the chart above, named: one collapsible section per activity
@@ -46,7 +47,7 @@ const PeriodBreakdown: React.FC<{
                             variant="subtle"
                             size="lg"
                             aria-label="Télécharger le détail (CSV)"
-                            onClick={() =>
+                            onClick={() => {
                                 downloadCsv(`groupes-${toFileSlug(formatPeriod(period))}.csv`, [
                                     ['Période', 'Catégorie', 'Groupe utilisateur'],
                                     ...tiers.flatMap(({ tier, groups }) =>
@@ -56,8 +57,9 @@ const PeriodBreakdown: React.FC<{
                                             group.name,
                                         ]),
                                     ),
-                                ])
-                            }
+                                ]);
+                                trackCsvExported('Détail de la période');
+                            }}
                         >
                             <IconDownload size={18} />
                         </ActionIcon>

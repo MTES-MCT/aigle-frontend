@@ -7,14 +7,16 @@ import {
     DdtmActivityUserGroup,
     DdtmActivityUserGroupActivity,
 } from '@/models/ddtm-activity';
-import { chartToPngDataUrl } from '@/utils/download';
+import { chartToPngDataUrl, containsChart, triggerDownload } from '@/utils/download';
 import { formatDateOnly } from '@/utils/format';
 import { MantineTheme, useMantineTheme } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { pdf } from '@react-pdf/renderer';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useCallback, useRef, useState } from 'react';
 import { whenChartsSettled } from '../buildAnimation';
+import { trackReportChartsMissing, trackReportExported, trackReportExportFailed } from '../tracking';
 import { REPORT_CHART_ATTRIBUTE, REPORT_GROUP_SECTION_ATTRIBUTE, ReportScope } from './context';
 import ReportDocument, { ReportChart, ReportContent, ReportTable } from './ReportDocument';
 
@@ -53,8 +55,9 @@ const buildTable = <T,>(
 
 // Charts come out of the live page as bitmaps: they are the one thing that cannot be
 // rebuilt from the data, and rasterising them at the size they already have is what removes
-// every reflow the browser print path could not control.
-const captureCharts = async (): Promise<{ overview: ReportChart[]; group: ReportChart[] }> => {
+// every reflow the browser print path could not control. `missingCount`: charts that failed to
+// rasterise; a block showing a message instead of a chart has no <svg> and does not count.
+const captureCharts = async (): Promise<{ overview: ReportChart[]; group: ReportChart[]; missingCount: number }> => {
     const nodes = Array.from(document.querySelectorAll<HTMLElement>(`[${REPORT_CHART_ATTRIBUTE}]`));
     const captured = await Promise.all(
         nodes.map(async (node) => ({
@@ -69,6 +72,7 @@ const captureCharts = async (): Promise<{ overview: ReportChart[]; group: Report
     return {
         overview: usable.filter((chart) => !chart.inGroupSection),
         group: usable.filter((chart) => chart.inGroupSection),
+        missingCount: captured.filter((chart, index) => !chart.src && containsChart(nodes[index])).length,
     };
 };
 
@@ -94,6 +98,7 @@ export const useReportDownload = (sources: ReportSources) => {
 
     const download = useCallback(async () => {
         setGenerating(true);
+        const startedAt = performance.now();
 
         try {
             const scope = scopeRef.current;
@@ -148,15 +153,36 @@ export const useReportDownload = (sources: ReportSources) => {
             };
 
             const blob = await pdf(<ReportDocument content={content} />).toBlob();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
+            triggerDownload(blob, `aigle-rapport-activite-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 
-            link.href = url;
-            link.download = `aigle-rapport-activite-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
+            trackReportExported(
+                {
+                    overview: !!summary && (summary.departmentName !== null || summary.epciName !== null),
+                    group: !!groupActivity,
+                    period: !!content.periodBreakdown,
+                },
+                Math.round((performance.now() - startedAt) / 100) / 10,
+            );
+
+            if (charts.missingCount) {
+                trackReportChartsMissing(charts.missingCount);
+                notifications.show({
+                    color: 'orange',
+                    title: 'Rapport incomplet',
+                    message:
+                        charts.missingCount > 1
+                            ? `${charts.missingCount} graphiques n'ont pas pu être ajoutés au rapport.`
+                            : "Un graphique n'a pas pu être ajouté au rapport.",
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            trackReportExportFailed();
+            notifications.show({
+                color: 'red',
+                title: 'Erreur',
+                message: "Le rapport n'a pas pu être généré.",
+            });
         } finally {
             setGenerating(false);
         }
