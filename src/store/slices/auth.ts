@@ -16,7 +16,8 @@ interface AuthState {
     setAccessToken: (accessToken?: string) => void;
     setRefreshToken: (refreshToken: string) => void;
     setUser: (userMe?: User) => void;
-    logout: () => Promise<void>;
+    // reloads the page, or loads `redirectTo` when given
+    logout: (redirectTo?: string) => Promise<void>;
     getUserGroupType: () => UserGroupType;
     hasFeatureFlag: (featureFlag: FeatureFlag) => boolean;
     getAccessibleGeozones: (geoZoneType?: GeoZoneType) => GeoZone[];
@@ -62,7 +63,7 @@ const useAuth = create<AuthState>()(
                 }));
                 Sentry.setUser(userMe ? { id: userMe.uuid, email: userMe.email, userRole: userMe.userRole } : null);
             },
-            logout: async () => {
+            logout: async (redirectTo?: string) => {
                 // Attendu avant le reload, qui annulerait la requête : sans révocation
                 // serveur, une copie du refresh token resterait valable une semaine.
                 await revokeRefreshToken(get().refreshToken);
@@ -74,7 +75,12 @@ const useAuth = create<AuthState>()(
                 }));
                 clearStoredUserGroupUuid();
                 resetBrevo();
-                window.location.reload();
+
+                if (redirectTo) {
+                    window.location.assign(redirectTo);
+                } else {
+                    window.location.reload();
+                }
             },
             getUserGroupType: () => {
                 const userMe = get().userMe;

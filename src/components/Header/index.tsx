@@ -144,7 +144,8 @@ const UserMenu: React.FC = () => {
                             className="fr-nav__link"
                             onClick={() => {
                                 trackEvent(TRACKING_CATEGORIES.account, 'Session fermée', 'Déconnexion');
-                                logout();
+                                // like the former `href="/"` link: the next login does not land on this session's page
+                                logout('/');
                             }}
                         >
                             Se déconnecter

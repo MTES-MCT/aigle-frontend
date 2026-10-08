@@ -22,6 +22,7 @@ type AddressSearchFailure = 'Aucun résultat' | 'Hors périmètre' | 'Erreur';
 // One typing session runs from the first keystroke to a pick or a clear.
 interface SearchSession {
     lastSelectedLabel?: string;
+    failureTimer?: ReturnType<typeof setTimeout>;
     failureTracked: boolean;
     errorNotified: boolean;
 }
@@ -71,6 +72,9 @@ const Component: React.FC<ComponentProps> = ({ tracked }: ComponentProps) => {
     } = useQuery<AddressSuggestion[]>({
         queryKey: ['address-search', debouncedSearch, globalBbox?.join(',')],
         enabled: !!debouncedSearch,
+        // one attempt, and offline is an error rather than a paused query: a failure is reported as it happens
+        retry: false,
+        networkMode: 'always',
         queryFn: ({ signal }) => searchAddress(debouncedSearch, { signal, bbox: globalBbox }),
     });
 
@@ -121,14 +125,18 @@ const Component: React.FC<ComponentProps> = ({ tracked }: ComponentProps) => {
         }
 
         const failureTimer = setTimeout(() => {
+            session.failureTimer = undefined;
             session.failureTracked = true;
             trackEvent(TRACKING_CATEGORIES.map, 'Adresse recherchée', failure);
         }, FAILED_SEARCH_SETTLE_DELAY_MS);
+        session.failureTimer = failureTimer;
 
         return () => clearTimeout(failureTimer);
     }, [debouncedSearch, isFetching, isError, suggestions, visibleSuggestions, tracked]);
 
     const endSession = () => {
+        clearTimeout(sessionRef.current.failureTimer);
+        sessionRef.current.failureTimer = undefined;
         sessionRef.current.failureTracked = false;
         sessionRef.current.errorNotified = false;
     };

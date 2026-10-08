@@ -98,7 +98,9 @@ const Component: React.FC<ComponentProps> = ({
 }: ComponentProps) => {
     const { isExpanded, toggleSection } = useExpandedSections(ALL_SECTIONS);
     const { settings } = useMap();
-    const scoreTrackingRef = useRef<{ timer: ReturnType<typeof setTimeout>; from: number } | null>(null);
+    const scoreTrackingRef = useRef<{ timer: ReturnType<typeof setTimeout>; from: number; send: () => void } | null>(
+        null,
+    );
 
     const update = (patch: Partial<ObjectsFilter>) => updateObjectsFilter({ ...objectsFilter, ...patch });
 
@@ -112,10 +114,14 @@ const Component: React.FC<ComponentProps> = ({
 
     const selectedPresetId = useMemo(() => getMatchingPresetId(objectsFilter) ?? CUSTOM_PRESET_ID, [objectsFilter]);
 
+    // the side panel unmounts a closed section: the pending score event is sent rather than lost
     useEffect(
         () => () => {
-            if (scoreTrackingRef.current) {
-                clearTimeout(scoreTrackingRef.current.timer);
+            const pending = scoreTrackingRef.current;
+
+            if (pending) {
+                clearTimeout(pending.timer);
+                pending.send();
             }
         },
         [],
@@ -178,15 +184,14 @@ const Component: React.FC<ComponentProps> = ({
             clearTimeout(pending.timer);
         }
 
-        scoreTrackingRef.current = {
-            from,
-            timer: setTimeout(() => {
-                scoreTrackingRef.current = null;
-                if (getScorePercent(score) !== getScorePercent(from)) {
-                    trackEvent(trackingCategory, 'Score modifié', String(getScorePercent(score)));
-                }
-            }, SCORE_TRACKING_DELAY_MS),
+        const send = () => {
+            scoreTrackingRef.current = null;
+            if (getScorePercent(score) !== getScorePercent(from)) {
+                trackEvent(trackingCategory, 'Score modifié', String(getScorePercent(score)));
+            }
         };
+
+        scoreTrackingRef.current = { from, send, timer: setTimeout(send, SCORE_TRACKING_DELAY_MS) };
     };
 
     const toggleInArray = <T,>(values: T[], value: T, checked: boolean): T[] =>
