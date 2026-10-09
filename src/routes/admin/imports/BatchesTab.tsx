@@ -68,6 +68,8 @@ const Component: React.FC = () => {
                                     ? dataDeploymentEndpoints.runBatch(String(item.geozoneId), item.id)
                                     : null
                             }
+                            pickGeozoneEndpoint={dataDeploymentEndpoints.runBatchOnGeozone(item.id)}
+                            geozoneName={item.geozoneName}
                             kind="batch"
                             name={item.name}
                             deployable={item.deployStatus === 'NOT_DEPLOYED'}

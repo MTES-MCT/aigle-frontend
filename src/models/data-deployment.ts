@@ -18,7 +18,7 @@ export interface DataDeploymentZaeLayer {
     deployStatus: DataDeploymentStatus;
 }
 
-// flat "Batches" listing: a batch plus the geozone of its run (null = not deployable)
+// flat "Batches" listing: a batch plus the geozone of its run (null = none, the admin picks one)
 export interface DataDeploymentBatchItem extends DataDeploymentBatch {
     uuid: string;
     geozoneId: number | null;

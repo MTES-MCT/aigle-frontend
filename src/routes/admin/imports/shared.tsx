@@ -8,6 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconRocket } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import GeozoneSelect from './GeozoneSelect';
 
 const DEPLOYMENT_STATUS: Record<DataDeploymentStatus, { label: string; color: string }> = {
     NOT_DEPLOYED: { label: 'Non déployé', color: 'red' },
@@ -48,27 +49,43 @@ export const ItemDeployButton: React.FC<{
     // an already-deployed item can only be redeployed by overriding what it produced;
     // without it the import skips the source row and does nothing
     alreadyDeployed?: boolean;
-}> = ({ endpoint, kind, name, deployable, alreadyDeployed = false }) => {
+    // deploys onto a collectivity picked in the modal (sent as geozoneUuid): the only way
+    // without endpoint, else a less visible button overriding the item's geozone
+    pickGeozoneEndpoint?: string;
+    geozoneName?: string | null;
+}> = ({ endpoint, kind, name, deployable, alreadyDeployed = false, pickGeozoneEndpoint, geozoneName }) => {
     const queryClient = useQueryClient();
     const [confirmOpened, { open, close }] = useDisclosure(false);
     const overrideLabel = ITEM_KIND[kind].overrideLabel;
     const [override, setOverride] = useState(alreadyDeployed);
+    const [pickingGeozone, setPickingGeozone] = useState(false);
+    const [geozoneUuid, setGeozoneUuid] = useState<string | null>(null);
 
     // reset from the current row state on every open, so a cancelled modal doesn't
     // carry a stale choice into the next one
-    const openModal = () => {
+    const openModal = (pickGeozone: boolean) => {
         setOverride(alreadyDeployed);
+        setPickingGeozone(pickGeozone);
+        setGeozoneUuid(null);
         open();
     };
 
     const mutation = useMutation<DataDeploymentItemRunResult, ApiError<{ detail?: string }>, void>({
-        mutationFn: () =>
-            endpoint
+        mutationFn: () => {
+            if (pickingGeozone && pickGeozoneEndpoint) {
+                return api<DataDeploymentItemRunResult>(pickGeozoneEndpoint, {
+                    method: 'POST',
+                    body: { geozoneUuid },
+                });
+            }
+
+            return endpoint
                 ? api<DataDeploymentItemRunResult>(endpoint, {
                       method: 'POST',
                       body: overrideLabel ? { overrideCustomZones: override } : undefined,
                   })
-                : Promise.reject(new Error('Aucune collectivité rattachée')),
+                : Promise.reject(new Error('Aucune collectivité rattachée'));
+        },
         onSuccess: (result) => {
             close();
             notifications.show({
@@ -92,9 +109,9 @@ export const ItemDeployButton: React.FC<{
 
     const deploying = mutation.status === 'pending';
     // once launched this session, keep it disabled (status flips later, behind the queue)
-    const disabled = mutation.isSuccess || !deployable || !endpoint;
+    const disabled = mutation.isSuccess || !deployable || (!endpoint && !pickGeozoneEndpoint);
     // redeploying an already-deployed item without overriding is a guaranteed no-op
-    const confirmDisabled = alreadyDeployed && !!overrideLabel && !override;
+    const confirmDisabled = (alreadyDeployed && !!overrideLabel && !override) || (pickingGeozone && !geozoneUuid);
 
     return (
         <>
@@ -102,12 +119,24 @@ export const ItemDeployButton: React.FC<{
                 size="compact-sm"
                 variant="light"
                 leftSection={<IconRocket size={14} />}
-                onClick={openModal}
+                onClick={() => openModal(!endpoint)}
                 disabled={disabled}
-                title={!endpoint ? 'Aucune collectivité rattachée' : undefined}
+                title={!endpoint && !pickGeozoneEndpoint ? 'Aucune collectivité rattachée' : undefined}
             >
                 {alreadyDeployed && overrideLabel ? 'Redéployer' : 'Déployer'}
             </Button>
+            {endpoint && pickGeozoneEndpoint ? (
+                <Button
+                    size="compact-sm"
+                    variant="subtle"
+                    color="gray"
+                    onClick={() => openModal(true)}
+                    disabled={disabled}
+                    title="Déployer sur une autre collectivité"
+                >
+                    Autre collectivité
+                </Button>
+            ) : null}
 
             <Modal opened={confirmOpened} onClose={close} title="Déployer" centered>
                 <Stack>
@@ -117,6 +146,21 @@ export const ItemDeployButton: React.FC<{
                             <List.Item key={step}>{step}</List.Item>
                         ))}
                     </List>
+
+                    {pickingGeozone ? (
+                        <>
+                            <GeozoneSelect
+                                label="Collectivité"
+                                description={geozoneName ? `Au lieu de « ${geozoneName} »` : undefined}
+                                value={geozoneUuid}
+                                onChange={setGeozoneUuid}
+                            />
+                            <Text size="xs" c="dimmed">
+                                Seul cet élément est importé : la collectivité doit déjà être déployée (groupe
+                                utilisateur, parcelles, zones à enjeux).
+                            </Text>
+                        </>
+                    ) : null}
 
                     {overrideLabel ? (
                         <>
@@ -143,7 +187,13 @@ export const ItemDeployButton: React.FC<{
                             onClick={() => mutation.mutate()}
                             loading={deploying}
                             disabled={confirmDisabled}
-                            title={confirmDisabled ? 'Activez l’écrasement pour redéployer cet élément' : undefined}
+                            title={
+                                pickingGeozone && !geozoneUuid
+                                    ? 'Choisissez une collectivité'
+                                    : confirmDisabled
+                                      ? 'Activez l’écrasement pour redéployer cet élément'
+                                      : undefined
+                            }
                         >
                             Confirmer
                         </Button>
