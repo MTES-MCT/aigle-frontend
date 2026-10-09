@@ -25,14 +25,13 @@
     color: var(--text-mention-grey);
 }
 
-// DSFR's tertiary-no-outline button carries no vertical rhythm of its own, so the first
-// checkbox would sit flush against it
+// a DSFR button carries no vertical rhythm of its own, so the first checkbox would sit flush against it
 .select-all {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
-// the DSFR checkbox label is itself a flex row, so this has to be able to shrink for the
-// name to ellipsis instead of wrapping
+// the DSFR checkbox label is itself a flex row: this grows to the full row so the square ends
+// up on the right, and has to be able to shrink for the name to ellipsis instead of wrapping
 .label {
     flex: 1 1 auto;
     min-width: 0;
@@ -50,6 +49,7 @@
 
 .color-square {
     flex: 0 0 auto;
+    margin-left: auto;
 
     width: 0.75rem;
     height: 0.75rem;

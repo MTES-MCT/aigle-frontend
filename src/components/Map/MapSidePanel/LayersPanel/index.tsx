@@ -1,11 +1,13 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 
 import LayerRow from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
-import { getBackgroundYearRank, getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
+import SortableLayerRows from '@/components/Map/MapSidePanel/LayersPanel/SortableLayerRows';
+import { getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
-import { TileSetType, tileSetTypes } from '@/models/tile-set';
+import { TileSetType } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
-import { CUSTOM_ZONE_NEGATIVE_COLOR, CUSTOM_ZONE_NEGATIVE_OPACITY, TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { TILE_SET_TYPES_NAMES_MAP } from '@/utils/constants';
+import { getCustomZoneLayerKey } from '@/utils/layers-order';
 import { trackEvent } from '@/utils/matomo';
 import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import classes from './index.module.scss';
@@ -47,25 +49,18 @@ const Component: React.FC<ComponentProps> = ({
         setTileSetVisibility,
         setCustomZoneVisibility,
         setCustomZoneOpacity,
+        moveTileSetLayer,
+        moveCustomZoneLayer,
         annotationLayerVisible,
         setAnnotationLayerVisibility,
-        customZoneNegativeFilterVisible,
-        setCustomZoneNegativeFilterVisibility,
-        backgroundLayerYears,
-        getBackgroundTileSetYearDisplayed,
-        setBackgroundTileSetYearDisplayed,
-        eventEmitter,
         settings,
     } = useMap();
-    const backgroundYearsGroupId = `background-years-${useId()}`;
-    const [backgroundYearSelected, setBackgroundYearSelected] = useState<string>(
-        getBackgroundTileSetYearDisplayed() || '',
-    );
 
+    // The orthos are switched with the year selector, and the admin can leave a tile set out of the panel.
     const layersMap: LayersMap = useMemo(
         () =>
             layers
-                .filter((layer) => layer.tileSet.tileSetType !== 'BACKGROUND')
+                .filter(({ tileSet }) => tileSet.tileSetType !== 'BACKGROUND' && tileSet.shownInLayersPanel !== false)
                 .reduce<LayersMap>(
                     (prev, curr) => {
                         prev[curr.tileSet.tileSetType as OverlayTileSetType].push(curr);
@@ -76,22 +71,6 @@ const Component: React.FC<ComponentProps> = ({
         [layers],
     );
 
-    useEffect(() => {
-        const updateBackgroundYearSelected = () => {
-            const yearDisplayed = getBackgroundTileSetYearDisplayed();
-
-            if (yearDisplayed) {
-                setBackgroundYearSelected(yearDisplayed);
-            }
-        };
-
-        eventEmitter.on('LAYERS_UPDATED', updateBackgroundYearSelected);
-
-        return () => {
-            eventEmitter.off('LAYERS_UPDATED', updateBackgroundYearSelected);
-        };
-    }, [eventEmitter, getBackgroundTileSetYearDisplayed]);
-
     // From the rows only: the add-object tool also resets the layers through the store.
     const trackLayerToggled = (visible: boolean, layerName: string) => {
         if (tracked) {
@@ -99,108 +78,76 @@ const Component: React.FC<ComponentProps> = ({
         }
     };
 
-    return (
-        <>
-            {displayLayersSelection ? (
-                <>
-                    <Section title={TILE_SET_TYPES_NAMES_MAP.BACKGROUND}>
-                        <div className={classes['radio-list']} role="radiogroup" aria-label="Année du fond de carte">
-                            {(backgroundLayerYears || []).map((year) => (
-                                <div className="fr-radio-group fr-radio-group--sm" key={year}>
-                                    <input
-                                        type="radio"
-                                        id={`${backgroundYearsGroupId}-${year}`}
-                                        name={backgroundYearsGroupId}
-                                        value={year}
-                                        checked={backgroundYearSelected === year}
-                                        onChange={() => {
-                                            if (tracked && year !== backgroundYearSelected) {
-                                                trackEvent(
-                                                    TRACKING_CATEGORIES.mapLayers,
-                                                    'Année du fond de carte changée',
-                                                    `${getBackgroundYearRank(year, backgroundLayerYears || [])} : Couches`,
-                                                    Number(year),
-                                                );
-                                            }
-                                            setBackgroundTileSetYearDisplayed(year);
-                                        }}
-                                    />
-                                    <label className="fr-label" htmlFor={`${backgroundYearsGroupId}-${year}`}>
-                                        {year}
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-                    </Section>
-
-                    {tileSetTypes
-                        .filter((type): type is OverlayTileSetType => type !== 'BACKGROUND')
-                        .map((type) =>
-                            layersMap[type].length ? (
-                                <Section key={type} title={TILE_SET_TYPES_NAMES_MAP[type]}>
-                                    {layersMap[type].map((layer) => (
-                                        <LayerRow
-                                            key={layer.tileSet.uuid}
-                                            name={layer.tileSet.name}
-                                            icon={TILE_SET_TYPE_ICONS[type]}
-                                            displayed={layer.displayed}
-                                            onToggleDisplayed={(displayed) => {
-                                                trackLayerToggled(
-                                                    displayed,
-                                                    `${layer.tileSet.tileSetType} : ${layer.tileSet.name}`,
-                                                );
-                                                setTileSetVisibility(layer.tileSet.uuid, displayed);
-                                            }}
-                                        />
-                                    ))}
-                                </Section>
-                            ) : null,
-                        )}
-                </>
-            ) : null}
-
-            <Section title="Zones à enjeux">
-                {customZoneLayers.map(({ name, color, customZoneUuids, displayed, opacity, description }) => (
-                    <LayerRow
-                        key={customZoneUuids.join(',')}
-                        name={name}
-                        color={color}
-                        displayed={displayed}
-                        opacity={opacity}
-                        description={description}
-                        onToggleDisplayed={(isDisplayed) => {
-                            trackLayerToggled(
-                                isDisplayed,
-                                `Zone : ${getZoneLayerTrackingName({ name, customZoneUuids }, settings)}`,
-                            );
-                            setCustomZoneVisibility(customZoneUuids, isDisplayed);
-                        }}
-                        onOpacityChange={(value) => setCustomZoneOpacity(customZoneUuids, value)}
-                    />
-                ))}
+    const renderTileSetRows = (type: OverlayTileSetType) => (
+        <SortableLayerRows
+            items={layersMap[type]}
+            getKey={({ tileSet }) => tileSet.uuid}
+            getName={({ tileSet }) => tileSet.name}
+            onMove={(layer, target) => moveTileSetLayer(layer.tileSet.uuid, target.tileSet.uuid)}
+            renderRow={(layer, sortable) => (
                 <LayerRow
-                    name="Zones exclues par les filtres"
-                    color={CUSTOM_ZONE_NEGATIVE_COLOR}
-                    opacity={CUSTOM_ZONE_NEGATIVE_OPACITY}
-                    displayed={!!customZoneNegativeFilterVisible}
-                    onToggleDisplayed={(isDisplayed) => {
-                        trackLayerToggled(isDisplayed, 'Zones exclues par les filtres');
-                        setCustomZoneNegativeFilterVisibility(isDisplayed);
+                    name={layer.tileSet.name}
+                    icon={TILE_SET_TYPE_ICONS[type]}
+                    displayed={layer.displayed}
+                    sortable={sortable}
+                    onToggleDisplayed={(displayed) => {
+                        trackLayerToggled(displayed, `${layer.tileSet.tileSetType} : ${layer.tileSet.name}`);
+                        setTileSetVisibility(layer.tileSet.uuid, displayed);
                     }}
                 />
-            </Section>
+            )}
+        />
+    );
 
-            <Section title="Annotation">
+    return (
+        <>
+            {displayLayersSelection && layersMap.PARTIAL.length ? (
+                <Section title={TILE_SET_TYPES_NAMES_MAP.PARTIAL}>{renderTileSetRows('PARTIAL')}</Section>
+            ) : null}
+
+            <Section title={TILE_SET_TYPES_NAMES_MAP.INDICATIVE}>
+                {/* first and not movable: a vector layer, always drawn above the images */}
                 <LayerRow
                     name="Grille d'annotation"
                     icon="fr-icon-layout-grid-line"
                     displayed={!!annotationLayerVisible}
+                    pinned
                     onToggleDisplayed={(isDisplayed) => {
                         trackLayerToggled(isDisplayed, 'Grille d’annotation');
                         setAnnotationLayerVisibility(isDisplayed);
                     }}
                 />
+                {displayLayersSelection ? renderTileSetRows('INDICATIVE') : null}
             </Section>
+
+            {customZoneLayers.length ? (
+                <Section title="Zones à enjeux">
+                    <SortableLayerRows
+                        items={customZoneLayers}
+                        getKey={getCustomZoneLayerKey}
+                        getName={({ name }) => name}
+                        onMove={(layer, target) => moveCustomZoneLayer(layer.customZoneUuids, target.customZoneUuids)}
+                        renderRow={({ name, color, customZoneUuids, displayed, opacity, description }, sortable) => (
+                            <LayerRow
+                                name={name}
+                                color={color}
+                                displayed={displayed}
+                                opacity={opacity}
+                                description={description}
+                                sortable={sortable}
+                                onToggleDisplayed={(isDisplayed) => {
+                                    trackLayerToggled(
+                                        isDisplayed,
+                                        `Zone : ${getZoneLayerTrackingName({ name, customZoneUuids }, settings)}`,
+                                    );
+                                    setCustomZoneVisibility(customZoneUuids, isDisplayed);
+                                }}
+                                onOpacityChange={(value) => setCustomZoneOpacity(customZoneUuids, value)}
+                            />
+                        )}
+                    />
+                </Section>
+            ) : null}
         </>
     );
 };

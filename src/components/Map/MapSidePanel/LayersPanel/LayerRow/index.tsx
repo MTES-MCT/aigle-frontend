@@ -8,6 +8,21 @@ import classes from './index.module.scss';
 
 const formatOpacity = (opacity: number) => `${Math.round(opacity)} %`;
 
+export type DropPosition = 'before' | 'after';
+
+export interface LayerRowSortableProps {
+    dragged: boolean;
+    dropPosition?: DropPosition;
+    describedBy: string;
+    handleRef: (handle: HTMLButtonElement | null) => void;
+    onHandleKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
+    onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragEnd: () => void;
+}
+
 interface ComponentProps {
     name: string;
     displayed: boolean;
@@ -15,6 +30,9 @@ interface ComponentProps {
     icon?: string;
     description?: string | null;
     opacity?: number;
+    sortable?: LayerRowSortableProps;
+    // in a sortable section without being movable itself: keeps the handle's slot so the rows line up
+    pinned?: boolean;
     onToggleDisplayed: (displayed: boolean) => void;
     onOpacityChange?: (opacity: number) => void;
 }
@@ -26,17 +44,68 @@ const Component: React.FC<ComponentProps> = ({
     icon,
     description,
     opacity,
+    sortable,
+    pinned,
     onToggleDisplayed,
     onOpacityChange,
 }: ComponentProps) => {
     const detailsId = `layer-details-${useId()}`;
     const [expanded, setExpanded] = useState(false);
+    // Only a drag started from the handle moves the row: the rest of it holds buttons and a slider.
+    const [dragArmed, setDragArmed] = useState(false);
     const expandable = onOpacityChange !== undefined || !!description;
     const swatchOpacities = getCustomZoneOpacities(opacity ?? DEFAULT_CUSTOM_ZONE_LAYER_OPACITY);
 
     return (
-        <div className={classes.layer}>
+        <div
+            className={clsx(
+                classes.layer,
+                sortable?.dragged && classes['layer-dragged'],
+                sortable?.dropPosition && classes[`layer-drop-${sortable.dropPosition}`],
+            )}
+            draggable={dragArmed}
+            onDragStart={sortable?.onDragStart}
+            onDragOver={sortable?.onDragOver}
+            onDragLeave={sortable?.onDragLeave}
+            onDrop={sortable?.onDrop}
+            onDragEnd={() => {
+                setDragArmed(false);
+                sortable?.onDragEnd();
+            }}
+        >
             <div className={classes.header}>
+                {sortable ? (
+                    <button
+                        ref={sortable.handleRef}
+                        type="button"
+                        className={clsx(
+                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-drag-move-2-line',
+                            classes.handle,
+                        )}
+                        title={`Déplacer ${name}`}
+                        aria-keyshortcuts="ArrowUp ArrowDown"
+                        aria-describedby={sortable.describedBy}
+                        onPointerDown={(event) => {
+                            if (event.button !== 0) {
+                                return;
+                            }
+
+                            setDragArmed(true);
+                            // pointercancel when the drag starts or the touch scrolls, no pointerup then
+                            const disarm = () => {
+                                setDragArmed(false);
+                                document.removeEventListener('pointerup', disarm);
+                                document.removeEventListener('pointercancel', disarm);
+                            };
+                            document.addEventListener('pointerup', disarm);
+                            document.addEventListener('pointercancel', disarm);
+                        }}
+                        onKeyDown={sortable.onHandleKeyDown}
+                    >
+                        {`Déplacer ${name}`}
+                    </button>
+                ) : null}
+                {pinned ? <span className={classes['handle-slot']} aria-hidden="true" /> : null}
                 <span
                     className={clsx(classes.vignette, icon)}
                     style={

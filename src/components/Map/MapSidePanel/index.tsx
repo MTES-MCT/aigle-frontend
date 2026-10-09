@@ -1,25 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 
 import FilterObjects from '@/components/FilterObjects';
 import LayersPanel from '@/components/Map/MapSidePanel/LayersPanel';
 import SearchPanel from '@/components/Map/MapSidePanel/SearchPanel';
+import SidePanel, { SidePanelSection } from '@/components/SidePanel';
 import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
-import { getMatchingPresetId } from '@/utils/objects-filter-presets';
+import { extractObjectTypesFromSettings } from '@/store/utils';
+import { isObjectsFilterDefault } from '@/utils/objects-filter';
 import { TRACKING_CATEGORIES } from '@/utils/tracking';
-import clsx from 'clsx';
-import classes from './index.module.scss';
 
 export type MapSidePanelSection = 'SEARCH' | 'FILTER' | 'LAYERS';
-
-// kept in sync with the `transition` on .panel: the content has to outlive the slide-out
-const SLIDE_DURATION_MS = 250;
-
-const SECTIONS: { id: MapSidePanelSection; title: string; icon: string }[] = [
-    { id: 'SEARCH', title: 'Recherche', icon: 'fr-icon-search-line' },
-    { id: 'FILTER', title: 'Filtres', icon: 'fr-icon-filter-line' },
-    { id: 'LAYERS', title: 'Couches', icon: 'fr-icon-stack-line' },
-];
 
 interface ComponentProps {
     section?: MapSidePanelSection;
@@ -38,103 +29,63 @@ const Component: React.FC<ComponentProps> = ({
     tracked = false,
     onFilterUserChange,
 }: ComponentProps) => {
-    const { layers, customZoneLayers, objectTypes, otherObjectTypesUuids, annotationLayerVisible } = useMap();
+    const { layers, customZoneLayers, objectTypes, otherObjectTypesUuids, annotationLayerVisible, settings } = useMap();
     const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
-    // the panel slides out rather than unmounting, so it keeps rendering the section it is closing
-    const [slidingSection, setSlidingSection] = useState(section);
-
-    useEffect(() => {
-        if (section) {
-            setSlidingSection(section);
-            return;
-        }
-
-        const timeout = setTimeout(() => setSlidingSection(undefined), SLIDE_DURATION_MS);
-
-        return () => clearTimeout(timeout);
-    }, [section]);
+    const defaultObjectTypesUuids = useMemo(
+        () => (settings ? Array.from(extractObjectTypesFromSettings(settings).visibleObjectTypesUuids) : []),
+        [settings],
+    );
 
     if (!layers || !customZoneLayers || !objectTypes || !otherObjectTypesUuids || !objectsFilter) {
         return null;
     }
 
-    const indicators: Record<MapSidePanelSection, boolean> = {
-        SEARCH: false,
-        FILTER: getMatchingPresetId(objectsFilter) !== 'DEFAULT',
-        LAYERS: customZoneLayers.some(({ displayed }) => displayed) || !!annotationLayerVisible,
-    };
+    const sections: SidePanelSection<MapSidePanelSection>[] = [
+        {
+            id: 'SEARCH',
+            title: 'Recherche',
+            icon: 'fr-icon-search-line',
+            content: <SearchPanel onClose={() => setSection(undefined)} tracked={tracked} />,
+        },
+        {
+            id: 'FILTER',
+            title: 'Filtres',
+            icon: 'fr-icon-filter-line',
+            indicator: !isObjectsFilterDefault(
+                objectsFilter,
+                defaultObjectTypesUuids,
+                customZoneLayers.flatMap(({ customZoneUuids }) => customZoneUuids),
+            ),
+            content: (
+                <FilterObjects
+                    objectTypes={objectTypes}
+                    objectsFilter={objectsFilter}
+                    mapGeoCustomZoneLayers={customZoneLayers}
+                    otherObjectTypesUuids={otherObjectTypesUuids}
+                    updateObjectsFilter={updateObjectsFilter}
+                    trackingCategory={tracked ? TRACKING_CATEGORIES.mapFilters : undefined}
+                    onUserChange={onFilterUserChange}
+                />
+            ),
+        },
+        {
+            id: 'LAYERS',
+            title: 'Couches',
+            icon: 'fr-icon-stack-line',
+            indicator: customZoneLayers.some(({ displayed }) => displayed) || !!annotationLayerVisible,
+            disabled: layersDisabled,
+            content: (
+                <LayersPanel
+                    layers={layers}
+                    customZoneLayers={customZoneLayers}
+                    displayLayersSelection={displayLayersSelection}
+                    tracked={tracked}
+                />
+            ),
+        },
+    ];
 
-    const renderContent = () => {
-        switch (slidingSection) {
-            case 'SEARCH':
-                return <SearchPanel onClose={() => setSection(undefined)} tracked={tracked} />;
-            case 'FILTER':
-                return (
-                    <FilterObjects
-                        objectTypes={objectTypes}
-                        objectsFilter={objectsFilter}
-                        mapGeoCustomZoneLayers={customZoneLayers}
-                        otherObjectTypesUuids={otherObjectTypesUuids}
-                        updateObjectsFilter={updateObjectsFilter}
-                        trackingCategory={tracked ? TRACKING_CATEGORIES.mapFilters : undefined}
-                        onUserChange={onFilterUserChange}
-                    />
-                );
-            case 'LAYERS':
-                return (
-                    <LayersPanel
-                        layers={layers}
-                        customZoneLayers={customZoneLayers}
-                        displayLayersSelection={displayLayersSelection}
-                        tracked={tracked}
-                    />
-                );
-            default:
-                return null;
-        }
-    };
-
-    const slidingSectionTitle = SECTIONS.find(({ id }) => id === slidingSection)?.title;
-
-    return (
-        <div className={classes.container}>
-            <div className={clsx(classes.panel, section && classes['panel-open'])} aria-hidden={!section}>
-                <div className={classes['panel-header']}>
-                    <h2 className={classes['panel-title']}>{slidingSectionTitle}</h2>
-                    <button
-                        type="button"
-                        className="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line fr-btn--icon-right"
-                        onClick={() => setSection(undefined)}
-                    >
-                        Fermer
-                    </button>
-                </div>
-                {renderContent()}
-            </div>
-
-            <div className={classes.rail}>
-                {SECTIONS.map(({ id, title, icon }) => {
-                    const disabled = layersDisabled && id === 'LAYERS';
-
-                    return (
-                        <button
-                            key={id}
-                            type="button"
-                            className={clsx(classes['rail-button'], section === id && classes['rail-button-active'])}
-                            title={title}
-                            aria-label={title}
-                            aria-pressed={section === id}
-                            disabled={disabled}
-                            onClick={() => setSection(section === id ? undefined : id)}
-                        >
-                            <span className={icon} aria-hidden="true" />
-                            {indicators[id] ? <span className={classes['rail-button-indicator']} /> : null}
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
-    );
+    return <SidePanel layout="overlay" sections={sections} section={section} setSection={setSection} />;
 };
 
 export default Component;

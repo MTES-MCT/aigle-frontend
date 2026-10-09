@@ -18,6 +18,9 @@
 }
 
 .legends-container {
+    // keeps the last column's title clear of the close button
+    padding-right: 1.5rem;
+
     display: flex;
     flex-direction: row;
     gap: 1rem;

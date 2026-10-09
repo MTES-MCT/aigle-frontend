@@ -5,6 +5,12 @@ import { TileSet, TileSetStatus, TileSetType } from '@/models/tile-set';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { getCommonMapSettingsData, getInitialMapLayers } from '@/store/utils';
 import { formatDateOnly } from '@/utils/format';
+import {
+    getCustomZoneLayersMoved,
+    getTileSetLayersMoved,
+    storeCustomZoneLayersOrder,
+    storeTileSetLayersOrder,
+} from '@/utils/layers-order';
 import EventEmitter from 'eventemitter3';
 import { isEqual } from 'lodash';
 import { create } from 'zustand';
@@ -19,7 +25,6 @@ interface MapState {
     settings?: MapSettings;
     userLastPosition?: GeoJSON.Position | null;
     annotationLayerVisible?: boolean;
-    customZoneNegativeFilterVisible?: boolean;
     otherObjectTypesUuids?: Set<string>; // contains objectTypes with status OTHER_CATEGORY
     initialDetectionObjectUuid?: string;
     isDetailFetching?: boolean; // we want to prioritize the detail fetching over the detections fetching
@@ -33,8 +38,9 @@ interface MapState {
     setTileSetsVisibility: (uuids: string[], visible: boolean) => void;
     setCustomZoneVisibility: (uuids: string[], visible: boolean) => void;
     setCustomZoneOpacity: (uuids: string[], opacity: number) => void;
+    moveTileSetLayer: (uuid: string, targetUuid: string) => void;
+    moveCustomZoneLayer: (uuids: string[], targetUuids: string[]) => void;
     setAnnotationLayerVisibility: (visible: boolean) => void;
-    setCustomZoneNegativeFilterVisibility: (visible: boolean) => void;
     getBackgroundTileSetYearDisplayed: () => string | undefined;
     getTileSets: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => TileSet[];
     getTileSetsUuids: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => string[];
@@ -81,7 +87,6 @@ const useMap = create<MapState>()((set, get) => ({
             layers,
             backgroundLayerYears,
             annotationLayerVisible: false,
-            customZoneNegativeFilterVisible: true,
             otherObjectTypesUuids: new Set(otherObjectTypesUuids),
             customZoneLayers: initialMapGeoCustomZoneLayers,
             objectTypes: allObjectTypes,
@@ -105,11 +110,6 @@ const useMap = create<MapState>()((set, get) => ({
             annotationLayerVisible: visible,
         });
     },
-    setCustomZoneNegativeFilterVisibility: (visible: boolean) => {
-        set({
-            customZoneNegativeFilterVisible: visible,
-        });
-    },
     resetLayers: () => {
         const settings = get().settings;
 
@@ -117,7 +117,11 @@ const useMap = create<MapState>()((set, get) => ({
             return;
         }
 
-        const { layers } = getInitialMapLayers(settings);
+        // the current order rather than the stored one, which storage may have failed to keep
+        const { layers } = getInitialMapLayers(
+            settings,
+            (get().layers || []).map(({ tileSet }) => tileSet.uuid),
+        );
 
         set((state) => {
             state.eventEmitter.emit('LAYERS_UPDATED');
@@ -222,6 +226,34 @@ const useMap = create<MapState>()((set, get) => ({
     },
     setCustomZoneOpacity: (uuids: string[], opacity: number) => {
         set((state) => updateCustomZoneLayer(state.customZoneLayers, uuids, { opacity }));
+    },
+    // A new array: the panel memoizes its sections on it.
+    moveTileSetLayer: (uuid: string, targetUuid: string) => {
+        const { layers } = get();
+
+        if (!layers || uuid === targetUuid) {
+            return;
+        }
+
+        const layersMoved = getTileSetLayersMoved(layers, uuid, targetUuid);
+
+        set({ layers: layersMoved });
+        storeTileSetLayersOrder(layersMoved);
+        get().eventEmitter.emit('LAYERS_UPDATED');
+    },
+    moveCustomZoneLayer: (uuids: string[], targetUuids: string[]) => {
+        const { customZoneLayers } = get();
+
+        if (!customZoneLayers) {
+            return;
+        }
+
+        const customZoneLayersMoved = getCustomZoneLayersMoved(customZoneLayers, uuids, targetUuids);
+
+        if (customZoneLayersMoved !== customZoneLayers) {
+            set({ customZoneLayers: customZoneLayersMoved });
+            storeCustomZoneLayersOrder(customZoneLayersMoved);
+        }
     },
     getBackgroundTileSetYearDisplayed: () => {
         const layers = get().layers || [];

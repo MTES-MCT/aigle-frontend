@@ -41,6 +41,10 @@
     }
 }
 
+.suggestion-active {
+    background-color: var(--background-default-grey-hover);
+}
+
 .suggestion-label {
     font-size: 0.875rem;
     line-height: 1.5rem;

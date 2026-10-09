@@ -147,6 +147,18 @@ const haveSameValues = <T>(first: T[], second: T[]) => xor(first, second).length
 const hasUnknownValues = (text: string | undefined, knownValues: readonly string[]) =>
     (stringToArray(text) ?? []).some((value) => !knownValues.includes(value));
 
+/** The score and `interfaceDrawn` are left out: only what the agent selects in the filter lists counts. */
+export const isObjectsFilterDefault = (
+    objectsFilter: ObjectsFilter,
+    defaultObjectTypesUuids: string[],
+    defaultCustomZonesUuids: string[],
+): boolean =>
+    haveSameValues(objectsFilter.objectTypesUuids, defaultObjectTypesUuids) &&
+    haveSameValues(objectsFilter.detectionValidationStatuses, DEFAULT_DETECTION_VALIDATION_STATUSES) &&
+    haveSameValues(objectsFilter.detectionControlStatuses, DEFAULT_DETECTION_CONTROL_STATUSES) &&
+    objectsFilter.prescripted === DEFAULT_PRESCRIPTED &&
+    haveSameValues(objectsFilter.customZonesUuids, defaultCustomZonesUuids);
+
 /**
  * What a landing query string (a shared link, a bookmark) turns into, compared with the default
  * filter. `knownObjectTypesUuids` are all the object types of the settings, hidden ones included.

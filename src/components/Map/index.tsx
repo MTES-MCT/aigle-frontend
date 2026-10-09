@@ -31,13 +31,7 @@ import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api, { ApiError } from '@/utils/api';
 import { getCustomZoneOpacities } from '@/utils/colors';
-import {
-    CUSTOM_ZONE_NEGATIVE_COLOR,
-    CUSTOM_ZONE_NEGATIVE_OPACITY,
-    DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
-    MAPBOX_TOKEN,
-    PARCEL_COLOR,
-} from '@/utils/constants';
+import { DEFAULT_CUSTOM_ZONE_LAYER_OPACITY, MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
 import { trackEvent } from '@/utils/matomo';
@@ -48,7 +42,7 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { IconCancel } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
+import { bbox, bboxPolygon, booleanIntersects, centroid, getCoord } from '@turf/turf';
 import { FeatureCollection, Polygon } from 'geojson';
 import { isEqual } from 'lodash';
 import mapboxgl, { DataDrivenPropertyValueSpecification } from 'mapbox-gl';
@@ -225,8 +219,6 @@ const DETECTION_ENDPOINT = detectionEndpoints.getList(false, true);
 
 const GEOJSON_CUSTOM_ZONES_LAYER_ID = 'custom-zones-geojson-layer';
 const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outline';
-
-const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID = 'custom-zone-negative-geojson-layer';
 
 const GEOJSON_DETECTIONS_LAYER_ID = 'detections-geojson-layer';
 const GEOJSON_DETECTION_FROM_COORDINATES_LAYER_ID = 'detection-from-coordinates-geojson-layer';
@@ -417,7 +409,6 @@ const Component: React.FC<ComponentProps> = ({
         settings,
         customZoneLayers,
         annotationLayerVisible,
-        customZoneNegativeFilterVisible,
         otherObjectTypesUuids,
         isDetailFetching,
     } = useMap();
@@ -447,29 +438,38 @@ const Component: React.FC<ComponentProps> = ({
     // the object whose opening was last tracked: a re-click on it, or the click following a tap, is not a new one
     const trackedDetectionObjectUuidRef = useRef<string | null>(initialDetectionObjectUuid ?? null);
 
+    // sorted: reordering the layers in the « Couches » panel must not refetch their geometries
     const customZoneLayersDisplayedUuids = (customZoneLayers || [])
         .filter(({ displayed }) => displayed)
         .map(({ customZoneUuids }) => customZoneUuids)
-        .flat();
+        .flat()
+        .sort();
+
+    const customZoneLayersDisplayed = useMemo(
+        () =>
+            (customZoneLayers || []).filter(
+                ({ displayed: isDisplayed, customZoneUuids }) => isDisplayed && customZoneUuids.length,
+            ),
+        [customZoneLayers],
+    );
 
     // Every zone à enjeux shares one fill layer and one line layer, so the per-layer opacity
     // slider has to be a data-driven match on the feature uuid, not a paint constant.
     const customZoneOpacity = useMemo(() => {
-        const displayed = (customZoneLayers || []).filter(
-            ({ displayed: isDisplayed, customZoneUuids }) => isDisplayed && customZoneUuids.length,
-        );
-
         const build = (pick: (opacity: number) => number): DataDrivenPropertyValueSpecification<number> => {
             const fallback = pick(DEFAULT_CUSTOM_ZONE_LAYER_OPACITY);
 
-            if (!displayed.length) {
+            if (!customZoneLayersDisplayed.length) {
                 return fallback;
             }
 
             return [
                 'match',
                 ['get', 'uuid'],
-                ...displayed.flatMap(({ customZoneUuids, opacity }) => [customZoneUuids, pick(opacity)]),
+                ...customZoneLayersDisplayed.flatMap(({ customZoneUuids, opacity }) => [
+                    customZoneUuids,
+                    pick(opacity),
+                ]),
                 fallback,
             ] as unknown as DataDrivenPropertyValueSpecification<number>;
         };
@@ -478,9 +478,27 @@ const Component: React.FC<ComponentProps> = ({
             fill: build((opacity) => getCustomZoneOpacities(opacity).fill),
             line: build((opacity) => getCustomZoneOpacities(opacity).line),
         };
-    }, [customZoneLayers]);
+    }, [customZoneLayersDisplayed]);
+
+    // the layer listed first in the « Couches » panel is drawn above the others
+    const customZoneSortKey = useMemo(
+        (): DataDrivenPropertyValueSpecification<number> =>
+            customZoneLayersDisplayed.length > 1
+                ? ([
+                      'match',
+                      ['get', 'uuid'],
+                      ...customZoneLayersDisplayed.flatMap(({ customZoneUuids }, index) => [
+                          customZoneUuids,
+                          customZoneLayersDisplayed.length - index,
+                      ]),
+                      0,
+                  ] as unknown as DataDrivenPropertyValueSpecification<number>)
+                : 0,
+        [customZoneLayersDisplayed],
+    );
 
     // we get detections for all the layers available for the user, even if they are not displayed
+    // (sorted: reordering the layers in the « Couches » panel must not refetch the detections)
     const tileSetsUuidsDetection = useMemo(
         () =>
             layers
@@ -489,7 +507,8 @@ const Component: React.FC<ComponentProps> = ({
                         ['BACKGROUND', 'PARTIAL'].includes(layer.tileSet.tileSetType) &&
                         ['VISIBLE', 'HIDDEN'].includes(layer.tileSet.tileSetStatus),
                 )
-                .map((layer) => layer.tileSet.uuid),
+                .map((layer) => layer.tileSet.uuid)
+                .sort(),
         [layers],
     );
 
@@ -1016,7 +1035,7 @@ const Component: React.FC<ComponentProps> = ({
     }, [annotationGridError]);
 
     const fetchCustomZoneGeometries = async (signal: AbortSignal, mapBounds?: MapBounds) => {
-        if (!mapBounds || (customZoneLayersDisplayedUuids.length === 0 && !customZoneNegativeFilterVisible)) {
+        if (!mapBounds || customZoneLayersDisplayedUuids.length === 0) {
             return null;
         }
 
@@ -1024,7 +1043,6 @@ const Component: React.FC<ComponentProps> = ({
             params: {
                 ...mapBounds,
                 uuids: customZoneLayersDisplayedUuids,
-                uuidsNegative: customZoneNegativeFilterVisible ? objectsFilter?.customZonesUuids || [] : [],
             },
             signal,
         });
@@ -1034,8 +1052,6 @@ const Component: React.FC<ComponentProps> = ({
             utilsEndpoints.customGeometry,
             ...Object.values(mapBounds || {}),
             customZoneLayersDisplayedUuids.join(','),
-            (objectsFilter?.customZonesUuids || []).join(','),
-            customZoneNegativeFilterVisible,
         ],
         queryFn: ({ signal }) => fetchCustomZoneGeometries(signal, mapBounds),
         placeholderData: keepPreviousData,
@@ -1344,7 +1360,7 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         if (displayDetections) {
-            return GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID;
+            return GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID;
         }
 
         if (displayLayersGeometry) {
@@ -1665,6 +1681,9 @@ const Component: React.FC<ComponentProps> = ({
                         id={GEOJSON_CUSTOM_ZONES_LAYER_ID}
                         beforeId={GEOJSON_PARCEL_LAYER_ID}
                         type="fill"
+                        layout={{
+                            'fill-sort-key': customZoneSortKey,
+                        }}
                         paint={{
                             'fill-color': ['get', 'color'],
                             'fill-opacity': customZoneOpacity.fill,
@@ -1674,30 +1693,14 @@ const Component: React.FC<ComponentProps> = ({
                         id={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
                         beforeId={GEOJSON_CUSTOM_ZONES_LAYER_ID}
                         type="line"
+                        layout={{
+                            'line-sort-key': customZoneSortKey,
+                        }}
                         paint={{
                             'line-color': ['get', 'color'],
                             'line-opacity': customZoneOpacity.line,
                             'line-width': 2,
                             'line-dasharray': [2, 2],
-                        }}
-                    />
-                </Source>
-                <Source
-                    id="custom-zone-negative-geojson-data"
-                    type="geojson"
-                    data={
-                        customZonesData?.customZoneNegative
-                            ? featureCollection([feature(customZonesData.customZoneNegative)])
-                            : EMPTY_GEOJSON_FEATURE_COLLECTION
-                    }
-                >
-                    <Layer
-                        id={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID}
-                        beforeId={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
-                        type="fill"
-                        paint={{
-                            'fill-color': CUSTOM_ZONE_NEGATIVE_COLOR,
-                            'fill-opacity': CUSTOM_ZONE_NEGATIVE_OPACITY,
                         }}
                     />
                 </Source>

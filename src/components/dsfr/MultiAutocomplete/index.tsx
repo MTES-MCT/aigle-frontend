@@ -1,5 +1,6 @@
 import SuggestionsPopup, { SuggestionOption } from '@/components/dsfr/SuggestionsPopup';
 import { useAnchoredPosition } from '@/hooks/useAnchoredPosition';
+import { getSuggestionId, useSuggestionsKeyboard } from '@/hooks/useSuggestionsKeyboard';
 import clsx from 'clsx';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import classes from './index.module.scss';
@@ -39,6 +40,7 @@ const Component: React.FC<ComponentProps> = ({
     onRemove,
 }: ComponentProps) => {
     const id = `multi-autocomplete-${useId()}`;
+    const listboxId = `${id}-listbox`;
     const fieldRef = useRef<HTMLDivElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
@@ -50,6 +52,13 @@ const Component: React.FC<ComponentProps> = ({
     const expanded = opened && selectableOptions.length > 0;
     const message = loading ? 'Recherche en cours…' : emptyText;
     const position = useAnchoredPosition(fieldRef, opened);
+
+    const pick = (option: SuggestionOption) => {
+        onSelect(option);
+        onSearchChange('');
+        setFocused(false);
+    };
+    const { activeIndex, onKeyDown: onSuggestionsKeyDown } = useSuggestionsKeyboard(selectableOptions, expanded, pick);
 
     useEffect(() => {
         if (!focused) {
@@ -93,7 +102,17 @@ const Component: React.FC<ComponentProps> = ({
                 </ul>
             ) : null}
 
-            <div ref={fieldRef}>
+            <div
+                ref={fieldRef}
+                onBlur={(event) => {
+                    const next = event.relatedTarget as Node | null;
+
+                    // null: a mouse press, which the outside mousedown handles, or a switch to another window
+                    if (next && !fieldRef.current?.contains(next) && !popupRef.current?.contains(next)) {
+                        setFocused(false);
+                    }
+                }}
+            >
                 <input
                     id={id}
                     name={id}
@@ -105,9 +124,18 @@ const Component: React.FC<ComponentProps> = ({
                     autoComplete="off"
                     role="combobox"
                     aria-expanded={expanded}
-                    aria-controls={`${id}-listbox`}
+                    aria-controls={listboxId}
+                    aria-activedescendant={activeIndex !== -1 ? getSuggestionId(listboxId, activeIndex) : undefined}
                     onFocus={() => setFocused(true)}
-                    onKeyDown={(event) => event.key === 'Escape' && setFocused(false)}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                            setFocused(false);
+                        } else if (!focused && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+                            setFocused(true);
+                        } else if (expanded) {
+                            onSuggestionsKeyDown(event);
+                        }
+                    }}
                     onChange={(event) => {
                         setFocused(true);
                         onSearchChange(event.currentTarget.value);
@@ -118,15 +146,12 @@ const Component: React.FC<ComponentProps> = ({
             {opened ? (
                 <SuggestionsPopup
                     ref={popupRef}
-                    listboxId={`${id}-listbox`}
+                    listboxId={listboxId}
                     position={position}
                     options={selectableOptions}
+                    activeIndex={activeIndex}
                     message={message}
-                    onSelect={(option) => {
-                        onSelect(option);
-                        onSearchChange('');
-                        setFocused(false);
-                    }}
+                    onSelect={pick}
                 />
             ) : null}
         </div>

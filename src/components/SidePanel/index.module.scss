@@ -1,24 +1,42 @@
 @use '@/constants.scss' as constants;
 
 .container {
+    display: flex;
+    align-items: stretch;
+
+    // only the panel and the rail buttons take the pointer: the map stays draggable around them
+    pointer-events: none;
+}
+
+.container-overlay {
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
 
-    display: flex;
-    align-items: stretch;
-
-    // the map has to stay draggable everywhere the panel and the rail buttons do not cover
-    pointer-events: none;
-
     z-index: 95;
+}
+
+// kept in view below the fixed header while the page scrolls
+.container-column {
+    position: sticky;
+    top: constants.$header-height;
+    align-self: flex-start;
+    flex: 0 0 auto;
+
+    height: calc(100vh - #{constants.$header-height});
+    height: calc(100dvh - #{constants.$header-height});
+
+    // above the page content it covers below 992px (and its loading overlays), under the header
+    z-index: 180;
 }
 
 // Closed, the panel is pulled out of view by its own width rather than unmounted: sliding a
 // margin keeps the content laid out, so nothing reflows mid-animation. `visibility` is what
 // takes it out of the tab order and the accessibility tree, delayed until the slide is over.
 .panel {
+    flex-shrink: 0;
+
     width: constants.$map-side-panel-width;
     max-width: 100vw;
     margin-left: -#{constants.$map-side-panel-width};
@@ -37,6 +55,17 @@
     transition:
         margin-left constants.$map-side-panel-slide-duration ease,
         visibility 0s linear constants.$map-side-panel-slide-duration;
+
+    // DSFR leaves these buttons transparent. `:where` keeps this under DSFR's
+    // `button:not(:disabled):hover`, whose tint follows the `--hover` / `--active` set here.
+    :where([class~='fr-btn--secondary'], [class~='fr-btn--tertiary'], [class~='fr-btn--tertiary-no-outline']) {
+        &:not(:disabled) {
+            --hover: var(--background-action-low-blue-france-hover);
+            --active: var(--background-action-low-blue-france-active);
+
+            background-color: var(--background-action-low-blue-france);
+        }
+    }
 }
 
 .panel-open {
@@ -47,6 +76,11 @@
     transition:
         margin-left constants.$map-side-panel-slide-duration ease,
         visibility 0s;
+}
+
+// on the page the panel needs an edge: it casts the shadow the rail buttons are tucked under
+.container-column .panel {
+    box-shadow: 4px 0 8px 0 rgba(0, 0, 18, 0.08);
 }
 
 .panel-header {
@@ -75,9 +109,10 @@
     color: var(--text-title-grey);
 }
 
-// The rail column is full height so it can sit beside the panel, but only its buttons may
-// capture pointer events: the rest of that strip has to stay draggable map.
+// full height so it can sit beside the panel, but only its buttons take the pointer
 .rail {
+    flex-shrink: 0;
+
     padding-top: constants.$map-side-panel-rail-top;
 
     display: flex;
@@ -110,6 +145,11 @@
 
     cursor: pointer;
 
+    &:disabled {
+        color: var(--text-disabled-grey);
+        cursor: not-allowed;
+    }
+
     // same tokens as the mapbox controls on the other side of the map
     &:hover:not(:disabled) {
         background-color: var(--background-default-grey-hover);
@@ -117,11 +157,6 @@
 
     &:active:not(:disabled) {
         background-color: var(--background-default-grey-active);
-    }
-
-    &:disabled {
-        color: var(--text-disabled-grey);
-        cursor: not-allowed;
     }
 }
 
@@ -150,5 +185,10 @@
 
     .panel-open {
         margin-left: 0;
+    }
+
+    // the page only keeps room for the rail: the open panel covers it, as it covers the map
+    .container-column {
+        width: constants.$map-side-panel-rail-width;
     }
 }

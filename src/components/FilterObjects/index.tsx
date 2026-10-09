@@ -57,10 +57,11 @@ const getPrescriptedTrackingName = (prescripted: ObjectsFilter['prescripted']) =
 };
 
 /**
- * The square trails the name and mirrors how the map draws the thing: detections are drawn as
- * an outline, zones as a filled area. The name is truncated rather than wrapped — wrapping
- * pushes the square out of line with the checkbox — and it has to be its own element because
- * the DSFR checkbox label is a flex row, which drops the whitespace around a bare text node.
+ * The square sits at the right end of the row and mirrors how the map draws the thing:
+ * detections are drawn as an outline, zones as a filled area. The name is truncated rather than
+ * wrapped (wrapping pushes the square out of line with the checkbox), and it has to be its own
+ * element because the DSFR checkbox label is a flex row, which drops the whitespace around a
+ * bare text node.
  */
 const LabelWithColor: React.FC<{ name: string; color?: string; outlined?: boolean }> = ({ name, color, outlined }) => (
     <span className={classes.label} title={name}>
@@ -114,7 +115,7 @@ const Component: React.FC<ComponentProps> = ({
 
     const selectedPresetId = useMemo(() => getMatchingPresetId(objectsFilter) ?? CUSTOM_PRESET_ID, [objectsFilter]);
 
-    // the side panel unmounts a closed section: the pending score event is sent rather than lost
+    // leaving the page unmounts the filters: the pending score event is sent rather than lost
     useEffect(
         () => () => {
             const pending = scoreTrackingRef.current;
@@ -258,7 +259,7 @@ const Component: React.FC<ComponentProps> = ({
                     <button
                         type="button"
                         className={clsx(
-                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-checkbox-circle-line fr-btn--icon-left',
+                            'fr-btn fr-btn--secondary fr-btn--sm fr-icon-checkbox-circle-line fr-btn--icon-left',
                             classes['select-all'],
                         )}
                         onClick={() => {

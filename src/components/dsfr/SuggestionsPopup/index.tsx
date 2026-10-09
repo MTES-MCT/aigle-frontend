@@ -1,5 +1,7 @@
 import { AnchorRect } from '@/hooks/useAnchoredPosition';
-import { forwardRef } from 'react';
+import { getSuggestionId } from '@/hooks/useSuggestionsKeyboard';
+import clsx from 'clsx';
+import { forwardRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import classes from './index.module.scss';
 
@@ -13,6 +15,8 @@ interface ComponentProps {
     listboxId: string;
     position?: AnchorRect;
     options: SuggestionOption[];
+    // the option the arrow keys are on, -1 for none
+    activeIndex: number;
     // shown instead of the list when there is nothing to offer yet (loading, no result)
     message?: string;
     onSelect: (option: SuggestionOption) => void;
@@ -24,7 +28,13 @@ interface ComponentProps {
  * rendered in flow under the input would push the rest of the form down as the user types.
  */
 const Component = forwardRef<HTMLDivElement, ComponentProps>(
-    ({ listboxId, position, options, message, onSelect }: ComponentProps, ref) => {
+    ({ listboxId, position, options, activeIndex, message, onSelect }: ComponentProps, ref) => {
+        useEffect(() => {
+            if (activeIndex !== -1) {
+                document.getElementById(getSuggestionId(listboxId, activeIndex))?.scrollIntoView({ block: 'nearest' });
+            }
+        }, [listboxId, activeIndex]);
+
         if (!position || (!options.length && !message)) {
             return null;
         }
@@ -37,9 +47,21 @@ const Component = forwardRef<HTMLDivElement, ComponentProps>(
             >
                 {options.length ? (
                     <ul className={classes.suggestions} id={listboxId} role="listbox">
-                        {options.map((option) => (
-                            <li key={option.value} role="option" aria-selected={false}>
-                                <button type="button" className={classes.suggestion} onClick={() => onSelect(option)}>
+                        {options.map((option, index) => (
+                            <li
+                                key={option.value}
+                                id={getSuggestionId(listboxId, index)}
+                                role="option"
+                                aria-selected={index === activeIndex}
+                            >
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        classes.suggestion,
+                                        index === activeIndex && classes['suggestion-active'],
+                                    )}
+                                    onClick={() => onSelect(option)}
+                                >
                                     <span className={classes['suggestion-label']}>{option.label}</span>
                                     {option.description ? (
                                         <span className={classes['suggestion-description']}>{option.description}</span>

@@ -1,8 +1,11 @@
+import { GeoCustomZone } from '@/models/geo/geo-custom-zone';
+import { GeoCustomZoneCategory } from '@/models/geo/geo-custom-zone-category';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { MapSettings } from '@/models/map-settings';
 import { ObjectType } from '@/models/object-type';
 import { DEFAULT_CUSTOM_ZONE_LAYER_OPACITY } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
+import { sortCustomZoneLayers, sortTileSetLayers } from '@/utils/layers-order';
 import { getInitialObjectFilters } from '@/utils/objects-filter';
 
 interface ObjectTypesInitialState {
@@ -35,39 +38,41 @@ export const extractObjectTypesFromSettings = (settings: MapSettings): ObjectTyp
     };
 };
 
-// A layer row is one uncategorized zone or a whole category, and both the category and each
-// zone under it can carry a description: distinct non-empty lines, category text first.
-const joinDescriptions = (descriptions: (string | null | undefined)[]): string | null => {
-    const lines = Array.from(new Set(descriptions.map((description) => (description || '').trim()).filter(Boolean)));
+// A zone shows its own description, or else its category's.
+const getZoneDescription = (zone: GeoCustomZone, category?: GeoCustomZoneCategory): string | null =>
+    zone.description?.trim() || category?.description?.trim() || null;
 
-    return lines.length ? lines.join('\n') : null;
-};
-
+// A category row lists the distinct descriptions of its zones, in zone order: the category text
+// only shows when one of its zones has no description of its own.
 export const getInitialMapGeoCustomZoneLayers = (settings: MapSettings): MapGeoCustomZoneLayer[] => {
-    return [
+    return sortCustomZoneLayers([
         ...settings.geoCustomZonesUncategorized.map((zone) => ({
             displayed: false,
             name: zone.name,
             color: zone.color,
             customZoneUuids: [zone.uuid],
             opacity: DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
-            description: joinDescriptions([zone.description]),
+            description: getZoneDescription(zone),
         })),
-        ...settings.geoCustomZoneCategories.map(({ geoCustomZoneCategory, geoCustomZones }) => ({
-            displayed: false,
-            name: geoCustomZoneCategory.name,
-            color: geoCustomZoneCategory.color,
-            customZoneUuids: geoCustomZones.map(({ uuid }) => uuid),
-            opacity: DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
-            description: joinDescriptions([
-                geoCustomZoneCategory.description,
-                ...geoCustomZones.map(({ description }) => description),
-            ]),
-        })),
-    ];
+        ...settings.geoCustomZoneCategories.map(({ geoCustomZoneCategory, geoCustomZones }) => {
+            const descriptions = geoCustomZones
+                .map((zone) => getZoneDescription(zone, geoCustomZoneCategory))
+                .filter((description): description is string => !!description);
+
+            return {
+                displayed: false,
+                name: geoCustomZoneCategory.name,
+                color: geoCustomZoneCategory.color,
+                customZoneUuids: geoCustomZones.map(({ uuid }) => uuid),
+                opacity: DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+                description: descriptions.length ? Array.from(new Set(descriptions)).join('\n') : null,
+            };
+        }),
+    ]);
 };
 
-export const getInitialMapLayers = (settings: MapSettings) => {
+// Without an order, the one the agent last gave the « Couches » panel.
+export const getInitialMapLayers = (settings: MapSettings, tileSetsOrder?: string[]) => {
     const layers: MapTileSetLayer[] = [];
     const backgroundLayerYears: Set<string> = new Set();
     let layerYearDisplayed: string;
@@ -99,7 +104,7 @@ export const getInitialMapLayers = (settings: MapSettings) => {
     backgroundLayerYears_ = backgroundLayerYears_.reverse();
 
     return {
-        layers,
+        layers: sortTileSetLayers(layers, tileSetsOrder),
         backgroundLayerYears: backgroundLayerYears_,
     };
 };

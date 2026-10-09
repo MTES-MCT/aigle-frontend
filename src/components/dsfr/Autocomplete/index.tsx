@@ -1,5 +1,6 @@
 import SuggestionsPopup, { SuggestionOption } from '@/components/dsfr/SuggestionsPopup';
 import { useAnchoredPosition } from '@/hooks/useAnchoredPosition';
+import { getSuggestionId, useSuggestionsKeyboard } from '@/hooks/useSuggestionsKeyboard';
 import clsx from 'clsx';
 import React, { useEffect, useId, useRef, useState } from 'react';
 
@@ -35,6 +36,7 @@ const Component: React.FC<ComponentProps> = ({
     onSelect,
 }: ComponentProps) => {
     const id = `autocomplete-${useId()}`;
+    const listboxId = `${id}-listbox`;
     const fieldRef = useRef<HTMLDivElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
@@ -43,6 +45,12 @@ const Component: React.FC<ComponentProps> = ({
     const expanded = opened && options.length > 0;
     const message = loading ? 'Recherche en cours…' : emptyText;
     const position = useAnchoredPosition(fieldRef, opened);
+
+    const pick = (option: AutocompleteOption) => {
+        onSelect(option);
+        setFocused(false);
+    };
+    const { activeIndex, onKeyDown: onSuggestionsKeyDown } = useSuggestionsKeyboard(options, expanded, pick);
 
     useEffect(() => {
         if (!focused) {
@@ -62,6 +70,16 @@ const Component: React.FC<ComponentProps> = ({
         return () => document.removeEventListener('mousedown', closeOnOutsideClick);
     }, [focused]);
 
+    // with the sections of the side panel kept mounted, a list left open would outlive its field
+    const closeOnFocusLeaving = (event: React.FocusEvent) => {
+        const next = event.relatedTarget as Node | null;
+
+        // null: a mouse press, which the outside mousedown handles, or a switch to another window
+        if (next && !fieldRef.current?.contains(next) && !popupRef.current?.contains(next)) {
+            setFocused(false);
+        }
+    };
+
     const inputProps = {
         id,
         name: id,
@@ -71,9 +89,18 @@ const Component: React.FC<ComponentProps> = ({
         autoComplete: 'off',
         role: 'combobox' as const,
         'aria-expanded': expanded,
-        'aria-controls': `${id}-listbox`,
+        'aria-controls': listboxId,
+        'aria-activedescendant': activeIndex !== -1 ? getSuggestionId(listboxId, activeIndex) : undefined,
         onFocus: () => setFocused(true),
-        onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => event.key === 'Escape' && setFocused(false),
+        onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === 'Escape') {
+                setFocused(false);
+            } else if (!focused && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+                setFocused(true);
+            } else if (expanded) {
+                onSuggestionsKeyDown(event);
+            }
+        },
         onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
             setFocused(true);
             onChange(event.currentTarget.value);
@@ -87,7 +114,7 @@ const Component: React.FC<ComponentProps> = ({
                 variant === 'input' && disabled && 'fr-input-group--disabled',
             )}
         >
-            <div ref={fieldRef}>
+            <div ref={fieldRef} onBlur={closeOnFocusLeaving}>
                 {variant === 'search' ? (
                     <div className="fr-search-bar" role="search">
                         <label className="fr-label" htmlFor={id}>
@@ -112,14 +139,12 @@ const Component: React.FC<ComponentProps> = ({
             {opened ? (
                 <SuggestionsPopup
                     ref={popupRef}
-                    listboxId={`${id}-listbox`}
+                    listboxId={listboxId}
                     position={position}
                     options={options}
+                    activeIndex={activeIndex}
                     message={message}
-                    onSelect={(option) => {
-                        onSelect(option);
-                        setFocused(false);
-                    }}
+                    onSelect={pick}
                 />
             ) : null}
         </div>

@@ -9,6 +9,7 @@ import { create } from 'zustand';
 interface StatisticsState {
     layers?: MapTileSetLayer[];
     allObjectTypes?: ObjectType[];
+    visibleObjectTypesUuids?: Set<string>;
     geoCustomZones?: GeoCustomZone[];
     otherObjectTypesUuids?: Set<string>;
     customZoneLayers?: MapGeoCustomZoneLayer[];
@@ -19,14 +20,20 @@ interface StatisticsState {
 const useStatistics = create<StatisticsState>()((set) => ({
     setMapSettings: (settings: MapSettings) => {
         const layers = getInitialStatisticsLayers(settings);
-        const { allObjectTypes, otherObjectTypesUuids, initialMapGeoCustomZoneLayers, objectsFilter } =
-            getCommonMapSettingsData(settings);
+        const {
+            allObjectTypes,
+            visibleObjectTypesUuids,
+            otherObjectTypesUuids,
+            initialMapGeoCustomZoneLayers,
+            objectsFilter,
+        } = getCommonMapSettingsData(settings);
 
         useObjectsFilter.getState().updateObjectsFilter(objectsFilter);
 
         set(() => ({
             layers,
             allObjectTypes,
+            visibleObjectTypesUuids,
             geoCustomZones: settings.geoCustomZonesUncategorized,
             otherObjectTypesUuids: otherObjectTypesUuids,
             customZoneLayers: initialMapGeoCustomZoneLayers,

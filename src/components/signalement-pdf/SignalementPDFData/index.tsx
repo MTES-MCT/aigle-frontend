@@ -113,6 +113,7 @@ const PLAN_URL_TILESET: TileSet = {
     createdAt: '2024-07-08T16:00:31Z',
     updatedAt: '2024-07-08T16:00:31Z',
     monochrome: false,
+    shownInLayersPanel: false,
 };
 
 // a page is identified by (parcel, detection object): two objects on the same parcel render

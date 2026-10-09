@@ -63,6 +63,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({ url, scheme, name, type, monoch
                 date: fakeDate,
                 name: name,
                 monochrome,
+                shownInLayersPanel: true,
                 url: url || '',
                 tileSetStatus: 'VISIBLE',
                 tileSetScheme: scheme,
@@ -115,6 +116,7 @@ interface FormValues {
     tileSetScheme: TileSetScheme;
     tileSetType: TileSetType;
     monochrome: boolean;
+    shownInLayersPanel: boolean;
     minZoom: number | null;
     maxZoom: number | null;
     communesUuids: string[];
@@ -483,6 +485,16 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     key={form.key('monochrome')}
                     {...form.getInputProps('monochrome')}
                 />
+                {form.values.tileSetType !== 'BACKGROUND' ? (
+                    <Checkbox
+                        checked={form.values.shownInLayersPanel}
+                        mt="md"
+                        label="Afficher dans le panneau « Couches »"
+                        description="Décoché, ce fond de carte n'est pas proposé dans le panneau « Couches » de la carte : son affichage suit alors son statut."
+                        key={form.key('shownInLayersPanel')}
+                        {...form.getInputProps('shownInLayersPanel')}
+                    />
+                ) : null}
                 <NumberInput
                     mt="md"
                     label="Zoom minimum d'affichage"
@@ -557,6 +569,7 @@ const EMPTY_FORM_VALUES: FormValues = {
     tileSetScheme: 'xyz',
     tileSetType: 'BACKGROUND',
     monochrome: false,
+    shownInLayersPanel: true,
     minZoom: 15,
     maxZoom: 22,
     date: undefined,

@@ -21,6 +21,8 @@ export interface TileSet extends Uuided, Timestamped {
     maxZoom: number | null;
     geometryBbox?: Geometry;
     monochrome: boolean;
+    // false: left out of the map's « Couches » panel, its display then follows its status
+    shownInLayersPanel: boolean;
 }
 
 export interface TileSetDetail extends TileSet, WithCollectivities {

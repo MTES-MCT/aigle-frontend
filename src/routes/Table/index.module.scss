@@ -1,0 +1,46 @@
+@use '@/constants.scss' as constants;
+
+// the side panel is the first column, the table takes the rest of the width
+.page {
+    display: flex;
+
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: constants.$header-height;
+}
+
+.content {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    padding: constants.$content-padding;
+}
+
+// an expanded parcel holds a wide detections table: it scrolls instead of widening the page
+.table-container {
+    overflow-x: auto;
+}
+
+.search {
+    padding: 0 1rem 1rem;
+}
+
+// floats over the table, clear of the side panel (`--table-side-panel-open` is set on .page)
+.edit-selection {
+    position: fixed;
+    bottom: constants.$content-padding;
+    left: calc(
+        var(--table-side-panel-open, 0) * #{constants.$map-side-panel-width} + #{constants.$map-side-panel-rail-width + constants.$content-padding}
+    );
+
+    // under the side panel, which covers the page below 992px
+    z-index: 170;
+
+    transition: left constants.$map-side-panel-slide-duration ease;
+}
+
+@media screen and (max-width: 992px) {
+    .edit-selection {
+        left: constants.$map-side-panel-rail-width + constants.$content-padding;
+    }
+}
