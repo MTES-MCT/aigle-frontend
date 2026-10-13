@@ -29,7 +29,6 @@ const CHAT_PAGE_NAMES: Record<string, string> = {
     '/table': 'Tableau',
     '/statistics': 'Statistiques',
     '/help': 'Centre d’aide',
-    '/about': 'A propos',
 };
 
 // The page the conversation starts from, never what the user wrote.

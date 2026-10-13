@@ -1,4 +1,3 @@
-import About from '@/routes/About';
 import HelpCenter from '@/routes/HelpCenter';
 import Map from '@/routes/Map/index';
 import Charts from '@/routes/Statistics/Charts';
@@ -21,11 +20,6 @@ export const protectedRoutes: RouteGroup = {
         {
             path: '/table',
             component: Table,
-            requiresAuth: true,
-        },
-        {
-            path: '/about',
-            component: About,
             requiresAuth: true,
         },
         {

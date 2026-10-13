@@ -11,14 +11,7 @@ import { isScopeBoundaryCrossed } from '@/utils/scope';
 import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import { Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-    IconAdjustments,
-    IconHelp,
-    IconInfoCircle,
-    IconMap,
-    IconReportAnalytics,
-    IconTable,
-} from '@tabler/icons-react';
+import { IconAdjustments, IconHelp, IconMap, IconReportAnalytics, IconTable } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import classes from './index.module.scss';
@@ -81,11 +74,6 @@ const NavMenu: React.FC = () => {
                     <a className="fr-btn fr-btn--tertiary-no-outline" href="/table" onClick={handleNavigate('/table')}>
                         <IconTable className={classes['link-icon']} size={16} />
                         Tableau
-                    </a>
-                </li>
-                <li>
-                    <a className="fr-btn fr-btn--tertiary-no-outline" href="/about" onClick={handleNavigate('/about')}>
-                        <IconInfoCircle className={classes['link-icon']} size={16} />A propos
                     </a>
                 </li>
                 <li>
