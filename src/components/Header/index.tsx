@@ -170,15 +170,6 @@ const QuickAccessLinks: React.FC = () => {
             ) : null}
             <li>
                 <a
-                    className="fr-btn fr-btn--tertiary-no-outline fr-icon-information-line fr-btn--icon-left"
-                    href="/about"
-                    onClick={handleNavigate('/about')}
-                >
-                    A propos
-                </a>
-            </li>
-            <li>
-                <a
                     className="fr-btn fr-btn--tertiary-no-outline fr-icon-question-line fr-btn--icon-left"
                     href="/help"
                     onClick={handleNavigate('/help')}

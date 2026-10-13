@@ -60,7 +60,6 @@ export const PAGE_TRACKING_TITLES: Record<string, string> = {
     '/map': 'Carte',
     '/table': 'Tableau',
     '/statistics': 'Statistiques',
-    '/about': 'À propos',
     '/help': 'Centre d’aide',
     '/admin/users': 'Administration - Utilisateurs',
     '/admin/users/form': 'Administration - Utilisateur (création)',
