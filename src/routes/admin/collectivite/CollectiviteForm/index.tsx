@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { getGeoDetailEndpoint } from '@/api/endpoints';
 import Map from '@/components/Map';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import UnsavedChangesGuard from '@/components/admin/UnsavedChangesGuard';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import { useFilterNavigation } from '@/hooks/useFilterNavigation';
@@ -105,6 +106,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geom
     const mutation: UseMutationResult<GeoCollectivity, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, collectivityType, uuid),
         onSuccess: () => {
+            form.resetDirty();
             navigate(backUrl);
         },
         onError: (error) => {
@@ -122,6 +124,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, collectivityType, geom
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
+            <UnsavedChangesGuard isDirty={form.isDirty} />
             <h1>Modifier {COLLECTIVITY_TYPES_NAMES_MAP[collectivityType]}</h1>
             {error ? (
                 <ErrorCard>

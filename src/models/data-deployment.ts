@@ -2,6 +2,8 @@ export type DataDeploymentStatus = 'NOT_DEPLOYED' | 'DEPLOYMENT_RUNNING' | 'DEPL
 
 export interface DataDeploymentBatch {
     id: number;
+    // null for a batch without a run, listed in the flat "Batches" listing only
+    runId: number | null;
     name: string | null;
     createdAt: string | null;
     tilesUrl: string | null;
@@ -38,6 +40,8 @@ export interface DataDeploymentRun {
     uuid: string;
     geozoneName: string | null;
     createdAt: string | null;
+    // newest first
+    runIds: number[];
     batches: DataDeploymentBatch[];
     zaeLayers: DataDeploymentZaeLayer[];
 }

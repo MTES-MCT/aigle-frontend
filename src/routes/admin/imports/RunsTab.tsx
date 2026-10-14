@@ -29,7 +29,7 @@ import { IconChevronDown, IconRocket, IconSearch } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isValid, parse } from 'date-fns';
 import isEqual from 'lodash/isEqual';
-import { DeployStatusBadge, ItemDeployButton, OVERRIDE_DESCRIPTION } from './shared';
+import { DeployStatusBadge, ID_COLUMN_WIDTH, ItemDeployButton, OVERRIDE_DESCRIPTION } from './shared';
 
 interface DataFilter {
     q: string;
@@ -204,6 +204,8 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                     <Table layout="fixed">
                         <Table.Thead>
                             <Table.Tr>
+                                <Table.Th w={ID_COLUMN_WIDTH}>Id</Table.Th>
+                                <Table.Th w={ID_COLUMN_WIDTH}>Id run</Table.Th>
                                 <Table.Th>Date création</Table.Th>
                                 <Table.Th>Batch</Table.Th>
                                 <Table.Th>Fond de carte</Table.Th>
@@ -217,6 +219,8 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                                 refetch reordering the rows would otherwise transplant */}
                             {run.batches.map((batch) => (
                                 <Table.Tr key={batch.id}>
+                                    <Table.Td>{batch.id}</Table.Td>
+                                    <Table.Td>{batch.runId ?? '—'}</Table.Td>
                                     <Table.Td>{batch.createdAt ? <DateInfo date={batch.createdAt} /> : '—'}</Table.Td>
                                     <Table.Td>{batch.name ?? '—'}</Table.Td>
                                     <Table.Td>
@@ -267,6 +271,7 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                     <Table layout="fixed">
                         <Table.Thead>
                             <Table.Tr>
+                                <Table.Th w={ID_COLUMN_WIDTH}>Id</Table.Th>
                                 <Table.Th>Date création</Table.Th>
                                 <Table.Th>Zone à enjeux</Table.Th>
                                 <Table.Th>Type</Table.Th>
@@ -278,6 +283,7 @@ const ExpandedContent: React.FC<{ run: DataDeploymentRun }> = ({ run }) => (
                         <Table.Tbody>
                             {run.zaeLayers.map((zaeLayer) => (
                                 <Table.Tr key={zaeLayer.id}>
+                                    <Table.Td>{zaeLayer.id}</Table.Td>
                                     <Table.Td>
                                         {zaeLayer.createdAt ? <DateInfo date={zaeLayer.createdAt} /> : '—'}
                                     </Table.Td>
@@ -357,12 +363,14 @@ const Component: React.FC = () => {
             tableHeader={[
                 <Table.Th key="createdAt">Date création</Table.Th>,
                 <Table.Th key="run">Run</Table.Th>,
+                <Table.Th key="runIds">Ids run</Table.Th>,
                 <Table.Th key="actions" />,
             ]}
             tableBodyRenderFns={[
                 // createdAt is MAX(run.created_at) and can be null — guard like the nested rows do
                 (item: DataDeploymentRun) => (item.createdAt ? <DateInfo date={item.createdAt} /> : '—'),
                 (item: DataDeploymentRun) => item.geozoneName ?? '—',
+                (item: DataDeploymentRun) => item.runIds.join(', '),
                 () => (
                     <Tooltip label="Afficher les batches et zones à enjeux">
                         <ActionIcon variant="subtle">

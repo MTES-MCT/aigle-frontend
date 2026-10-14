@@ -31,8 +31,17 @@ import ProtectedRoute from '@/utils/ProtectedRoute';
 import { getStoredUserGroupUuid, isScopeDisabledPath, setScopedUserGroupUuid } from '@/utils/scope';
 import { getFilterTrackingName, PAGE_TRACKING_TITLES, TRACKING_CATEGORIES } from '@/utils/tracking';
 import * as Sentry from '@sentry/react';
-import React, { useCallback, useEffect, useState } from 'react';
-import { matchRoutes, Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import {
+    createBrowserRouter,
+    matchRoutes,
+    Navigate,
+    Route,
+    RouterProvider,
+    Routes,
+    useLocation,
+    useRouteError,
+} from 'react-router-dom';
 
 declare global {
     interface Window {
@@ -348,6 +357,79 @@ const trackEntryLink = (pathname: string, search: string, mapSettings: MapSettin
     }
 };
 
+const AppRoutes: React.FC = () => {
+    const { isAuthenticated } = useAuth();
+    const isAuthenticated_ = isAuthenticated();
+
+    return (
+        <>
+            <SupportWidgetsVisibility />
+            <MatomoUrlSync />
+            <Routes>
+                <Route index element={<Navigate to="/map" replace />} />
+                <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
+                {allRoutes.map((route) => {
+                    const { path, component: Component, requiresAuth = true } = route;
+
+                    if (requiresAuth === false) {
+                        return (
+                            <Route
+                                key={path}
+                                path={path}
+                                element={isAuthenticated_ ? <Navigate to={DEFAULT_ROUTE} /> : <Component />}
+                            />
+                        );
+                    }
+
+                    return (
+                        <Route
+                            key={path}
+                            path={path}
+                            element={
+                                <ProtectedRoute route={route}>
+                                    <Component />
+                                </ProtectedRoute>
+                            }
+                        />
+                    );
+                })}
+                <Route
+                    path="*"
+                    element={
+                        <ProtectedRoute>
+                            <NotFound />
+                        </ProtectedRoute>
+                    }
+                />
+            </Routes>
+        </>
+    );
+};
+
+// No error page of its own: a render error still crashes the app, where Sentry reports it.
+const RethrowRouteError: React.FC = () => {
+    throw useRouteError();
+};
+
+/**
+ * A data router, which useBlocker needs (admin forms with unsaved changes). Created on mount, like the
+ * <BrowserRouter> it replaces: the bootstrap rewrites the url behind the loader.
+ */
+const AppRouter: React.FC = () => {
+    const [router, setRouter] = useState<ReturnType<typeof createBrowserRouter>>();
+
+    useLayoutEffect(() => {
+        const router = createBrowserRouter([
+            { path: '*', element: <AppRoutes />, errorElement: <RethrowRouteError /> },
+        ]);
+        setRouter(router);
+
+        return () => router.dispose();
+    }, []);
+
+    return router ? <RouterProvider router={router} /> : null;
+};
+
 const App: React.FC = () => {
     const { isAuthenticated, setUser, logout, userMe } = useAuth();
     const { setMapSettings } = useMap();
@@ -466,49 +548,7 @@ const App: React.FC = () => {
         return <Loader fullScreen />;
     }
 
-    return (
-        <Router>
-            <SupportWidgetsVisibility />
-            <MatomoUrlSync />
-            <Routes>
-                <Route index element={<Navigate to="/map" replace />} />
-                <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
-                {allRoutes.map((route) => {
-                    const { path, component: Component, requiresAuth = true } = route;
-
-                    if (requiresAuth === false) {
-                        return (
-                            <Route
-                                key={path}
-                                path={path}
-                                element={isAuthenticated_ ? <Navigate to={DEFAULT_ROUTE} /> : <Component />}
-                            />
-                        );
-                    }
-
-                    return (
-                        <Route
-                            key={path}
-                            path={path}
-                            element={
-                                <ProtectedRoute route={route}>
-                                    <Component />
-                                </ProtectedRoute>
-                            }
-                        />
-                    );
-                })}
-                <Route
-                    path="*"
-                    element={
-                        <ProtectedRoute>
-                            <NotFound />
-                        </ProtectedRoute>
-                    }
-                />
-            </Routes>
-        </Router>
-    );
+    return <AppRouter />;
 };
 
 export default App;

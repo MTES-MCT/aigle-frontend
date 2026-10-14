@@ -3,6 +3,7 @@ import React, { useRef, useState } from 'react';
 import { customZoneEndpoints, objectTypeCategoryEndpoints, userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivitiesMultiSelects';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import UnsavedChangesGuard from '@/components/admin/UnsavedChangesGuard';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
@@ -98,6 +99,7 @@ const Form: React.FC<FormProps> = ({
     const mutation: UseMutationResult<ObjectType, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
+            form.resetDirty();
             navigate(BACK_URL);
         },
         onError: (error) => {
@@ -116,6 +118,7 @@ const Form: React.FC<FormProps> = ({
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
+            <UnsavedChangesGuard isDirty={form.isDirty} />
             <h1>{label}</h1>
 
             {error ? (

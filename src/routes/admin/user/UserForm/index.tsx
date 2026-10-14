@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
 import AdminFormError from '@/components/admin/AdminFormError';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import UnsavedChangesGuard from '@/components/admin/UnsavedChangesGuard';
 import {
     trackAdminFormRejectedByClient,
     trackAdminFormRejectedByServer,
@@ -130,6 +131,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups, memberUser
     const mutation: UseMutationResult<ObjectType, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: (_, values) => {
+            form.resetDirty();
             if (uuid) {
                 trackAdminUserUpdated(initialValues, values);
             } else {
@@ -199,6 +201,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, userGroups, memberUser
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit, (errors) => trackAdminFormRejectedByClient('Utilisateur', errors))}>
+            <UnsavedChangesGuard isDirty={form.isDirty} />
             <Modal opened={!!pendingValues} onClose={() => setPendingValues(undefined)} title="Utilisateur interne ?">
                 <Text>L&apos;utilisateur est-il un utilisateur interne (équipe aigle) ?</Text>
                 <Group mt="lg" justify="flex-end">

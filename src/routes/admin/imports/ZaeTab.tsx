@@ -9,7 +9,7 @@ import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { DataDeploymentZaeGroup } from '@/models/data-deployment';
 import { ActionIcon, Group, Input, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { IconChevronDown, IconSearch } from '@tabler/icons-react';
-import { DeployStatusBadge, ItemDeployButton } from './shared';
+import { DeployStatusBadge, ID_COLUMN_WIDTH, ItemDeployButton } from './shared';
 
 interface DataFilter {
     q: string;
@@ -30,6 +30,7 @@ const ExpandedContent: React.FC<{ group: DataDeploymentZaeGroup }> = ({ group })
                 <Table layout="fixed">
                     <Table.Thead>
                         <Table.Tr>
+                            <Table.Th w={ID_COLUMN_WIDTH}>Id</Table.Th>
                             <Table.Th>Date création</Table.Th>
                             <Table.Th>Zone à enjeux</Table.Th>
                             <Table.Th>Type</Table.Th>
@@ -41,6 +42,7 @@ const ExpandedContent: React.FC<{ group: DataDeploymentZaeGroup }> = ({ group })
                     <Table.Tbody>
                         {group.zaeLayers.map((zaeLayer) => (
                             <Table.Tr key={zaeLayer.id}>
+                                <Table.Td>{zaeLayer.id}</Table.Td>
                                 <Table.Td>{zaeLayer.createdAt ? <DateInfo date={zaeLayer.createdAt} /> : '—'}</Table.Td>
                                 <Table.Td>{zaeLayer.name ?? '—'}</Table.Td>
                                 <Table.Td>{zaeLayer.typeName ?? zaeLayer.type ?? '—'}</Table.Td>

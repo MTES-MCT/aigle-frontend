@@ -75,7 +75,7 @@ interface ComponentProps {
     isShowed: boolean;
     hide: () => void;
     command?: CommandWithParameters;
-    // Pre-fill the form with values from a previous run (used to retry a failed command).
+    // Pre-fill the form with values from a previous run (used to retry a finished command).
     initialParamsValues?: ParamsValues;
 }
 const Component: React.FC<ComponentProps> = ({ isShowed, hide, command, initialParamsValues }: ComponentProps) => {

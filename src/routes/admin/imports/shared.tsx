@@ -16,6 +16,9 @@ const DEPLOYMENT_STATUS: Record<DataDeploymentStatus, { label: string; color: st
     DEPLOYED: { label: 'Déployé', color: 'green' },
 };
 
+// the nested tables have a fixed layout, which would give an id column an even share of the width
+export const ID_COLUMN_WIDTH = 80;
+
 export const DeployStatusBadge: React.FC<{ status: DataDeploymentStatus }> = ({ status }) => (
     <Badge color={DEPLOYMENT_STATUS[status].color}>{DEPLOYMENT_STATUS[status].label}</Badge>
 );

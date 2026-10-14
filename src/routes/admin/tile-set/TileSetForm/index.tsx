@@ -5,6 +5,7 @@ import GeoCollectivitiesMultiSelects from '@/components/FormFields/GeoCollectivi
 import Map from '@/components/Map';
 import SoloAccordion from '@/components/SoloAccordion';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import UnsavedChangesGuard from '@/components/admin/UnsavedChangesGuard';
 import ErrorCard from '@/components/ui/ErrorCard';
 import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
@@ -311,6 +312,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
     const mutation: UseMutationResult<TileSet | TileSet[], ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid, multipleYearMode),
         onSuccess: () => {
+            form.resetDirty();
             if (shouldNavigateRef.current) {
                 navigate(BACK_URL);
             }
@@ -333,6 +335,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
+            <UnsavedChangesGuard isDirty={form.isDirty} />
             <h1>{label}</h1>
             {error ? (
                 <ErrorCard>

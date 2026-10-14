@@ -333,7 +333,7 @@ const Component: React.FC = () => {
                                     <IconCancel />
                                 </ActionIcon>
                             </Tooltip>
-                            {item.status === 'ERROR' ? (
+                            {!ACTIVE_STATUSES.includes(item.status) ? (
                                 <Tooltip label="Relancer la commande">
                                     <ActionIcon
                                         onClick={(event) => {

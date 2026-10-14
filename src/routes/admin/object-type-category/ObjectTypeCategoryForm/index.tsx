@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 import { objectTypeCategoryEndpoints, objectTypeEndpoints } from '@/api/endpoints';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import UnsavedChangesGuard from '@/components/admin/UnsavedChangesGuard';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import SelectItem from '@/components/ui/SelectItem';
@@ -66,6 +67,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, objectTypes }) => {
     const mutation: UseMutationResult<ObjectTypeCategory, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: () => {
+            form.resetDirty();
             navigate(BACK_URL);
         },
         onError: (error) => {
@@ -105,6 +107,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, objectTypes }) => {
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit)}>
+            <UnsavedChangesGuard isDirty={form.isDirty} />
             <h1>{label}</h1>
             {error ? (
                 <ErrorCard>

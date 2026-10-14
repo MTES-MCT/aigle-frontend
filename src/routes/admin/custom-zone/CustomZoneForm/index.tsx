@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { customZoneEndpoints } from '@/api/endpoints';
 import AdminFormError from '@/components/admin/AdminFormError';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
+import UnsavedChangesGuard from '@/components/admin/UnsavedChangesGuard';
 import {
     trackAdminFormRejectedByClient,
     trackAdminFormRejectedByServer,
@@ -112,6 +113,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
     const mutation: UseMutationResult<GeoCustomZoneDetail, ApiError, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, uuid),
         onSuccess: (_, values) => {
+            form.resetDirty();
             if (!uuid) {
                 trackAdminZoneCreated(values.geoCustomZoneCategoryUuid);
             }
@@ -137,6 +139,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
 
     return (
         <form onSubmit={form.onSubmit(handleSubmit, (errors) => trackAdminFormRejectedByClient('Zone', errors))}>
+            <UnsavedChangesGuard isDirty={form.isDirty} />
             <h1>{label}</h1>
             {error ? <AdminFormError error={error} fieldNames={FORM_FIELD_NAMES} /> : null}
             {cannotEdit ? (

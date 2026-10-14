@@ -40,6 +40,8 @@ const Component: React.FC = () => {
                 </SoloAccordion>
             }
             tableHeader={[
+                <Table.Th key="id">Id</Table.Th>,
+                <Table.Th key="runId">Id run</Table.Th>,
                 <Table.Th key="createdAt">Date création</Table.Th>,
                 <Table.Th key="name">Batch</Table.Th>,
                 <Table.Th key="geozone">Collectivité</Table.Th>,
@@ -48,6 +50,8 @@ const Component: React.FC = () => {
                 <Table.Th key="actions" />,
             ]}
             tableBodyRenderFns={[
+                (item: DataDeploymentBatchItem) => item.id,
+                (item: DataDeploymentBatchItem) => item.runId ?? '—',
                 (item: DataDeploymentBatchItem) => (item.createdAt ? <DateInfo date={item.createdAt} /> : '—'),
                 (item: DataDeploymentBatchItem) => item.name ?? '—',
                 (item: DataDeploymentBatchItem) => item.geozoneName ?? '—',
