@@ -267,6 +267,11 @@ header.fr-header {
         .fr-container {
             max-width: unset;
             height: 100%;
+
+            @media (min-width: 62em) {
+                padding-right: 2rem;
+                padding-left: 2rem;
+            }
         }
 
         .fr-header__body-row {
@@ -280,18 +285,27 @@ header.fr-header {
         }
     }
 
-    // the nav row: fr-modal keeps it hidden below 992px, where the burger menu takes over
+    // the nav row: fr-modal keeps it hidden below 992px, where the burger menu takes over. It keeps
+    // the centred DSFR container while the row above spans the page.
     .fr-header__menu {
         z-index: auto;
 
         height: constants.$header-nav-height;
 
-        .fr-container {
-            max-width: unset;
-        }
+        // the row above already draws the rule between the two: DSFR's own would double it
+        box-shadow: none;
     }
 
-    // the shared .fr-btns-group bottom margin would push the tools row off-centre
+    // DSFR spaces out a nav of two to four items by 1.25rem; the design keeps the links side by side
+    .fr-nav__list > .fr-nav__item {
+        margin-left: 0;
+    }
+
+    // the shared .fr-btns-group bottom margins would push the tools row off-centre
+    .fr-header__tools-links .fr-btns-group {
+        margin-bottom: 0;
+    }
+
     .fr-header__tools-links .fr-btn {
         margin-bottom: 0;
     }
@@ -394,16 +408,12 @@ $map-control-button-size: 48px;
     border-radius: 4px;
 
     background-color: var(--background-default-grey);
-    box-shadow: 0 2px 3px 0 rgba(0, 0, 18, 0.16) !important;
+    box-shadow: constants.$map-control-shadow !important;
 
     // direct children only: MapControlCustom also mounts into a mapbox ctrl container
     > button {
         width: $map-control-button-size;
         height: $map-control-button-size;
-
-        &:not(:first-child) {
-            border-top: 1px solid var(--border-default-grey);
-        }
 
         // mapbox tints with its own translucent black; these are the DSFR tokens the side
         // panel's tab rail uses, so both sides of the map react the same way
@@ -415,26 +425,62 @@ $map-control-button-size: 48px;
             background-color: var(--background-default-grey-active);
         }
     }
+
+    // the zoom pair: a short rule between the two buttons, inset from the card edges. `::before`
+    // is the DSFR icon of the button.
+    > button + button {
+        position: relative;
+
+        margin-top: 5px;
+
+        border-top: 0;
+
+        // mapbox clips its buttons: the rule sits in the gap above this one
+        overflow: visible;
+
+        &::after {
+            content: '';
+
+            position: absolute;
+            top: -3px;
+            right: 4px;
+            left: 4px;
+
+            height: 1px;
+
+            background-color: var(--border-default-grey);
+
+            // DSFR masks the `::after` of an icon class with the glyph too
+            -webkit-mask-image: none;
+            mask-image: none;
+        }
+    }
 }
 
 // the drawing tools: one card per tool, stacked
 .mapboxgl-ctrl-top-right .mapboxgl-ctrl-group {
     display: flex;
     flex-direction: column;
-    gap: constants.$margin-map-elements;
+    gap: constants.$map-control-gap;
 
-    margin-top: 20px;
-    margin-right: 20px;
+    margin-top: constants.$map-control-inset;
+    margin-right: constants.$map-control-inset;
 
     background: none;
     box-shadow: none !important;
 
     .mapbox-gl-draw_ctrl-draw-btn {
+        margin-top: 0;
+
         border-top: 0;
         border-radius: 4px;
 
         background-color: var(--background-default-grey);
-        box-shadow: 0 2px 3px 0 rgba(0, 0, 18, 0.16);
+        box-shadow: constants.$map-control-shadow;
+
+        &::after {
+            content: none;
+        }
 
         &:hover {
             background-color: var(--background-default-grey-hover);
@@ -444,15 +490,28 @@ $map-control-button-size: 48px;
         &.active {
             background-color: var(--background-alt-blue-france);
             box-shadow:
-                0 2px 3px 0 rgba(0, 0, 18, 0.16),
+                constants.$map-control-shadow,
                 inset 0 0 0 2px var(--border-active-blue-france);
         }
     }
 }
 
-.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group {
-    margin-right: 20px;
-    margin-bottom: constants.$margin-map-elements;
+// geolocation, zoom and fullscreen, stacked from the bottom corner
+.mapboxgl-ctrl-bottom-right {
+    right: constants.$map-control-inset;
+    bottom: constants.$map-control-inset;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: constants.$map-control-gap;
+
+    .mapboxgl-ctrl {
+        float: none;
+        clear: none;
+
+        margin: 0;
+    }
 }
 
 .mapbox-gl-draw_ctrl-draw-btn {
@@ -475,8 +534,41 @@ $map-control-button-size: 48px;
     }
 }
 
-.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl {
-    margin: 0;
+// The year list, the legend toggle and the scale share one row along the bottom edge, the year
+// list first. Mapbox prepends each control added to a bottom corner, hence the explicit order.
+.mapboxgl-ctrl-bottom-left {
+    bottom: constants.$map-control-inset;
+
+    // short of the bottom-right button column; on a narrow map the last controls wrap above
+    max-width: calc(
+        100% - #{constants.$map-year-list-offset + $map-control-button-size + 2 * constants.$map-control-inset}
+    );
+
+    // wrap-reverse stacks the lines upwards and swaps the cross axis: flex-start is the bottom edge
+    display: flex;
+    flex-wrap: wrap-reverse;
+    align-items: flex-start;
+    gap: constants.$map-control-gap;
+
+    @include constants.map-control-offset-bottom-left;
+
+    .mapboxgl-ctrl {
+        float: none;
+        clear: none;
+
+        margin: 0;
+    }
+
+    .mapboxgl-ctrl-scale {
+        order: 3;
+
+        margin-bottom: 0.25rem;
+    }
+
+    // the wrapper of the hidden mapbox logo: out of the row, or it would open a gap before the year list
+    > div[class='mapboxgl-ctrl'] {
+        position: absolute;
+    }
 }
 
 // The Brevo chat button is fixed to the bottom-right corner of every page,
@@ -497,16 +589,24 @@ body.hide-support-widgets #sentry-feedback {
 }
 
 // The Sentry report button (z-index 100000) owns the bottom-right corner on
-// every page. On the map that corner also holds the scale/fullscreen/zoom +
-// attribution stack, so lift that whole container to sit above the button.
+// every page. On the map that corner also holds the fullscreen/zoom stack, so
+// lift that whole container to sit above the button.
 #sentry-feedback {
     --inset: auto #{$brevo-button-width + $brevo-button-offset-right + 8px} 0 auto;
 }
 
-// the button hangs off <body>, so fullscreen (which renders the map subtree
-// only) hides it — the bar can have the corner back
-:fullscreen .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-scale {
-    margin-right: constants.$margin-map-elements;
+// Icons the DSFR does not ship, declared the way it declares its own: the generic
+// fr-icon rules give them their size and colour.
+.fr-icon-fullscreen-exit-line::before,
+.fr-icon-fullscreen-exit-line::after {
+    -webkit-mask-image: url('./assets/icons/fullscreen-exit-line.svg');
+    mask-image: url('./assets/icons/fullscreen-exit-line.svg');
+}
+
+.fr-icon-draggable::before,
+.fr-icon-draggable::after {
+    -webkit-mask-image: url('./assets/icons/draggable.svg');
+    mask-image: url('./assets/icons/draggable.svg');
 }
 
 // custom

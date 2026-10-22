@@ -1,15 +1,12 @@
-.container {
-    // the accordions are full-bleed on purpose: their separators span the panel
-    padding-top: 0.5rem;
-}
-
-.preset {
-    padding-right: 1rem;
-    padding-left: 1rem;
+// The accordions are full-bleed on purpose: their separators span the panel. The rules under
+// `.container` are nested to outrank the DSFR ones, which load after the CSS modules.
+.container .preset:not(:last-child) {
+    margin-bottom: 0;
+    padding: 1rem;
 }
 
 .section-hint {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
 
     font-size: 0.75rem;
     line-height: 1.25rem;
@@ -17,7 +14,7 @@
 }
 
 .empty-filter-text {
-    margin-top: 0.5rem;
+    margin-top: 1rem;
 
     font-size: 0.75rem;
     line-height: 1.25rem;
@@ -25,9 +22,17 @@
     color: var(--text-mention-grey);
 }
 
-// a DSFR button carries no vertical rhythm of its own, so the first checkbox would sit flush against it
-.select-all {
-    margin-bottom: 0.75rem;
+// full width, above the list it acts on
+.container .select-all {
+    width: 100%;
+    max-width: none;
+    margin-bottom: 1rem;
+
+    justify-content: center;
+}
+
+.checkbox + .checkbox {
+    margin-top: 1rem;
 }
 
 // the DSFR checkbox label is itself a flex row: this grows to the full row so the square ends
@@ -38,7 +43,7 @@
 
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
 }
 
 .label-name {
@@ -54,12 +59,14 @@
     width: 0.75rem;
     height: 0.75rem;
 
-    border: 1px solid var(--border-default-grey);
-    border-radius: 2px;
+    border: 2px solid;
 }
 
-// detections are drawn on the map as an outline, not a filled shape
-.color-square-outlined {
-    border-width: 2px;
-    background-color: transparent;
+// the range keeps a row for its value bubble: the design puts that row right under the hint
+.score-hint {
+    margin-bottom: 0;
+}
+
+.container .score-message {
+    margin: 1rem 0 0;
 }

@@ -1,0 +1,4 @@
+// the fields sit 1rem apart, not the 1.5rem DSFR puts below an input group
+.form > div:not(:last-child) {
+    margin-bottom: 1rem;
+}

@@ -79,7 +79,7 @@ const Component: React.FC<ComponentProps> = ({
                         ref={sortable.handleRef}
                         type="button"
                         className={clsx(
-                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-drag-move-2-line',
+                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-draggable',
                             classes.handle,
                         )}
                         title={`Déplacer ${name}`}
@@ -135,7 +135,10 @@ const Component: React.FC<ComponentProps> = ({
                 {expandable ? (
                     <button
                         type="button"
-                        className="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-down-s-line"
+                        className={clsx(
+                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm',
+                            expanded ? 'fr-icon-arrow-up-s-line' : 'fr-icon-arrow-down-s-line',
+                        )}
                         title={expanded ? `Replier ${name}` : `Déplier ${name}`}
                         aria-expanded={expanded}
                         aria-controls={detailsId}
@@ -143,7 +146,10 @@ const Component: React.FC<ComponentProps> = ({
                     >
                         {expanded ? `Replier ${name}` : `Déplier ${name}`}
                     </button>
-                ) : null}
+                ) : (
+                    // keeps the eye in the same column as on the rows that unfold
+                    <span className={classes['toggle-slot']} aria-hidden="true" />
+                )}
             </div>
 
             {expandable ? (
@@ -152,6 +158,8 @@ const Component: React.FC<ComponentProps> = ({
                         {onOpacityChange !== undefined && opacity !== undefined ? (
                             <Range
                                 small
+                                valueAtEnd
+                                labelHidden
                                 label={`Opacité de ${name}`}
                                 value={Math.round(opacity * 100)}
                                 min={0}

@@ -1,19 +1,56 @@
-.section {
-    margin-bottom: 0.5rem;
+// a group of layers: its header and the cards of its layers share the light blue ground
+.section-header {
+    padding: 0.25rem 0.5rem;
+
+    display: flex;
+    align-items: center;
+
+    background-color: var(--background-alt-blue-france);
+}
+
+.section-handle-slot {
+    flex: 0 0 auto;
+
+    width: 2rem;
+}
+
+.section-vignette {
+    flex: 0 0 auto;
+
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: 0.5rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 4px;
+
+    color: var(--text-action-high-blue-france);
 }
 
 .section-title {
+    flex: 1 1 auto;
+    min-width: 0;
+
     margin: 0;
-    padding: 0.5rem 1rem;
 
     font-size: 1rem;
     line-height: 1.5rem;
-    font-weight: 500;
-    color: var(--text-action-high-blue-france);
+    font-weight: 400;
+    color: var(--text-label-grey);
 
-    background-color: var(--background-alt-blue-france);
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     &::first-letter {
         text-transform: uppercase;
     }
+}
+
+.section-content {
+    padding: 0 0.75rem 0.75rem;
+
+    background-color: var(--background-alt-blue-france);
 }

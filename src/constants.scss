@@ -8,11 +8,20 @@ $content-padding: 16px;
 
 $margin-map-elements: 10px;
 
+// the button cards of the map: distance to the map edges, space between cards, and their shadow
+$map-control-inset: 16px;
+$map-control-gap: 8px;
+$map-control-shadow: 0 2px 6px 0 rgba(0, 0, 18, 0.16);
+
 $map-side-panel-width: 380px;
 $map-side-panel-rail-width: 48px;
 $map-side-panel-slide-duration: 250ms;
 // where the first rail button starts; map controls anchored top-left line up with it
 $map-side-panel-rail-top: 16px;
+
+// the bottom-left year list, from the map edge with the side panel closed, from the panel open
+$map-year-list-offset: 14px;
+$map-year-list-offset-panel-open: 11px;
 
 $border-radius-medium: 24px;
 $border-radius-small: 8px;
@@ -38,7 +47,14 @@ $map-control-padding: 24px;
     transition: left $map-side-panel-slide-duration ease;
 }
 
+// slid with a transform rather than a margin, so the panel opening does not lay the row out again
 @mixin map-control-offset-bottom-left {
-    margin-left: calc(var(--map-side-panel-open, 0) * #{$map-side-panel-width} + #{$margin-map-elements});
-    transition: margin-left $map-side-panel-slide-duration ease;
+    margin-left: $map-year-list-offset;
+    transform: translateX(
+        calc(
+            var(--map-side-panel-open, 0) * #{$map-side-panel-width + $map-year-list-offset-panel-open -
+                $map-year-list-offset}
+        )
+    );
+    transition: transform $map-side-panel-slide-duration ease;
 }

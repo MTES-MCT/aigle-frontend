@@ -56,15 +56,15 @@
         margin-left constants.$map-side-panel-slide-duration ease,
         visibility 0s linear constants.$map-side-panel-slide-duration;
 
-    // DSFR leaves these buttons transparent. `:where` keeps this under DSFR's
-    // `button:not(:disabled):hover`, whose tint follows the `--hover` / `--active` set here.
-    :where([class~='fr-btn--secondary'], [class~='fr-btn--tertiary'], [class~='fr-btn--tertiary-no-outline']) {
-        &:not(:disabled) {
-            --hover: var(--background-action-low-blue-france-hover);
-            --active: var(--background-action-low-blue-france-active);
+    // The design draws each accordion rule on the row above its band, where DSFR draws it on the
+    // first row of the band: under the panel title the first rule is then hidden, as in the design.
+    [class~='fr-accordion']::before {
+        top: -1px;
+    }
 
-            background-color: var(--background-action-low-blue-france);
-        }
+    // and none after the last accordion
+    [class~='fr-accordion']:last-child::before {
+        box-shadow: inset 0 1px 0 0 var(--border-default-grey);
     }
 }
 
@@ -106,7 +106,7 @@
     font-size: 1.25rem;
     line-height: 1.75rem;
     font-weight: 700;
-    color: var(--text-title-grey);
+    color: #000000;
 }
 
 // full height so it can sit beside the panel, but only its buttons take the pointer
@@ -140,13 +140,16 @@
     border-radius: 0 4px 4px 0;
 
     color: var(--text-action-high-blue-france);
-    background-color: var(--background-default-grey);
+    background-color: rgba(255, 255, 255, 0.8);
     box-shadow: inset 4px 0 8px 0 rgba(0, 0, 18, 0.08);
+    backdrop-filter: blur(2px);
 
     cursor: pointer;
 
     &:disabled {
         color: var(--text-disabled-grey);
+        background-color: rgba(229, 229, 229, 0.8);
+        box-shadow: none;
         cursor: not-allowed;
     }
 
@@ -162,7 +165,9 @@
 
 // the open panel and its button read as one surface
 .rail-button-active {
+    background-color: var(--background-default-grey);
     box-shadow: none;
+    backdrop-filter: none;
 }
 
 .rail-button-indicator {
@@ -175,6 +180,10 @@
 
     border-radius: 50%;
     background-color: var(--background-action-high-blue-france-active);
+
+    .rail-button:disabled & {
+        background-color: var(--text-disabled-grey);
+    }
 }
 
 @media screen and (max-width: 992px) {

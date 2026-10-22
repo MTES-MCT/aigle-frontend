@@ -1,8 +1,5 @@
 import { detectionEndpoints, tileSetEndpoints } from '@/api/endpoints';
-import ErrorCard from '@/components/ui/ErrorCard';
-import InfoCard from '@/components/ui/InfoCard';
-import Loader from '@/components/ui/Loader';
-import SelectItem from '@/components/ui/SelectItem';
+import Modal from '@/components/dsfr/Modal';
 import { ObjectType } from '@/models/object-type';
 import { TileSet } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
@@ -11,20 +8,23 @@ import { formatDateOnly } from '@/utils/format';
 import { getAddressFromPolygon } from '@/utils/geojson';
 import { trackEvent } from '@/utils/matomo';
 import { TRACKING_CATEGORIES, getErrorTrackingName, isNetworkError } from '@/utils/tracking';
-import { Button, Modal, Select } from '@mantine/core';
-import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconShape } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
 import { area, centroid } from '@turf/turf';
 import clsx from 'clsx';
 import { Feature, Point, Polygon } from 'geojson';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
+
+// the API's limit for a detection object comment
+const COMMENT_MAX_LENGTH = 255;
 
 interface FormValues {
     objectTypeUuid: string;
+    comment: string;
 }
+
+type FormErrors = Partial<Record<keyof FormValues, string>>;
 
 const fetchTileSet = (centroid: Feature<Point>) =>
     api<TileSet>(tileSetEndpoints.lastFromCoordinates, {
@@ -34,12 +34,15 @@ const fetchTileSet = (centroid: Feature<Point>) =>
         },
     });
 const postForm = async (values: FormValues, tileSetUuid: string, polygon: Polygon, address: string | null) => {
+    const comment = values.comment.trim();
+
     await api(detectionEndpoints.create, {
         method: 'POST',
         body: {
             detectionObject: {
                 objectTypeUuid: values.objectTypeUuid,
                 address,
+                ...(comment ? { comment } : {}),
             },
             tileSetUuid,
             geometry: polygon,
@@ -47,7 +50,23 @@ const postForm = async (values: FormValues, tileSetUuid: string, polygon: Polygo
     });
 };
 
-interface FormProps {
+// The API answers a field error as a list of messages, those of the object nested under `detectionObject`.
+const getFieldErrors = (body: unknown): FormErrors => {
+    const fields = (body as { detectionObject?: Record<string, unknown> } | null)?.detectionObject;
+
+    if (!fields || typeof fields !== 'object') {
+        return {};
+    }
+
+    return (['objectTypeUuid', 'comment'] as const).reduce<FormErrors>((errors, field) => {
+        const message = fields[field];
+        const text = Array.isArray(message) ? message.join(' ') : message;
+
+        return typeof text === 'string' && text ? { ...errors, [field]: text } : errors;
+    }, {});
+};
+
+interface OpenedModalProps {
     objectTypes: ObjectType[];
     polygon: Polygon;
     hide: () => void;
@@ -55,14 +74,16 @@ interface FormProps {
     tracked: boolean;
 }
 
-const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide, onCancel, tracked }) => {
+// mounted for each drawn rectangle, so the form always starts blank
+const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, onCancel, tracked }) => {
     const { eventEmitter } = useMap();
+    const fieldsId = `add-object-${useId()}`;
+    const formId = `${fieldsId}-form`;
     const polygonCentroid = useMemo(() => centroid(polygon), [polygon]);
-    const form: UseFormReturnType<FormValues> = useForm({
-        initialValues: {
-            objectTypeUuid: objectTypes[0].uuid,
-        },
-    });
+    const [values, setValues] = useState<FormValues>({ objectTypeUuid: objectTypes[0].uuid, comment: '' });
+    const [errors, setErrors] = useState<FormErrors>({});
+    // in the modal: a notification would open under it, the modal being in the top layer
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const [address, setAddress] = useState<string | null | undefined>();
     useEffect(() => {
         const getAddress = async () => {
@@ -83,7 +104,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide, onCancel, track
         enabled: !!polygonCentroid,
     });
 
-    // The form is mounted once per drawn rectangle, and so is this report of the no-imagery card below.
+    // The form is mounted once per drawn rectangle, and so is this report of the no-imagery alert below.
     const noImageryTrackedRef = useRef(false);
     useEffect(() => {
         if (!tracked || noImageryTrackedRef.current || tileSet || tileSetIsLoading) {
@@ -100,6 +121,7 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide, onCancel, track
 
     const mutation: UseMutationResult<void, Error, FormValues> = useMutation({
         mutationFn: (values: FormValues) => postForm(values, tileSet?.uuid || '', polygon, address || null),
+        onMutate: () => setSubmitError(null),
         onSuccess: (_, values) => {
             if (tracked) {
                 trackEvent(
@@ -121,94 +143,152 @@ const Form: React.FC<FormProps> = ({ objectTypes, polygon, hide, onCancel, track
             }
 
             if (error instanceof ApiError && error.body) {
-                form.setErrors(error.body);
-                notifications.show({
-                    color: 'red',
-                    title: 'Une erreur est survenue lors de la création de la détection',
-                    message: ((error.body as Record<string, string>)?.detail as string) || '',
-                });
+                setErrors(getFieldErrors(error.body));
+                setSubmitError(((error.body as Record<string, string>)?.detail as string) || null);
                 return;
             }
 
             // no answer, or one without a body: without this the submit fails silently
-            notifications.show({
-                color: 'red',
-                title: 'Une erreur est survenue lors de la création de la détection',
-                message: isNetworkError(error)
+            setSubmitError(
+                isNetworkError(error)
                     ? 'Vérifiez votre connexion internet puis réessayez'
                     : "L'objet n'a pas pu être ajouté, veuillez réessayer",
-            });
+            );
         },
     });
 
-    const handleSubmit = (values: FormValues) => {
-        mutation.mutate(values);
+    const setValue = <K extends keyof FormValues>(field: K, value: FormValues[K]) => {
+        setValues((previous) => ({ ...previous, [field]: value }));
+        setErrors((previous) => {
+            const next = { ...previous };
+            delete next[field];
+            return next;
+        });
     };
 
-    const objectTypesMap: Record<string, ObjectType> = useMemo(() => {
-        return (objectTypes || []).reduce(
-            (prev, curr) => ({
-                ...prev,
-                [curr.uuid]: curr,
-            }),
-            {},
-        );
-    }, [objectTypes]);
-
-    if (!tileSet && !tileSetIsLoading) {
-        return (
-            <ErrorCard title="Erreur lors de l'ajout de la détection">
-                <p>Aucun fond de carte associé à la géométrie dessiné n&apos;a été trouvé</p>
-                <p>Vos droits sont insuffisants pour ajouter une détection dans cette zone ?</p>
-                <p>Si le problème persiste, contactez les administrateurs</p>
-            </ErrorCard>
-        );
-    }
+    const noTileSet = !tileSet && !tileSetIsLoading;
 
     return (
-        <form onSubmit={form.onSubmit(handleSubmit)} className={clsx('compact', classes.form)}>
-            <InfoCard title="Informations sur l'objet" withCloseButton={false}>
-                <p>
-                    Fond de carte associé :{' '}
-                    <b>
-                        {!tileSetIsLoading && tileSet
-                            ? `${tileSet.name} (${formatDateOnly(tileSet.date, 'yyyy')})`
-                            : 'Chargement...'}
-                    </b>
-                </p>
-                <p>
-                    Addresse : <b>{address === undefined ? 'Chargement...' : address || 'Inconnue'}</b>
-                </p>
-                <p>
-                    Surface : <b>{area(polygon).toFixed(2)} m²</b>
-                </p>
-            </InfoCard>
-            <Select
-                allowDeselect={false}
-                label="Type d'objet"
-                renderOption={(item) => <SelectItem item={item} color={objectTypesMap[item.option.value].color} />}
-                data={objectTypes.map((type) => ({
-                    value: type.uuid,
-                    label: type.name,
-                }))}
-                key={form.key('objectTypeUuid')}
-                {...form.getInputProps('objectTypeUuid')}
-            />
-
-            <div className="form-actions">
-                <Button type="button" variant="outline" onClick={onCancel}>
-                    Annuler
-                </Button>
-
-                <Button
-                    type="submit"
-                    leftSection={<IconShape />}
-                    disabled={tileSetIsLoading || mutation.status === 'pending'}
+        <Modal
+            opened
+            gutters
+            bodyClassName={classes.body}
+            onClose={onCancel}
+            title={
+                <>
+                    <span className="fr-icon-arrow-right-line fr-icon--lg" aria-hidden="true" /> Ajouter un objet
+                </>
+            }
+            footer={
+                noTileSet ? undefined : (
+                    <div className={classes.actions}>
+                        <button type="button" className="fr-btn fr-btn--secondary" onClick={onCancel}>
+                            Annuler
+                        </button>
+                        <button
+                            type="submit"
+                            form={formId}
+                            className="fr-btn"
+                            disabled={tileSetIsLoading || mutation.status === 'pending'}
+                        >
+                            Ajouter cet objet
+                        </button>
+                    </div>
+                )
+            }
+        >
+            {noTileSet ? (
+                <div className="fr-alert fr-alert--error">
+                    <h2 className="fr-alert__title">Erreur lors de l&apos;ajout de la détection</h2>
+                    <p>Aucun fond de carte associé à la géométrie dessiné n&apos;a été trouvé</p>
+                    <p>Vos droits sont insuffisants pour ajouter une détection dans cette zone ?</p>
+                    <p>Si le problème persiste, contactez les administrateurs</p>
+                </div>
+            ) : (
+                <form
+                    id={formId}
+                    className={clsx('compact', classes.form)}
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        mutation.mutate(values);
+                    }}
                 >
-                    Ajouter l&apos;objet
-                </Button>
-            </div>
-        </form>
+                    <div className="fr-alert fr-alert--info fr-alert--sm">
+                        <p>
+                            Fond de carte associé :{' '}
+                            <b>
+                                {!tileSetIsLoading && tileSet
+                                    ? `${tileSet.name} (${formatDateOnly(tileSet.date, 'yyyy')})`
+                                    : 'Chargement...'}
+                            </b>
+                            <br />
+                            Adresse : <b>{address === undefined ? 'Chargement...' : address || 'Inconnue'}</b>
+                            <br />
+                            Surface : <b>{area(polygon).toFixed(2)} m²</b>
+                        </p>
+                    </div>
+
+                    {submitError || mutation.status === 'error' ? (
+                        <div className="fr-alert fr-alert--error fr-alert--sm" role="alert">
+                            <p>
+                                Une erreur est survenue lors de la création de la détection
+                                {submitError ? ` : ${submitError}` : ''}
+                            </p>
+                        </div>
+                    ) : null}
+
+                    <div
+                        className={clsx(
+                            'fr-select-group',
+                            errors.objectTypeUuid && 'fr-select-group--error',
+                            classes.field,
+                        )}
+                    >
+                        <label className="fr-label" htmlFor={`${fieldsId}-object-type`}>
+                            Type d’objet
+                        </label>
+                        <select
+                            className="fr-select"
+                            id={`${fieldsId}-object-type`}
+                            value={values.objectTypeUuid}
+                            aria-describedby={errors.objectTypeUuid ? `${fieldsId}-object-type-error` : undefined}
+                            onChange={(event) => setValue('objectTypeUuid', event.currentTarget.value)}
+                        >
+                            {objectTypes.map(({ uuid, name }) => (
+                                <option key={uuid} value={uuid}>
+                                    {name}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.objectTypeUuid ? (
+                            <p id={`${fieldsId}-object-type-error`} className="fr-error-text">
+                                {errors.objectTypeUuid}
+                            </p>
+                        ) : null}
+                    </div>
+
+                    <div className={clsx('fr-input-group', errors.comment && 'fr-input-group--error', classes.field)}>
+                        <label className="fr-label" htmlFor={`${fieldsId}-comment`}>
+                            Commentaire
+                        </label>
+                        <textarea
+                            className={clsx('fr-input', errors.comment && 'fr-input--error')}
+                            id={`${fieldsId}-comment`}
+                            rows={3}
+                            maxLength={COMMENT_MAX_LENGTH}
+                            value={values.comment}
+                            aria-describedby={errors.comment ? `${fieldsId}-comment-error` : undefined}
+                            onChange={(event) => setValue('comment', event.currentTarget.value)}
+                        />
+                        {errors.comment ? (
+                            <p id={`${fieldsId}-comment-error`} className="fr-error-text">
+                                {errors.comment}
+                            </p>
+                        ) : null}
+                    </div>
+                </form>
+            )}
+        </Modal>
     );
 };
 
@@ -216,7 +296,7 @@ interface ComponentProps {
     isShowed: boolean;
     // after a successful submit
     hide: () => void;
-    // 'Annuler', the close button, Escape or a click outside
+    // 'Annuler', « Fermer », Escape or a click outside
     onCancel: () => void;
     polygon?: Polygon;
     tracked?: boolean;
@@ -224,18 +304,12 @@ interface ComponentProps {
 const Component: React.FC<ComponentProps> = ({ isShowed, polygon, hide, onCancel, tracked = false }) => {
     const { objectTypes } = useMap();
 
-    if (!isShowed || !polygon) {
+    if (!isShowed || !polygon || !objectTypes) {
         return null;
     }
 
     return (
-        <Modal opened={isShowed} onClose={onCancel} title="Ajouter un objet">
-            {objectTypes ? (
-                <Form objectTypes={objectTypes} polygon={polygon} hide={hide} onCancel={onCancel} tracked={tracked} />
-            ) : (
-                <Loader />
-            )}
-        </Modal>
+        <OpenedModal objectTypes={objectTypes} polygon={polygon} hide={hide} onCancel={onCancel} tracked={tracked} />
     );
 };
 

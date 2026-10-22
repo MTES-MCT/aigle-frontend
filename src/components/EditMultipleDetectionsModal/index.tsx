@@ -1,7 +1,5 @@
 import { detectionEndpoints } from '@/api/endpoints';
-import InfoCard from '@/components/ui/InfoCard';
-import Loader from '@/components/ui/Loader';
-import SelectItem from '@/components/ui/SelectItem';
+import Modal from '@/components/dsfr/Modal';
 import {
     DetectionControlStatus,
     DetectionValidationStatus,
@@ -14,13 +12,10 @@ import api, { ApiError } from '@/utils/api';
 import { DETECTION_CONTROL_STATUSES_NAMES_MAP, DETECTION_VALIDATION_STATUSES_NAMES_MAP } from '@/utils/constants';
 import { trackEvent, trackEventOnce } from '@/utils/matomo';
 import { TRACKING_CATEGORIES, getErrorTrackingName } from '@/utils/tracking';
-import { Button, Modal, Select } from '@mantine/core';
-import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconSelectAll } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import React, { useMemo } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import classes from './index.module.scss';
 
 const NO_EDIT_TEXT = 'Ne pas éditer';
@@ -28,15 +23,19 @@ const MUTATION_KEY = [detectionEndpoints.multiple];
 
 type TrackingSource = 'Carte' | 'Tableau';
 
-type DetectionControlStatusNullable = DetectionControlStatus | null;
-type DetectionValidationStatusNullable = DetectionValidationStatus | null;
-type ObjectTypeUuidNullable = string | null;
-
 interface FormValues {
-    objectTypeUuid: ObjectTypeUuidNullable;
-    detectionControlStatus: DetectionControlStatusNullable;
-    detectionValidationStatus: DetectionValidationStatusNullable;
+    objectTypeUuid: string | null;
+    detectionValidationStatus: DetectionValidationStatus | null;
+    detectionControlStatus: DetectionControlStatus | null;
 }
+
+type FormErrors = Partial<Record<keyof FormValues, string>>;
+
+const INITIAL_VALUES: FormValues = {
+    objectTypeUuid: null,
+    detectionValidationStatus: null,
+    detectionControlStatus: null,
+};
 
 const postForm = async (values: FormValues, detectionsUuids: string[]) => {
     const postValues: Record<string, string | string[]> = {
@@ -58,23 +57,85 @@ const postForm = async (values: FormValues, detectionsUuids: string[]) => {
     await api(detectionEndpoints.multiple, { method: 'POST', body: postValues });
 };
 
+// The API answers a field error as a list of messages under the field's name.
+const getFieldErrors = (body: unknown): FormErrors => {
+    if (!body || typeof body !== 'object') {
+        return {};
+    }
+
+    return (Object.keys(INITIAL_VALUES) as (keyof FormValues)[]).reduce<FormErrors>((errors, field) => {
+        const message = (body as Record<string, unknown>)[field];
+        const text = Array.isArray(message) ? message.join(' ') : message;
+
+        return typeof text === 'string' && text ? { ...errors, [field]: text } : errors;
+    }, {});
+};
+
+const getDetectionsCountText = (count: number) => `${count} détection${count > 1 ? 's' : ''}`;
+
+interface SelectFieldProps<T extends string> {
+    label: string;
+    value: T | null;
+    options: { value: T; label: string }[];
+    error?: string;
+    onChange: (value: T | null) => void;
+}
+
+const SelectField = <T extends string>({ label, value, options, error, onChange }: SelectFieldProps<T>) => {
+    const id = `edit-multiple-${useId()}`;
+
+    return (
+        <div className={clsx('fr-select-group', error && 'fr-select-group--error', classes.field)}>
+            <label className="fr-label" htmlFor={id}>
+                {label}
+            </label>
+            <select
+                className="fr-select"
+                id={id}
+                value={value ?? ''}
+                aria-describedby={error ? `${id}-error` : undefined}
+                onChange={(event) => onChange((event.currentTarget.value as T) || null)}
+            >
+                <option value="">{NO_EDIT_TEXT}</option>
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+            {error ? (
+                <p id={`${id}-error`} className="fr-error-text">
+                    {error}
+                </p>
+            ) : null}
+        </div>
+    );
+};
+
 interface FormProps {
+    formId: string;
     objectTypes: ObjectType[];
     detectionsUuids: string[];
     hide: (dataUpdated?: boolean) => void;
-    cancel: () => void;
     trackingSource?: TrackingSource;
+    onPendingChange: (pending: boolean) => void;
+    onDirtyChange: (dirty: boolean) => void;
 }
 
-const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide, cancel, trackingSource }) => {
+const Form: React.FC<FormProps> = ({
+    formId,
+    objectTypes,
+    detectionsUuids,
+    hide,
+    trackingSource,
+    onPendingChange,
+    onDirtyChange,
+}) => {
     const { eventEmitter } = useMap();
-    const form: UseFormReturnType<FormValues> = useForm({
-        initialValues: {
-            objectTypeUuid: null as ObjectTypeUuidNullable,
-            detectionControlStatus: null as DetectionControlStatusNullable,
-            detectionValidationStatus: null as DetectionValidationStatusNullable,
-        },
-    });
+    const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
+    const [errors, setErrors] = useState<FormErrors>({});
+    // in the modal: a notification would open under it, the modal being in the top layer
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const objectTypesMap: Record<string, ObjectType> = useMemo(() => {
         return (objectTypes || []).reduce(
             (prev, curr) => ({
@@ -88,6 +149,11 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide, cancel,
     const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
         mutationKey: MUTATION_KEY,
         mutationFn: (values: FormValues) => postForm(values, detectionsUuids),
+        onMutate: () => {
+            setSubmitError(null);
+            onPendingChange(true);
+        },
+        onSettled: () => onPendingChange(false),
         onSuccess: (_data, values) => {
             // one event per field set: those left on 'Ne pas éditer' are not sent
             if (trackingSource) {
@@ -124,109 +190,93 @@ const Form: React.FC<FormProps> = ({ objectTypes, detectionsUuids, hide, cancel,
                 );
             }
 
-            if (error.body) {
-                // @ts-expect-error types do not match
-                form.setErrors(error.body);
-            }
+            setErrors(getFieldErrors(error.body));
 
             // also for a network failure, which has no body
-            notifications.show({
-                color: 'red',
-                title: "Une erreur est survenue lors de l'édition multiple",
-                message:
-                    ((error.body as Record<string, string>)?.detail as string) ||
+            setSubmitError(
+                ((error.body as Record<string, string>)?.detail as string) ||
                     "Les détections n'ont pas été modifiées, veuillez réessayer.",
-            });
+            );
         },
     });
 
-    const handleSubmit = (values: FormValues) => {
-        mutation.mutate(values);
+    const setValue = <K extends keyof FormValues>(field: K, value: FormValues[K]) => {
+        const next = { ...values, [field]: value };
+
+        setValues(next);
+        setErrors((previous) => {
+            const nextErrors = { ...previous };
+            delete nextErrors[field];
+            return nextErrors;
+        });
+        onDirtyChange(Object.values(next).some((nextValue) => nextValue !== null));
     };
 
     return (
-        <form onSubmit={form.onSubmit(handleSubmit)} className={clsx('compact', classes.form)}>
-            <InfoCard withCloseButton={false}>
-                Vous êtes sur le point d&apos;éditer {detectionsUuids.length} détections
-            </InfoCard>
-            <Select
-                label="Type d'objet"
-                data={objectTypes.map((type) => ({
-                    value: type.uuid,
-                    label: type.name,
-                }))}
-                renderOption={(item) => <SelectItem item={item} color={objectTypesMap[item.option.value].color} />}
-                clearable
-                placeholder={NO_EDIT_TEXT}
-                key={form.key('objectTypeUuid')}
-                {...form.getInputProps('objectTypeUuid')}
-            />
+        <form
+            id={formId}
+            className={clsx('compact', classes.form)}
+            onSubmit={(event) => {
+                event.preventDefault();
+                mutation.mutate(values);
+            }}
+        >
+            <div className="fr-alert fr-alert--info fr-alert--sm">
+                <p>Vous êtes sur le point d’éditer {getDetectionsCountText(detectionsUuids.length)}.</p>
+            </div>
 
-            <Select
-                allowDeselect={false}
-                mt="md"
-                label="Statut du contrôle"
-                data={detectionControlStatuses.map((status) => ({
-                    value: status,
-                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[status],
-                }))}
-                clearable
-                placeholder={NO_EDIT_TEXT}
-                key={form.key('detectionControlStatus')}
-                {...form.getInputProps('detectionControlStatus')}
-            />
+            {submitError ? (
+                <div className="fr-alert fr-alert--error fr-alert--sm" role="alert">
+                    <p>Une erreur est survenue lors de l’édition multiple : {submitError}</p>
+                </div>
+            ) : null}
 
-            <Select
-                allowDeselect={false}
-                mt="md"
-                label="Statut de validation"
-                data={detectionValidationStatusesSelectable.map((status) => ({
+            <SelectField
+                label="Type d’objet"
+                value={values.objectTypeUuid}
+                options={objectTypes.map(({ uuid, name }) => ({ value: uuid, label: name }))}
+                error={errors.objectTypeUuid}
+                onChange={(value) => setValue('objectTypeUuid', value)}
+            />
+            <SelectField
+                label="État de conformité"
+                value={values.detectionValidationStatus}
+                options={detectionValidationStatusesSelectable.map((status) => ({
                     value: status,
                     label: DETECTION_VALIDATION_STATUSES_NAMES_MAP[status],
                 }))}
-                clearable
-                placeholder={NO_EDIT_TEXT}
-                key={form.key('detectionValidationStatus')}
-                {...form.getInputProps('detectionValidationStatus')}
+                error={errors.detectionValidationStatus}
+                onChange={(value) => setValue('detectionValidationStatus', value)}
             />
-
-            <div className="form-actions">
-                <Button type="button" variant="outline" onClick={cancel}>
-                    Annuler
-                </Button>
-
-                <Button
-                    type="submit"
-                    leftSection={<IconSelectAll />}
-                    disabled={mutation.status === 'pending' || !form.isDirty()}
-                >
-                    Editer les détections
-                </Button>
-            </div>
+            <SelectField
+                label="Statut du contrôle"
+                value={values.detectionControlStatus}
+                options={detectionControlStatuses.map((status) => ({
+                    value: status,
+                    label: DETECTION_CONTROL_STATUSES_NAMES_MAP[status],
+                }))}
+                error={errors.detectionControlStatus}
+                onChange={(value) => setValue('detectionControlStatus', value)}
+            />
         </form>
     );
 };
 
-interface ComponentProps {
-    isShowed: boolean;
+interface OpenedModalProps {
     hide: (dataUpdated?: boolean) => void;
-    detectionsUuids?: string[];
-    // where the modal is opened from; no event is sent without it
+    detectionsUuids: string[];
     trackingSource?: TrackingSource;
 }
-const Component: React.FC<ComponentProps> = ({ isShowed, detectionsUuids, hide, trackingSource }) => {
-    const { objectTypes, layers } = useMap();
+
+// mounted for each opening, so the form and its buttons always start blank
+const OpenedModal: React.FC<OpenedModalProps> = ({ detectionsUuids, hide, trackingSource }) => {
+    const { objectTypes } = useMap();
     const queryClient = useQueryClient();
+    const formId = `edit-multiple-${useId()}`;
+    const [pending, setPending] = useState(false);
+    const [dirty, setDirty] = useState(false);
 
-    if (!isShowed || !detectionsUuids) {
-        return null;
-    }
-
-    if (!layers) {
-        return <Loader />;
-    }
-
-    // 'Annuler', the X, Escape or a click outside: the parents' hide also runs after a save
+    // 'Annuler', « Fermer », Escape or a click outside: the parents' hide also runs after a save
     const cancel = () => {
         // closed while the save is in flight: that save still lands and sends its own outcome
         if (trackingSource && !queryClient.isMutating({ mutationKey: MUTATION_KEY })) {
@@ -237,20 +287,55 @@ const Component: React.FC<ComponentProps> = ({ isShowed, detectionsUuids, hide, 
     };
 
     return (
-        <Modal opened={isShowed} onClose={cancel} title="Edition multiple">
+        <Modal
+            opened
+            gutters
+            bodyClassName={classes.body}
+            onClose={cancel}
+            title={
+                <>
+                    <span className="fr-icon-arrow-right-line fr-icon--lg" aria-hidden="true" /> Édition multiple
+                </>
+            }
+            footer={
+                <div className={classes.actions}>
+                    <button type="button" className="fr-btn fr-btn--secondary" onClick={cancel}>
+                        Annuler
+                    </button>
+                    <button type="submit" form={formId} className="fr-btn" disabled={pending || !dirty}>
+                        Editer {getDetectionsCountText(detectionsUuids.length)}
+                    </button>
+                </div>
+            }
+        >
             {objectTypes ? (
                 <Form
+                    formId={formId}
                     objectTypes={objectTypes}
                     detectionsUuids={detectionsUuids}
                     hide={hide}
-                    cancel={cancel}
                     trackingSource={trackingSource}
+                    onPendingChange={setPending}
+                    onDirtyChange={setDirty}
                 />
             ) : (
-                <Loader />
+                <p>Chargement...</p>
             )}
         </Modal>
     );
 };
+
+interface ComponentProps {
+    isShowed: boolean;
+    hide: (dataUpdated?: boolean) => void;
+    detectionsUuids?: string[];
+    // where the modal is opened from; no event is sent without it
+    trackingSource?: TrackingSource;
+}
+
+const Component: React.FC<ComponentProps> = ({ isShowed, detectionsUuids, hide, trackingSource }) =>
+    isShowed && detectionsUuids ? (
+        <OpenedModal detectionsUuids={detectionsUuids} hide={hide} trackingSource={trackingSource} />
+    ) : null;
 
 export default Component;

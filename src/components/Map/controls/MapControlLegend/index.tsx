@@ -148,6 +148,8 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
             controlInner="Afficher la légende"
             controlType="TOGGLE"
             position="bottom-left"
+            inline
+            controlClassName={classes.control}
             contentClassName={classes.content}
             containerClassName={classes.container}
             isShowed={isShowed}

@@ -5,8 +5,10 @@ import marianneImg from '@/assets/marianne.svg';
 import Collapse from '@/components/dsfr/Collapse';
 import UserGroupSelector from '@/components/UserGroupSelector';
 import { UserRole } from '@/models/user';
+import { CONTACT_EMAIL } from '@/routes/HelpCenter/utils';
 import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
+import { isBrevoChatEnabled, openBrevoChat } from '@/utils/brevo';
 import { ENVIRONMENT } from '@/utils/constants';
 import { trackEvent } from '@/utils/matomo';
 import { isScopeBoundaryCrossed } from '@/utils/scope';
@@ -169,12 +171,34 @@ const QuickAccessLinks: React.FC = () => {
                 </li>
             ) : null}
             <li>
+                {isBrevoChatEnabled ? (
+                    <button
+                        type="button"
+                        className="fr-btn fr-btn--tertiary-no-outline fr-icon-question-answer-line fr-btn--icon-left"
+                        onClick={() => {
+                            trackEvent(TRACKING_CATEGORIES.support, 'Contacter l’équipe', 'Tchat');
+                            openBrevoChat(CONTACT_EMAIL);
+                        }}
+                    >
+                        Nous contacter
+                    </button>
+                ) : (
+                    <a
+                        className="fr-btn fr-btn--tertiary-no-outline fr-icon-question-answer-line fr-btn--icon-left"
+                        href={`mailto:${CONTACT_EMAIL}`}
+                        onClick={() => trackEvent(TRACKING_CATEGORIES.support, 'Contacter l’équipe', 'Courriel')}
+                    >
+                        Nous contacter
+                    </a>
+                )}
+            </li>
+            <li>
                 <a
                     className="fr-btn fr-btn--tertiary-no-outline fr-icon-question-line fr-btn--icon-left"
                     href="/help"
                     onClick={handleNavigate('/help')}
                 >
-                    Besoin d&apos;aide
+                    Aide
                 </a>
             </li>
             <UserMenu />

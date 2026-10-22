@@ -22,6 +22,7 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { useQuery } from '@tanstack/react-query';
 import { centroid, getCoord } from '@turf/turf';
+import classes from './index.module.scss';
 
 const SEARCH_LIMIT = 10;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -253,7 +254,7 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className={classes.form}>
             <Autocomplete
                 label="Commune"
                 value={form.commune.search}

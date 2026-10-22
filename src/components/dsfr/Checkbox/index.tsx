@@ -6,15 +6,16 @@ interface ComponentProps {
     label: ReactNode;
     checked: boolean;
     onChange: (checked: boolean) => void;
+    className?: string;
 }
 
 // The input must stay the immediate previous sibling of the label: every DSFR checkbox
 // rule is written as `input[type=checkbox] + label`.
-const Component: React.FC<ComponentProps> = ({ label, checked, onChange }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ label, checked, onChange, className }: ComponentProps) => {
     const id = `checkbox-${useId()}`;
 
     return (
-        <div className={clsx('fr-checkbox-group', classes.container)}>
+        <div className={clsx('fr-checkbox-group', classes.container, className)}>
             <input
                 type="checkbox"
                 id={id}

@@ -28,3 +28,17 @@ $content-padding: 16px;
         top: 0.5rem;
     }
 }
+
+.inline {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: constants.$map-control-gap;
+}
+
+// in the flow of its corner instead of over the map: the close button still anchors to it
+.content.content-inline {
+    position: relative;
+
+    max-width: none;
+}

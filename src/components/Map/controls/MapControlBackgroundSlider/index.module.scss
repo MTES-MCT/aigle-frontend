@@ -1,14 +1,31 @@
-@use '@/constants.scss' as constants;
+// first of the bottom-left row, whatever order mapbox added the controls in
+.control {
+    order: 1;
+}
 
 .content {
-    bottom: 46px; // 20px (toggle height) + 10px (toggle margin) + 16px (toggle padding)
+    padding: 4px;
+}
 
-    left: 0;
+.years {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 
-    @include constants.map-control-offset-bottom-left;
-    margin-bottom: constants.$margin-map-elements;
+    // nested to outrank the DSFR button rules, which load after the CSS modules
+    .year {
+        --hover: rgba(0, 0, 0, 0.04);
+        --active: rgba(0, 0, 0, 0.08);
 
-    padding: 8px;
+        justify-content: center;
 
-    z-index: 92;
+        margin: 0;
+    }
+
+    .year[aria-pressed='true'] {
+        --idle: rgba(0, 0, 0, 0.08);
+        --hover: rgba(0, 0, 0, 0.08);
+
+        background-color: rgba(0, 0, 0, 0.08);
+    }
 }

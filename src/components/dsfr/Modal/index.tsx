@@ -10,6 +10,8 @@ interface ComponentProps extends PropsWithChildren {
     closeTitle?: string;
     // DSFR grid classes of the column that holds the modal body: they set its width.
     colClassName?: string;
+    // with the grid gutters, the body is a gutter narrower: the width of the DSFR design kit's modal
+    gutters?: boolean;
     bodyClassName?: string;
 }
 
@@ -28,6 +30,7 @@ const Component: React.FC<ComponentProps> = ({
     footer,
     closeTitle = 'Fermer la fenêtre modale',
     colClassName = 'fr-col-12 fr-col-md-8 fr-col-lg-6',
+    gutters = false,
     bodyClassName,
     children,
 }: ComponentProps) => {
@@ -113,7 +116,7 @@ const Component: React.FC<ComponentProps> = ({
             }}
         >
             <div className="fr-container fr-container--fluid fr-container-md">
-                <div className="fr-grid-row fr-grid-row--center">
+                <div className={clsx('fr-grid-row fr-grid-row--center', gutters && 'fr-grid-row--gutters')}>
                     <div className={colClassName}>
                         <div
                             ref={bodyRef}

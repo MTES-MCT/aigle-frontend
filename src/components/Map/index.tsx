@@ -162,7 +162,7 @@ const buildDrawControl = () =>
 // library painted.
 const MAP_CONTROLS: { querySelector: string; title: string; icon: string }[] = [
     { querySelector: '.mapbox-gl-draw_point', title: DRAW_MODE_TITLES_MAP.ADD_DETECTION, icon: 'fr-icon-pencil-line' },
-    { querySelector: '.mapbox-gl-draw_polygon', title: DRAW_MODE_TITLES_MAP.MULTIPLE_EDIT, icon: 'fr-icon-crop-line' },
+    { querySelector: '.mapbox-gl-draw_polygon', title: DRAW_MODE_TITLES_MAP.MULTIPLE_EDIT, icon: 'fr-icon-shape-line' },
     {
         querySelector: '.mapbox-gl-draw_line',
         title: DRAW_MODE_TITLES_MAP.MULTIPLE_DOWNLOAD,
@@ -170,14 +170,21 @@ const MAP_CONTROLS: { querySelector: string; title: string; icon: string }[] = [
     },
     { querySelector: '.mapboxgl-ctrl-fullscreen', title: 'Plein écran', icon: 'fr-icon-fullscreen-line' },
     // mapbox renames the fullscreen button rather than keeping a state attribute, so this is
-    // the same button once fullscreen is on. DSFR ships no exit-fullscreen glyph.
-    { querySelector: '.mapboxgl-ctrl-shrink', title: 'Quitter le plein écran', icon: 'fr-icon-close-line' },
+    // the same button once fullscreen is on. DSFR ships no exit-fullscreen glyph: index.scss declares it.
+    {
+        querySelector: '.mapboxgl-ctrl-shrink',
+        title: 'Quitter le plein écran',
+        icon: 'fr-icon-fullscreen-exit-line',
+    },
     { querySelector: '.mapboxgl-ctrl-zoom-in', title: 'Zoomer', icon: 'fr-icon-add-line' },
     { querySelector: '.mapboxgl-ctrl-zoom-out', title: 'Dézoomer', icon: 'fr-icon-subtract-line' },
     { querySelector: '.mapboxgl-ctrl-geolocate', title: 'Ma position', icon: 'fr-icon-focus-3-line' },
 ];
 
 const MAP_CONTROL_ICONS = MAP_CONTROLS.map(({ icon }) => icon);
+
+// mapbox-gl-draw builds its buttons as line, polygon, point: the toolbar reads pencil, shape, download
+const DRAW_BUTTONS_ORDER = ['.mapbox-gl-draw_point', '.mapbox-gl-draw_polygon', '.mapbox-gl-draw_line'];
 
 // Re-runnable: every icon this owns is cleared before the right one goes back on, so a
 // button mapbox has renamed (fullscreen -> shrink) ends up with one icon, not two.
@@ -195,6 +202,20 @@ const syncMapControls = (container: HTMLElement) => {
         control.classList.add(icon);
         control.querySelector('.mapboxgl-ctrl-icon')?.setAttribute('title', title);
     }
+
+    // moved in the DOM rather than with CSS order, so the keyboard follows the same order
+    const drawGroup = container.querySelector(DRAW_BUTTONS_ORDER[0])?.parentElement;
+    DRAW_BUTTONS_ORDER.forEach((selector) => {
+        const button = drawGroup?.querySelector(selector);
+
+        if (button) {
+            drawGroup?.appendChild(button);
+        }
+    });
+
+    // mapbox stacks a bottom corner in reverse order of addition: geolocation goes back on top
+    const geolocateGroup = container.querySelector('.mapboxgl-ctrl-geolocate')?.parentElement;
+    geolocateGroup?.parentElement?.prepend(geolocateGroup);
 };
 
 const MAP_PADDINGS = {
@@ -233,6 +254,8 @@ const GEOJSON_ANNOTATION_GRID_FILL_LAYER_ID = 'annotation-grid-fill-geojson-laye
 const GEOJSON_LAYER_EXTRA_COLOR = '#FF0000';
 
 const MULTIPLE_SELECTION_MAX = 500;
+
+const DRAW_HINT_NOTIFICATION_ID = 'map-draw-hint';
 
 interface MultipleDownloadPage {
     detectionObjectUuid: string;
@@ -622,7 +645,8 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         const controls: { control: mapboxgl.IControl; position: mapboxgl.ControlPosition }[] = [
-            { control: new mapboxgl.ScaleControl(), position: 'bottom-right' },
+            // in the bottom-left row, clear of the support chat button in the bottom-right corner
+            { control: new mapboxgl.ScaleControl(), position: 'bottom-left' },
             { control: new mapboxgl.FullscreenControl(), position: 'bottom-right' },
             {
                 control: new mapboxgl.NavigationControl({
@@ -765,6 +789,8 @@ const Component: React.FC<ComponentProps> = ({
             // leaving a draw mode also happens on the click that closes the shape: that
             // click is still on its way to onMapClick and must not be read as a map click
             drawEndedGestureRef.current = true;
+            // one hint at a time, gone with its drawing: the modal a drawing opens would show it through its overlay
+            notifications.hide(DRAW_HINT_NOTIFICATION_ID);
 
             if (!newDrawMode) {
                 return;
@@ -780,6 +806,7 @@ const Component: React.FC<ComponentProps> = ({
             if (newDrawMode === 'ADD_DETECTION') {
                 resetLayersForAddDetectionRef.current();
                 notifications.show({
+                    id: DRAW_HINT_NOTIFICATION_ID,
                     title: DRAW_MODE_TITLES_MAP.ADD_DETECTION,
                     message:
                         "L'affichage des couches a été réinitialisé. Dessinez un rectangle autour de l'objet, Échap pour annuler.",
@@ -788,6 +815,7 @@ const Component: React.FC<ComponentProps> = ({
             }
 
             notifications.show({
+                id: DRAW_HINT_NOTIFICATION_ID,
                 title: DRAW_MODE_TITLES_MAP[newDrawMode],
                 message:
                     'Cliquez pour poser les points de la zone, puis cliquez sur le premier point ou double-cliquez pour la fermer. Échap pour annuler.',
@@ -799,6 +827,7 @@ const Component: React.FC<ComponentProps> = ({
             const drawnFeature = event.features?.[0];
 
             drawEndedGestureRef.current = true;
+            notifications.hide(DRAW_HINT_NOTIFICATION_ID);
             // always drop the drawn shape first: every branch below can bail out, and a
             // leftover polygon would stay on the map with no way to remove it
             drawControlRef.current?.deleteAll();

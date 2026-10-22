@@ -1,0 +1,29 @@
+// the slider row of the layer cards: the track and, after it, its value
+.value-at-end {
+    min-height: 2.5rem;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.track {
+    flex: 1 1 auto;
+}
+
+// DSFR draws the track below the value bubble it expects above the thumb: with no bubble, it is
+// centred on the thumb instead. Nested to outrank the DSFR rule, which loads after the CSS modules.
+.group-value-at-end .track[data-fr-js-range]::before,
+.group-value-at-end .track[data-fr-js-range]::after {
+    top: calc((var(--thumb-size) - 0.5rem) / 2);
+}
+
+.end-value {
+    flex: 0 0 auto;
+
+    min-width: 1.75rem;
+
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: var(--text-mention-grey);
+}

@@ -4,29 +4,28 @@
 }
 
 .header {
-    padding: 0.25rem 0.5rem;
+    padding: 0.75rem 0.5rem;
 
     display: flex;
     align-items: center;
-    gap: 0.5rem;
 }
 
-// 24px swatch centred in the 44px slot the design reserves for a layer thumbnail
+// the layer thumbnail: the swatch of a zone, or the glyph of the layer type on the placeholder ground
 .vignette {
     flex: 0 0 auto;
 
-    width: 1.5rem;
-    height: 1.5rem;
-    margin: 0.625rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: 0.5rem;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    border: 1px solid var(--border-default-grey);
+    border: 1px solid transparent;
     border-radius: 4px;
 
-    color: var(--text-mention-grey);
+    color: var(--blue-france-850-200);
     background-color: var(--background-alt-blue-france);
 }
 
@@ -55,7 +54,11 @@
 }
 
 .details {
-    padding: 0 0.75rem 0.75rem;
+    padding: 0 1.25rem 0.75rem;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .description {
@@ -87,7 +90,8 @@
     cursor: grab;
 }
 
-.handle-slot {
+.handle-slot,
+.toggle-slot {
     flex: 0 0 auto;
 
     width: 2rem;

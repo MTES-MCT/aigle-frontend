@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import React, { useEffect, useId, useRef, useState } from 'react';
+import classes from './index.module.scss';
 
 // DSFR's own JS hardcodes these px thumb sizes (1rem / 1.5rem at a 16px root); the track
 // geometry has to use the same numbers or the fill and the thumb drift apart.
@@ -8,11 +9,15 @@ const THUMB_SIZE_SM_PX = 16;
 
 interface ComponentProps {
     label: string;
+    // kept for screen readers when the context already names the slider
+    labelHidden?: boolean;
     value: number;
     min: number;
     max: number;
     step?: number;
     small?: boolean;
+    // the track alone, the value written after it instead of the bubble and the min/max labels
+    valueAtEnd?: boolean;
     formatValue?: (value: number) => string;
     onChange: (value: number) => void;
 }
@@ -24,11 +29,13 @@ interface ComponentProps {
  */
 const Component: React.FC<ComponentProps> = ({
     label,
+    labelHidden = false,
     value,
     min,
     max,
     step,
     small = false,
+    valueAtEnd = false,
     formatValue,
     onChange,
 }: ComponentProps) => {
@@ -58,38 +65,58 @@ const Component: React.FC<ComponentProps> = ({
     const outputTransform = `translateX(${ratio * width}px) translateX(-${ratio * 100}%)`;
     const format = formatValue || String;
 
+    const input = (
+        <input
+            type="range"
+            id={id}
+            name={id}
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(event) => onChange(Number(event.currentTarget.value))}
+            aria-labelledby={`${id}-label`}
+        />
+    );
+
     return (
-        <div className="fr-range-group">
-            <label className="fr-label" id={`${id}-label`} htmlFor={id}>
+        <div className={clsx('fr-range-group', valueAtEnd && classes['group-value-at-end'])}>
+            <label className={clsx('fr-label', labelHidden && 'fr-sr-only')} id={`${id}-label`} htmlFor={id}>
                 {label}
             </label>
-            <div
-                ref={rangeRef}
-                className={clsx('fr-range', small && 'fr-range--sm')}
-                data-fr-js-range="true"
-                style={{ '--progress-right': progressRight } as React.CSSProperties}
-            >
-                <span className="fr-range__output" style={{ transform: outputTransform }}>
-                    {format(value)}
-                </span>
-                <input
-                    type="range"
-                    id={id}
-                    name={id}
-                    min={min}
-                    max={max}
-                    step={step}
-                    value={value}
-                    onChange={(event) => onChange(Number(event.currentTarget.value))}
-                    aria-labelledby={`${id}-label`}
-                />
-                <span className="fr-range__min" aria-hidden="true">
-                    {format(min)}
-                </span>
-                <span className="fr-range__max" aria-hidden="true">
-                    {format(max)}
-                </span>
-            </div>
+            {valueAtEnd ? (
+                <div className={classes['value-at-end']}>
+                    <div
+                        ref={rangeRef}
+                        className={clsx('fr-range', small && 'fr-range--sm', classes.track)}
+                        data-fr-js-range="true"
+                        style={{ '--progress-right': progressRight } as React.CSSProperties}
+                    >
+                        {input}
+                    </div>
+                    <span className={classes['end-value']} aria-hidden="true">
+                        {format(value)}
+                    </span>
+                </div>
+            ) : (
+                <div
+                    ref={rangeRef}
+                    className={clsx('fr-range', small && 'fr-range--sm')}
+                    data-fr-js-range="true"
+                    style={{ '--progress-right': progressRight } as React.CSSProperties}
+                >
+                    <span className="fr-range__output" style={{ transform: outputTransform }}>
+                        {format(value)}
+                    </span>
+                    {input}
+                    <span className="fr-range__min" aria-hidden="true">
+                        {format(min)}
+                    </span>
+                    <span className="fr-range__max" aria-hidden="true">
+                        {format(max)}
+                    </span>
+                </div>
+            )}
         </div>
     );
 };

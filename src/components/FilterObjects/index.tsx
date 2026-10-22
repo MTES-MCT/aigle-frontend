@@ -56,20 +56,22 @@ const getPrescriptedTrackingName = (prescripted: ObjectsFilter['prescripted']) =
     return prescripted ? 'PRESCRIBED' : 'NOT_PRESCRIBED';
 };
 
+// white (« Autres ») would vanish on the panel: the mockup draws it in light grey
+const getObjectTypeSquareColor = (color: string) => (color.toUpperCase() === '#FFFFFF' ? '#E3E3E3' : color);
+
 /**
- * The square sits at the right end of the row and mirrors how the map draws the thing:
- * detections are drawn as an outline, zones as a filled area. The name is truncated rather than
- * wrapped (wrapping pushes the square out of line with the checkbox), and it has to be its own
- * element because the DSFR checkbox label is a flex row, which drops the whitespace around a
- * bare text node.
+ * The square sits at the right end of the row and is outlined, as the map draws detections. The
+ * name is truncated rather than wrapped (wrapping pushes the square out of line with the
+ * checkbox), and it has to be its own element because the DSFR checkbox label is a flex row,
+ * which drops the whitespace around a bare text node.
  */
-const LabelWithColor: React.FC<{ name: string; color?: string; outlined?: boolean }> = ({ name, color, outlined }) => (
+const LabelWithColor: React.FC<{ name: string; color?: string }> = ({ name, color }) => (
     <span className={classes.label} title={name}>
         <span className={classes['label-name']}>{name}</span>
         {color ? (
             <span
-                className={clsx(classes['color-square'], outlined && classes['color-square-outlined'])}
-                style={outlined ? { borderColor: color } : { backgroundColor: color }}
+                className={classes['color-square']}
+                style={{ borderColor: getObjectTypeSquareColor(color) }}
                 aria-hidden="true"
             />
         ) : null}
@@ -229,7 +231,7 @@ const Component: React.FC<ComponentProps> = ({
 
     return (
         <div className={classes.container}>
-            <div className={`fr-select-group ${classes.preset}`}>
+            <div className={clsx('fr-select-group', classes.preset)}>
                 <label className="fr-label" htmlFor="objects-filter-preset">
                     Filtres rapides
                 </label>
@@ -252,14 +254,14 @@ const Component: React.FC<ComponentProps> = ({
 
             <div className="fr-accordions-group">
                 <Accordion
-                    title="Types d'objets"
+                    title="Catégories"
                     expanded={isExpanded('OBJECT_TYPES')}
                     onToggle={(expanded) => toggleSection('OBJECT_TYPES', expanded)}
                 >
                     <button
                         type="button"
                         className={clsx(
-                            'fr-btn fr-btn--secondary fr-btn--sm fr-icon-checkbox-circle-line fr-btn--icon-left',
+                            'fr-btn fr-btn--tertiary fr-icon-check-line fr-btn--icon-left',
                             classes['select-all'],
                         )}
                         onClick={() => {
@@ -279,8 +281,9 @@ const Component: React.FC<ComponentProps> = ({
                     {objectTypesToDisplay.map(({ uuid, name, color }) => (
                         <Checkbox
                             key={uuid}
+                            className={classes.checkbox}
                             checked={objectsFilter.objectTypesUuids.includes(uuid)}
-                            label={<LabelWithColor outlined name={name} color={color} />}
+                            label={<LabelWithColor name={name} color={color} />}
                             onChange={(checked) => {
                                 const objectTypesUuids = toggleInArray(objectsFilter.objectTypesUuids, uuid, checked);
 
@@ -309,11 +312,13 @@ const Component: React.FC<ComponentProps> = ({
                         plus de 6 ans.
                     </p>
                     <Checkbox
+                        className={classes.checkbox}
                         label="Non prescrit"
                         checked={isPrescriptedChecked(false)}
                         onChange={(checked) => setPrescripted(false, checked)}
                     />
                     <Checkbox
+                        className={classes.checkbox}
                         label="Prescrit"
                         checked={isPrescriptedChecked(true)}
                         onChange={(checked) => setPrescripted(true, checked)}
@@ -328,6 +333,7 @@ const Component: React.FC<ComponentProps> = ({
                     {detectionValidationStatusesSelectable.map((status) => (
                         <Checkbox
                             key={status}
+                            className={classes.checkbox}
                             label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
                             checked={objectsFilter.detectionValidationStatuses.includes(status)}
                             onChange={(checked) => toggleValidationStatus(status, checked)}
@@ -348,6 +354,7 @@ const Component: React.FC<ComponentProps> = ({
                     {detectionControlStatuses.map((status) => (
                         <Checkbox
                             key={status}
+                            className={classes.checkbox}
                             label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
                             checked={objectsFilter.detectionControlStatuses.includes(status)}
                             onChange={(checked) => {
@@ -378,11 +385,12 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('CUSTOM_ZONES')}
                     onToggle={(expanded) => toggleSection('CUSTOM_ZONES', expanded)}
                 >
-                    {mapGeoCustomZoneLayers.map(({ name, color, customZoneUuids }) => (
+                    {mapGeoCustomZoneLayers.map(({ name, customZoneUuids }) => (
                         <Checkbox
                             key={customZoneUuids.join(',')}
+                            className={classes.checkbox}
                             checked={customZoneUuids.some((uuid) => objectsFilter.customZonesUuids.includes(uuid))}
-                            label={<LabelWithColor name={name} color={color} />}
+                            label={<LabelWithColor name={name} />}
                             onChange={(checked) => {
                                 const zoneTrackingName = getZoneLayerTrackingName({ name, customZoneUuids }, settings);
 
@@ -424,12 +432,12 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('SCORE')}
                     onToggle={(expanded) => toggleSection('SCORE', expanded)}
                 >
-                    <p className={classes['section-hint']}>
+                    <p className={clsx(classes['section-hint'], classes['score-hint'])}>
                         Plus le score est élevé plus les détections affichées seront fiables, mais moins exhaustives.
-                        Avec un score à 30, le taux d’erreur de l’IA est d’environ 10%.
                     </p>
                     <Range
                         label="Score minimum"
+                        labelHidden
                         min={0}
                         max={100}
                         step={5}
@@ -437,6 +445,9 @@ const Component: React.FC<ComponentProps> = ({
                         formatValue={formatScore}
                         onChange={(value) => changeScore(value / 100)}
                     />
+                    <p className={clsx('fr-message fr-message--info', classes['score-message'])}>
+                        Avec un score à 30, le taux d’erreur de l’IA est d’environ 10%
+                    </p>
                 </Accordion>
             </div>
         </div>
