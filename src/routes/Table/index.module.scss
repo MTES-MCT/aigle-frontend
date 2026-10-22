@@ -16,13 +16,43 @@
     padding: constants.$content-padding;
 }
 
-// an expanded parcel holds a wide detections table: it scrolls instead of widening the page
-.table-container {
-    overflow-x: auto;
-}
-
 .search {
     padding: 0 1rem 1rem;
+}
+
+.search-notice[class~='fr-alert'] {
+    margin-top: 1rem;
+
+    // the app zeroes the DSFR text spacing and shrinks paragraphs: the alert gets both back
+    p {
+        --text-spacing: 0;
+
+        font-size: 0.875rem;
+        line-height: 1.5rem;
+    }
+}
+
+// the bulk edit switch on the left, the exports on the right
+.toolbar {
+    margin-bottom: 1.5rem;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    [class~='fr-btns-group'] {
+        margin-bottom: -0.75rem;
+    }
+
+    > [class~='fr-toggle'] {
+        flex: 0 0 auto;
+
+        label {
+            white-space: nowrap;
+        }
+    }
 }
 
 // floats over the table, clear of the side panel (`--table-side-panel-open` is set on .page)
@@ -37,6 +67,10 @@
     z-index: 170;
 
     transition: left constants.$map-side-panel-slide-duration ease;
+
+    [class~='fr-btn'] {
+        box-shadow: var(--lifted-shadow);
+    }
 }
 
 @media screen and (max-width: 992px) {

@@ -2,8 +2,7 @@ import React from 'react';
 
 import { parcelEndpoints } from '@/api/endpoints';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
-import ErrorCard from '@/components/ui/ErrorCard';
-import InfoBubble from '@/components/ui/InfoBubble';
+import Tooltip from '@/components/dsfr/Tooltip';
 import Loader from '@/components/ui/Loader';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { ParcelOverview } from '@/models/parcel';
@@ -11,10 +10,9 @@ import { FormValues } from '@/routes/Table/utils';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
 import api from '@/utils/api';
-import { GREEN, RED } from '@/utils/colors';
 import { formatBigInt } from '@/utils/format';
-import { Button, LoadingOverlay } from '@mantine/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import clsx from 'clsx';
 import classes from './index.module.scss';
 
 const calculatePercentage = (count: number, total: number): string => {
@@ -26,7 +24,7 @@ interface ParcelOverviewItem {
     count: number;
     percentage: string;
     label: string;
-    color: string;
+    tone: 'success' | 'error';
     tooltip: string;
 }
 
@@ -62,7 +60,7 @@ const fetchData = async (
                     count: data.controlled,
                     percentage: calculatePercentage(data.controlled, data.total),
                     label: 'Contrôlées',
-                    color: GREEN,
+                    tone: 'success',
                     tooltip:
                         'Statut de contrôle modifié par un agent (contrôlé terrain, courrier préalable envoyé, PV dressé, astreinte administrative, rapport de constatations rédigé, remis en état).',
                 },
@@ -70,7 +68,7 @@ const fetchData = async (
                     count: data.notControlled,
                     percentage: calculatePercentage(data.notControlled, data.total),
                     label: 'Non-contrôlées',
-                    color: RED,
+                    tone: 'error',
                     tooltip: 'Statut de contrôle encore "Non contrôlé", sans action d\'un agent.',
                 },
             ],
@@ -84,14 +82,14 @@ const fetchData = async (
                 count: data.verified,
                 percentage: calculatePercentage(data.verified, data.total),
                 label: 'Vérifiées',
-                color: GREEN,
+                tone: 'success',
                 tooltip: 'Statut de validation modifié par un agent (suspect, légal ou invalidé).',
             },
             {
                 count: data.notVerified,
                 percentage: calculatePercentage(data.notVerified, data.total),
                 label: 'Non-vérifiées',
-                color: RED,
+                tone: 'error',
                 tooltip: 'Statut de validation encore "Non vérifié", sans action d\'un agent.',
             },
         ],
@@ -103,20 +101,20 @@ const DetectionListOverviewItem: React.FC<ParcelOverviewItem> = ({
     count,
     percentage,
     label,
-    color,
+    tone,
     tooltip,
 }: ParcelOverviewItem) => {
     return (
-        <div
-            className={classes['detection-list-overview-item']}
-            style={{
-                backgroundColor: `${color}33`,
-            }}
-        >
-            <div className={classes['detection-list-overview-item-count']}>{percentage}</div>
-            <div className={classes['detection-list-overview-item-label']}>
-                {label} ({formatBigInt(count)}) <InfoBubble>{tooltip}</InfoBubble>
-            </div>
+        <div className={clsx(classes.item, classes[`item-${tone}`])}>
+            <p className={classes['item-percentage']}>{percentage}</p>
+            <p className={classes['item-label']}>
+                {label} ({formatBigInt(count)})
+                <Tooltip label={tooltip}>
+                    <button type="button" className="fr-btn--tooltip fr-btn">
+                        {`Définition : ${label}`}
+                    </button>
+                </Tooltip>
+            </p>
         </div>
     );
 };
@@ -151,31 +149,32 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 
     if (!data) {
         return error ? (
-            <ErrorCard>
-                Le décompte des parcelles n&apos;a pas pu être chargé.
-                <Button display="block" mt="xs" size="compact-sm" variant="light" color="red" onClick={() => refetch()}>
+            <div className="fr-alert fr-alert--error fr-alert--sm fr-mb-3w" role="alert">
+                <p>Le décompte des parcelles n&apos;a pas pu être chargé.</p>
+                <button
+                    type="button"
+                    className="fr-btn fr-btn--sm fr-btn--secondary fr-mt-1w"
+                    onClick={() => refetch()}
+                >
                     Réessayer
-                </Button>
-            </ErrorCard>
+                </button>
+            </div>
         ) : (
             <Loader />
         );
     }
 
     return (
-        <div className={classes['container']}>
-            <LoadingOverlay visible={isFetching}>
-                <Loader />
-            </LoadingOverlay>
-            <div className={classes['detection-list-overview-items-container']}>
+        <div className={clsx(classes.container, isFetching && classes.busy)} aria-busy={isFetching || undefined}>
+            <div className={classes.items}>
                 {data.items.map((item) => (
                     <DetectionListOverviewItem key={item.label} {...item} />
                 ))}
             </div>
-            <div className={classes['detection-list-overview-total']}>
-                <span className={classes['detection-list-overview-total-number']}>{formatBigInt(data.total)}</span>
-                {data.total > 1 ? 'parcelle(s)' : 'parcelle'}
-            </div>
+            <p className={classes.total}>
+                <span className={classes['total-number']}>{formatBigInt(data.total)}</span>
+                {data.total > 1 ? 'parcelles' : 'parcelle'}
+            </p>
         </div>
     );
 };

@@ -1,7 +1,6 @@
 import { detectionEndpoints, parcelEndpoints } from '@/api/endpoints';
-import PillsDataCell from '@/components/DataCells/PillsDataCell';
-import DataTable from '@/components/DataTable';
-import DataTableSortableHeaderColumn, { SortOrder } from '@/components/DataTable/DataTableSortableHeaderColumn';
+import { SortOrder } from '@/components/dsfr/Table';
+import ToggleSwitch from '@/components/dsfr/ToggleSwitch';
 import EditMultipleDetectionsModal from '@/components/EditMultipleDetectionsModal';
 import FilterObjects from '@/components/FilterObjects';
 import GeoCollectivitiesMultiSelects, {
@@ -11,36 +10,31 @@ import Header from '@/components/Header';
 import LayoutBase from '@/components/LayoutBase';
 import { objectsFilterToApiParams } from '@/components/Map/utils/api';
 import SidePanel, { SidePanelSection } from '@/components/SidePanel';
-import InfoCard from '@/components/ui/InfoCard';
 import Loader from '@/components/ui/Loader';
-import OptionalText from '@/components/ui/OptionalText';
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import { ParcelListItem } from '@/models/parcel';
-import DetectionCountCell from '@/routes/Table/DetectionCountCell';
 import DetectionsTable from '@/routes/Table/DetectionsTable';
+import ParcelsTable, { ParcelsOrder, ParcelsSortField } from '@/routes/Table/ParcelsTable';
 import TableDownloadButton from '@/routes/Table/TableDownloadButton';
 import TableHeader from '@/routes/Table/TableHeader';
 import { FormValues } from '@/routes/Table/utils';
 import { useAuth } from '@/store/slices/auth';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
-import { formatParcel } from '@/utils/format';
 import { geoZoneToGeoOption } from '@/utils/geojson';
 import { getPageTitle } from '@/utils/html';
 import { trackEvent } from '@/utils/matomo';
 import { isObjectsFilterDefault } from '@/utils/objects-filter';
 import { TRACKING_CATEGORIES, getFilterTrackingName } from '@/utils/tracking';
-import { ActionIcon, Button, Switch, Table, Tooltip } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
-import { IconChevronDown, IconEdit } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
 
 const getOrderParams = (
-    order?: FieldOrder,
+    order?: ParcelsOrder,
 ): {
     ordering?: string;
 } => {
@@ -66,12 +60,30 @@ const COLLECTIVITY_CHANGE_TRACKING_NAMES: Record<GeoCollectivitiesUserChange, st
 const trackSort = (field: string, sortOrder?: SortOrder) =>
     trackEvent(TRACKING_CATEGORIES.table, 'Tri modifié', `${field} : ${sortOrder ?? 'aucun'}`);
 
-interface FieldOrder {
-    sortOrder?: SortOrder;
-    field: string;
-}
-
 interface DataTableFilter extends ObjectsFilter, FormValues {}
+
+// The DSFR info alert, closable for the visit as the former InfoCard was.
+const SearchNotice: React.FC = () => {
+    const [shown, setShown] = useState(true);
+
+    if (!shown) {
+        return null;
+    }
+
+    return (
+        <div className={`fr-alert fr-alert--info fr-alert--sm ${classes['search-notice']}`}>
+            <p>Vous devez sélectionner au moins une commune ou un EPCI pour afficher les parcelles.</p>
+            <button
+                type="button"
+                className="fr-btn--close fr-btn"
+                title="Masquer le message"
+                onClick={() => setShown(false)}
+            >
+                Masquer le message
+            </button>
+        </div>
+    );
+};
 
 interface ComponentInnerProps {
     allObjectTypes: ObjectType[];
@@ -91,7 +103,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     otherObjectTypesUuids,
 }: ComponentInnerProps) => {
     const [selectedUuids, setSelectedUuids] = React.useState<string[]>([]);
-    const [order, setOrder] = React.useState<FieldOrder | undefined>();
+    const [order, setOrder] = React.useState<ParcelsOrder | undefined>();
     const [selectionShowed, setSelectionShowed] = React.useState(false);
     const [editMultipleDetectionsModalShowed, setEditMultipleDetectionsModalShowed] = React.useState(false);
     // below 992px the panel covers the table, which has to show first
@@ -151,9 +163,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         }
                     />
 
-                    <InfoCard>
-                        Vous devez sélectionner au moins une commune ou un EPCI pour afficher les parcelles.
-                    </InfoCard>
+                    <SearchNotice />
                 </div>
             ),
         },
@@ -193,12 +203,38 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
             />
 
             <div className={classes.content}>
-                <DataTable<ParcelListItem, DataTableFilter>
+                <TableHeader {...form.getValues()} />
+
+                <div className={classes.toolbar}>
+                    {canEditMultiple ? (
+                        <ToggleSwitch
+                            label="Edition multiple"
+                            checked={selectionShowed}
+                            onChange={(checked) => {
+                                setSelectionShowed(checked);
+                                if (checked) {
+                                    trackEvent(TRACKING_CATEGORIES.bulkEdit, 'Mode activé', 'Tableau');
+                                } else {
+                                    setSelectedUuids([]);
+                                }
+                            }}
+                        />
+                    ) : (
+                        <span />
+                    )}
+                    <TableDownloadButton {...form.getValues()} ordering={exportOrdering} />
+                </div>
+
+                <ParcelsTable<DataTableFilter>
                     endpoint={ENDPOINT}
                     filter={filter}
                     queryEnabled={form.getValues().communesUuids.length > 0 || form.getValues().epcisUuids.length > 0}
-                    layout="auto"
-                    tableContainerClassName={classes['table-container']}
+                    initialLimit={50}
+                    order={order}
+                    onOrderChange={(field: ParcelsSortField, sortOrder?: SortOrder) => {
+                        setOrder(sortOrder ? { sortOrder, field } : undefined);
+                        trackSort(field, sortOrder);
+                    }}
                     onRowExpand={(_, rank) =>
                         trackEvent(TRACKING_CATEGORIES.table, 'Parcelle dépliée', undefined, rank)
                     }
@@ -226,89 +262,13 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             setSelectedUuids={setSelectedUuids}
                         />
                     )}
-                    striped={false}
-                    highlightOnHover={false}
-                    beforeTable={
-                        <div>
-                            <TableDownloadButton {...form.getValues()} ordering={exportOrdering} />
-                            <TableHeader {...form.getValues()} />
-                            {canEditMultiple ? (
-                                <Switch
-                                    mt="md"
-                                    label="Edition multiple"
-                                    checked={selectionShowed}
-                                    onChange={(event) => {
-                                        setSelectionShowed(event.currentTarget.checked);
-                                        if (event.currentTarget.checked) {
-                                            trackEvent(TRACKING_CATEGORIES.bulkEdit, 'Mode activé', 'Tableau');
-                                        } else {
-                                            setSelectedUuids([]);
-                                        }
-                                    }}
-                                />
-                            ) : null}
-                        </div>
-                    }
-                    tableHeader={[
-                        <Table.Th key="commune">Commune</Table.Th>,
-                        <Table.Th key="geoCustomZones">Zones à enjeux</Table.Th>,
-                        <DataTableSortableHeaderColumn
-                            key="detectionsCount"
-                            onOrderChange={(sortOrder?: SortOrder) => {
-                                setOrder(sortOrder ? { sortOrder, field: 'detectionsCount' } : undefined);
-                                trackSort('detectionsCount', sortOrder);
-                            }}
-                            sortOrder={order?.field === 'detectionsCount' ? order.sortOrder : undefined}
-                        >
-                            Nombre de détections
-                        </DataTableSortableHeaderColumn>,
-                        <DataTableSortableHeaderColumn
-                            key="parcel"
-                            onOrderChange={(sortOrder?: SortOrder) => {
-                                setOrder(sortOrder ? { sortOrder, field: 'parcel' } : undefined);
-                                trackSort('parcel', sortOrder);
-                            }}
-                            sortOrder={order?.field === 'parcel' ? order.sortOrder : undefined}
-                        >
-                            Parcelle
-                        </DataTableSortableHeaderColumn>,
-                        <Table.Th key="actions" />,
-                    ]}
-                    tableBodyRenderFns={[
-                        (item: ParcelListItem) => <OptionalText text={`${item.commune.name} (${item.commune.code})`} />,
-                        (item: ParcelListItem) => (
-                            <PillsDataCell<string>
-                                direction="column"
-                                items={item.zoneNames}
-                                getLabel={(zone) => zone}
-                            />
-                        ),
-                        (item: ParcelListItem) => <DetectionCountCell parcel={item} />,
-                        (item: ParcelListItem) => (
-                            <OptionalText
-                                text={
-                                    <Tooltip label={item.idParcellaire}>
-                                        <span>{formatParcel(item, false)}</span>
-                                    </Tooltip>
-                                }
-                            />
-                        ),
-                        () => (
-                            <Tooltip label="Afficher les détections associées à cette parcelle">
-                                <ActionIcon variant="subtle">
-                                    <IconChevronDown size={16} />
-                                </ActionIcon>
-                            </Tooltip>
-                        ),
-                    ]}
-                    initialLimit={50}
                 />
 
                 {selectedUuids?.length ? (
                     <div className={classes['edit-selection']}>
-                        <Button
-                            leftSection={<IconEdit />}
-                            radius="xl"
+                        <button
+                            type="button"
+                            className="fr-btn fr-icon-edit-line fr-btn--icon-left"
                             onClick={() => {
                                 if (editMultipleDetectionsModalShowed) {
                                     return;
@@ -324,7 +284,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                             }}
                         >
                             Editer la sélection ({selectedUuids?.length})
-                        </Button>
+                        </button>
                     </div>
                 ) : null}
 

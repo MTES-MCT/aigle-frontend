@@ -457,6 +457,16 @@ $map-control-button-size: 48px;
     }
 }
 
+// both right corners slide clear of the detail panel (`--map-detail-panel-open` is set by the Map component)
+// on a narrow map there is no room beside the panel: the controls stay under it rather than slide off screen
+@media (min-width: 48em) {
+    .mapboxgl-ctrl-top-right,
+    .mapboxgl-ctrl-bottom-right {
+        transform: translateX(calc(var(--map-detail-panel-open, 0) * -#{constants.$detection-detail-panel-width}));
+        transition: transform constants.$map-side-panel-slide-duration ease;
+    }
+}
+
 // the drawing tools: one card per tool, stacked
 .mapboxgl-ctrl-top-right .mapboxgl-ctrl-group {
     display: flex;
@@ -559,10 +569,22 @@ $map-control-button-size: 48px;
         margin: 0;
     }
 
+    // the scale line of the IGN DSFR viewer (cartes.gouv.fr): DSFR text and rule on a light veil
     .mapboxgl-ctrl-scale {
         order: 3;
 
         margin-bottom: 0.25rem;
+        padding: 0 0.25rem;
+
+        font-family: inherit;
+        font-size: 0.75rem;
+        line-height: 1.25rem;
+        color: var(--text-default-grey);
+
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(2px);
+        border: 2px solid var(--text-default-grey);
+        border-top: 0;
     }
 
     // the wrapper of the hidden mapbox logo: out of the row, or it would open a gap before the year list

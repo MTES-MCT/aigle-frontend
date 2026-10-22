@@ -11,10 +11,9 @@ import { triggerDownload } from '@/utils/download';
 import { formatBigInt } from '@/utils/format';
 import { trackEvent } from '@/utils/matomo';
 import { TRACKING_CATEGORIES, getErrorTrackingName, getFilterTrackingName } from '@/utils/tracking';
-import { Button } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconDownload } from '@tabler/icons-react';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
+import clsx from 'clsx';
 import { format } from 'date-fns';
 
 // Set by the API on every export (aigle-api core/views/detection/detection_list.py), which caps the rows.
@@ -79,10 +78,13 @@ const download = async (
 const getElapsedSeconds = (context?: ExportContext) =>
     context ? Math.round((Date.now() - context.startedAt) / 1000) : undefined;
 
+const DOWNLOAD_FORMATS: DownloadOutputFormat[] = ['csv', 'xlsx'];
+
 interface ComponentProps extends FormValues {
     ordering?: string;
+    className?: string;
 }
-const Component: React.FC<ComponentProps> = ({ ordering, ...collectivities }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ ordering, className, ...collectivities }: ComponentProps) => {
     const { objectsFilter } = useObjectsFilter();
     const { otherObjectTypesUuids } = useStatistics();
 
@@ -127,31 +129,29 @@ const Component: React.FC<ComponentProps> = ({ ordering, ...collectivities }: Co
         },
     });
 
+    const pendingFormat = mutation.isPending ? mutation.variables : undefined;
+
     return (
-        <Button.Group>
-            <Button
-                fullWidth
-                loading={mutation.isPending}
-                rightSection={<IconDownload size={14} />}
-                mb="md"
-                variant="outline"
-                disabled={!objectsFilter || mutation.isPending}
-                onClick={() => mutation.mutate('csv')}
-            >
-                Télécharger csv
-            </Button>
-            <Button
-                fullWidth
-                loading={mutation.isPending}
-                rightSection={<IconDownload size={14} />}
-                mb="md"
-                variant="outline"
-                disabled={!objectsFilter || mutation.isPending}
-                onClick={() => mutation.mutate('xlsx')}
-            >
-                Télécharger xlsx
-            </Button>
-        </Button.Group>
+        <ul
+            className={clsx('fr-btns-group fr-btns-group--inline-sm fr-btns-group--icon-left', className)}
+            aria-live="polite"
+        >
+            {DOWNLOAD_FORMATS.map((outputFormat) => (
+                <li key={outputFormat}>
+                    <button
+                        type="button"
+                        className="fr-btn fr-btn--secondary fr-btn--sm fr-icon-download-line"
+                        disabled={!objectsFilter || mutation.isPending}
+                        aria-busy={pendingFormat === outputFormat || undefined}
+                        onClick={() => mutation.mutate(outputFormat)}
+                    >
+                        {pendingFormat === outputFormat
+                            ? `Génération du ${outputFormat}…`
+                            : `Télécharger ${outputFormat}`}
+                    </button>
+                </li>
+            ))}
+        </ul>
     );
 };
 

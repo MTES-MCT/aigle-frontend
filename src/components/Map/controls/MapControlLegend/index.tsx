@@ -4,7 +4,7 @@ import MapControlCustom from '@/components/Map/controls/MapControlCustom';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
-import { getCustomZoneOpacities, withAlpha } from '@/utils/colors';
+import { getCustomZoneOpacities, getObjectTypeSquareColor, withAlpha } from '@/utils/colors';
 import { DEFAULT_CUSTOM_ZONE_LAYER_OPACITY, OTHER_OBJECT_TYPE, PARCEL_COLOR } from '@/utils/constants';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -19,7 +19,7 @@ const ObjectTypeLegend: React.FC<ObjectTypeLegendProps> = ({ objectType }) => {
             <div
                 className={clsx(classes['legend-item-square'], classes['legend-item-bordered'])}
                 style={{
-                    borderColor: objectType.color,
+                    borderColor: getObjectTypeSquareColor(objectType.color),
                 }}
             />
             {objectType.name}

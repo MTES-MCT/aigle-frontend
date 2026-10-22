@@ -1,10 +1,21 @@
-.object-type-cell {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
+// nested in a parcel row: no outer margins of its own
+.table[class~='fr-table'] {
+    margin: 0;
+}
 
-    .object-type-cell-badge {
-        margin-right: var(--mantine-spacing-xs);
-    }
+.object-type {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+// short values that read badly broken over two lines: the nested table scrolls instead (nested
+// to outrank the cell wrapping of fr-table--multiline)
+.table[class~='fr-table'] .nowrap {
+    white-space: nowrap;
+}
+
+// a status never breaks inside itself
+.table [class~='fr-badge'] {
+    white-space: nowrap;
 }

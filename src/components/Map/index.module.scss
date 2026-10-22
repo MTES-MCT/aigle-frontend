@@ -1,29 +1,21 @@
 @use '@/constants.scss' as constants;
 
-$panel-position-from-borders: 10px;
-
 .container {
     height: 100%;
 
+    // flat against the right edge of the map, under the header, as the side panel is on the left
     .map-detection-detail-panel-container {
         position: absolute;
-
-        box-shadow: constants.$shadow;
-
-        top: $panel-position-from-borders;
-        right: $panel-position-from-borders;
-        bottom: $panel-position-from-borders;
+        top: 0;
+        right: 0;
+        bottom: 0;
 
         width: constants.$detection-detail-panel-width;
-        max-width: calc(100% - 2 * $panel-position-from-borders);
-        border-radius: constants.$border-radius-medium;
+        max-width: 100%;
 
         z-index: 100;
-        background: #ffffff;
-
-        @media screen and (max-width: 992px) {
-            width: calc(100% - 2 * $panel-position-from-borders);
-        }
+        background-color: var(--background-default-grey);
+        box-shadow: -4px 0 8px 0 rgba(0, 0, 18, 0.08);
     }
 }
 
@@ -37,7 +29,7 @@ $panel-position-from-borders: 10px;
 
     display: flex;
     flex-direction: row;
-    gap: var(--mantine-spacing-xs);
+    gap: 0.5rem;
 
     .detections-loader-container,
     .object-from-coordinates-loader-container {
@@ -48,14 +40,103 @@ $panel-position-from-borders: 10px;
 
         border-radius: 4px;
 
-        height: calc(16px + 1.375rem * var(--mantine-scale)); // var(--loader-size-sm)
-
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: 0.5rem;
 
-        .loader-text {
-            margin-left: var(--mantine-spacing-xs);
-        }
+        font-size: 0.875rem;
+        line-height: 1.5rem;
     }
+}
+
+@keyframes loader-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// DSFR has no spinner: its refresh icon, turning
+.loader-icon {
+    display: inline-flex;
+
+    color: var(--text-action-high-blue-france);
+
+    animation: loader-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loader-icon {
+        animation-duration: 3s;
+    }
+}
+
+// blocks the whole page while the signalement sheets are generated: the DSFR modal backdrop
+.multiple-download-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000000;
+
+    padding: 1rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: rgba(22, 22, 22, 0.64);
+}
+
+.multiple-download-dialog {
+    width: 100%;
+    max-width: 30rem;
+
+    padding: 2rem;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    background-color: var(--background-lifted-grey);
+    filter: drop-shadow(var(--lifted-shadow));
+
+    h2 {
+        margin: 0 0 0.5rem;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+.multiple-download-progress {
+    width: 100%;
+    height: 0.5rem;
+    margin-top: 1rem;
+
+    appearance: none;
+    border: 0;
+
+    background-color: var(--background-contrast-grey);
+    color: var(--background-action-high-blue-france);
+
+    &::-webkit-progress-bar {
+        background-color: var(--background-contrast-grey);
+    }
+
+    &::-webkit-progress-value {
+        background-color: var(--background-action-high-blue-france);
+    }
+
+    &::-moz-progress-bar {
+        background-color: var(--background-action-high-blue-france);
+    }
+}
+
+.container .multiple-download-cancel,
+.multiple-download-dialog .multiple-download-cancel {
+    width: 100%;
+    max-width: none;
+    margin-top: 1rem;
+
+    justify-content: center;
 }

@@ -14,6 +14,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
+import { getObjectTypeSquareColor } from '@/utils/colors';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
@@ -55,9 +56,6 @@ const getPrescriptedTrackingName = (prescripted: ObjectsFilter['prescripted']) =
 
     return prescripted ? 'PRESCRIBED' : 'NOT_PRESCRIBED';
 };
-
-// white (« Autres ») would vanish on the panel: the mockup draws it in light grey
-const getObjectTypeSquareColor = (color: string) => (color.toUpperCase() === '#FFFFFF' ? '#E3E3E3' : color);
 
 /**
  * The square sits at the right end of the row and is outlined, as the map draws detections. The
@@ -270,9 +268,10 @@ const Component: React.FC<ComponentProps> = ({
                                 `Type d’objet : ${objectsFilter.objectTypesUuids.length ? '-' : '+'}TOUS`,
                             );
                             updateFromUser({
+                                // the rows shown, « Autres » included: its uuid stands for the grouped types
                                 objectTypesUuids: objectsFilter.objectTypesUuids.length
                                     ? []
-                                    : objectTypes.map(({ uuid }) => uuid),
+                                    : objectTypesToDisplay.map(({ uuid }) => uuid),
                             });
                         }}
                     >

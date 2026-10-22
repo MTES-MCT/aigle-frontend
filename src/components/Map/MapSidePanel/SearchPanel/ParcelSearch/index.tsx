@@ -70,8 +70,7 @@ const searchCommune = async (q: string, signal: AbortSignal): Promise<Autocomple
     }));
 };
 
-// Section and parcel suggestions narrow each other: picking a section limits the parcel
-// numbers offered, and the other way round.
+// Sections are suggested within the commune, parcel numbers within the section.
 const searchParcelPart = async (
     q: string,
     searchType: ParcelSearchType,
@@ -87,10 +86,6 @@ const searchParcelPart = async (
     }
 
     if (searchType === 'SECTION') {
-        if (form.numParcel.option) {
-            params.numParcel = form.numParcel.option.value;
-        }
-
         return api<string[]>(parcelEndpoints.suggestSection, { signal, params });
     }
 
@@ -166,14 +161,14 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
     });
 
     const { data: sections, isFetching: sectionsLoading } = useQuery<string[]>({
-        queryKey: ['parcelSections', debouncedSection, form.commune.option?.value, form.numParcel.option?.value],
+        queryKey: ['parcelSections', debouncedSection, form.commune.option?.value],
         enabled: !!form.commune.option && !!debouncedSection,
         queryFn: ({ signal }) => searchParcelPart(debouncedSection, 'SECTION', form, signal),
     });
 
     const { data: numParcels, isFetching: numParcelsLoading } = useQuery<string[]>({
         queryKey: ['parcelNumParcels', debouncedNumParcel, form.commune.option?.value, form.section.option?.value],
-        enabled: !!form.commune.option && !!debouncedNumParcel,
+        enabled: !!form.section.option && !!debouncedNumParcel,
         queryFn: ({ signal }) => searchParcelPart(debouncedNumParcel, 'NUM_PARCEL', form, signal),
     });
 
@@ -195,12 +190,18 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
     const setField = (field: Field, state: FieldState) => {
         lookupIdRef.current += 1;
         setLookupFailure(null);
-        setForm((prev) =>
-            // section and parcel are picked within a commune: they go when it changes
-            field === 'commune' && state.option?.value !== prev.commune.option?.value
-                ? { commune: state, section: EMPTY_FIELD, numParcel: EMPTY_FIELD }
-                : { ...prev, [field]: state },
-        );
+        setForm((prev) => {
+            // each field is picked within the one above it: changing it empties the fields below
+            if (field === 'commune' && state.option?.value !== prev.commune.option?.value) {
+                return { commune: state, section: EMPTY_FIELD, numParcel: EMPTY_FIELD };
+            }
+
+            if (field === 'section' && state.option?.value !== prev.section.option?.value) {
+                return { ...prev, section: state, numParcel: EMPTY_FIELD };
+            }
+
+            return { ...prev, [field]: state };
+        });
     };
 
     const loadParcel = async (): Promise<ParcelLookupOutcome> => {
@@ -288,7 +289,7 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
                 value={form.numParcel.search}
                 options={toOptions(numParcels)}
                 loading={isSearching('numParcel', debouncedNumParcel, numParcelsLoading)}
-                disabled={!form.commune.option}
+                disabled={!form.section.option}
                 emptyText="Introuvable"
                 onChange={(search) => setField('numParcel', { search, option: null })}
                 onSelect={(option) => setField('numParcel', { search: option.label, option })}

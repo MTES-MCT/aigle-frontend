@@ -1,0 +1,47 @@
+.placeholder {
+    margin: 1.5rem 0 0;
+
+    color: var(--text-mention-grey);
+}
+
+.loader {
+    margin: 1.5rem 0;
+}
+
+.table[class~='fr-table'] {
+    margin-top: 0;
+}
+
+.row {
+    cursor: pointer;
+}
+
+// the whole row unfolds: hovering any cell says so
+.table .row:hover > td {
+    background-color: var(--background-default-grey-hover);
+}
+
+.parcel-id {
+    display: block;
+
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: var(--text-mention-grey);
+}
+
+// the detections of a parcel sit on the alt ground, under their parcel
+.table .details-row > td {
+    padding: 0.5rem 1rem 1rem;
+
+    background-color: var(--background-alt-grey);
+}
+
+// sized by the parcel columns, never by the detections: their table scrolls inside instead
+.details-content {
+    width: 0;
+    min-width: 100%;
+}
+
+.limit-select[class~='fr-select-group'] {
+    margin-bottom: 0;
+}

@@ -36,13 +36,12 @@ import { formatDateOnly } from '@/utils/format';
 import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
 import { trackEvent } from '@/utils/matomo';
 import { getErrorTrackingName, getFilterTrackingName, TRACKING_CATEGORIES } from '@/utils/tracking';
-import { Button, LoadingOverlay, Loader as MantineLoader, Progress } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import { IconCancel } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { bbox, bboxPolygon, booleanIntersects, centroid, getCoord } from '@turf/turf';
+import clsx from 'clsx';
 import { FeatureCollection, Polygon } from 'geojson';
 import { isEqual } from 'lodash';
 import mapboxgl, { DataDrivenPropertyValueSpecification } from 'mapbox-gl';
@@ -280,34 +279,46 @@ const MultipleDownloadBlocker: React.FC<{ state: MultipleDownloadState; onCancel
     const assembling = total !== undefined && state.nbrProcessed >= total;
 
     return (
-        <>
-            <h2>Génération des rapports...</h2>
-            <p>
-                {fetching
-                    ? `Récupération des ${state.nbrDetections} détections sélectionnées...`
-                    : assembling
-                      ? 'Assemblage du document PDF...'
-                      : `Fiche ${state.nbrProcessed + 1} / ${total}`}
-            </p>
-            <p>Cette opération peut prendre quelques minutes</p>
-            <p>Veuillez ne pas fermer cette fenêtre</p>
-            <Progress
-                aria-label="Progression de la génération des rapports"
-                mt="md"
-                value={fetching || assembling ? 100 : 100 * (state.nbrProcessed / (total || 1))}
-                animated={fetching || assembling}
-            />
-            <Button
-                mt="md"
-                fullWidth
-                variant="outline"
-                color="red"
-                leftSection={<IconCancel size={20} />}
-                onClick={onCancel}
+        <div className={classes['multiple-download-backdrop']}>
+            <div
+                className={classes['multiple-download-dialog']}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="multiple-download-title"
             >
-                Annuler
-            </Button>
-        </>
+                <h2 id="multiple-download-title" className="fr-h5">
+                    Génération des rapports...
+                </h2>
+                <p aria-live="polite">
+                    {fetching
+                        ? `Récupération des ${state.nbrDetections} détections sélectionnées...`
+                        : assembling
+                          ? 'Assemblage du document PDF...'
+                          : `Fiche ${state.nbrProcessed + 1} / ${total}`}
+                </p>
+                <p>Cette opération peut prendre quelques minutes</p>
+                <p>Veuillez ne pas fermer cette fenêtre</p>
+                {/* without a value the bar is indeterminate, as while fetching or assembling */}
+                <progress
+                    className={classes['multiple-download-progress']}
+                    aria-label="Progression de la génération des rapports"
+                    max={total || 1}
+                    {...(fetching || assembling ? {} : { value: state.nbrProcessed })}
+                />
+                <button
+                    type="button"
+                    className={clsx(
+                        'fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-close-circle-line',
+                        classes['multiple-download-cancel'],
+                    )}
+                    // the page is blocked until the run ends: cancelling is the only way out
+                    autoFocus
+                    onClick={onCancel}
+                >
+                    Annuler
+                </button>
+            </div>
+        </div>
     );
 };
 
@@ -1450,10 +1461,15 @@ const Component: React.FC<ComponentProps> = ({
     };
 
     return (
-        // the bottom-left legend and year slider read this to clear the side panel
+        // the map controls read these to clear the side panel and the detail panel
         <div
             className={classes.container}
-            style={{ '--map-side-panel-open': sidePanelSection ? 1 : 0 } as React.CSSProperties}
+            style={
+                {
+                    '--map-side-panel-open': sidePanelSection ? 1 : 0,
+                    '--map-detail-panel-open': detectionDetailsShowed ? 1 : 0,
+                } as React.CSSProperties
+            }
         >
             <Map
                 reuseMaps={true}
@@ -1538,14 +1554,19 @@ const Component: React.FC<ComponentProps> = ({
                             <div className={classes['loaders-container']}>
                                 {isDetectionsFetching ? (
                                     <div className={classes['detections-loader-container']}>
-                                        <MantineLoader size="sm" />
+                                        <span
+                                            className={clsx('fr-icon-refresh-line fr-icon--sm', classes['loader-icon'])}
+                                            aria-hidden="true"
+                                        />
                                         <div className={classes['loader-text']}>Chargement des détections</div>
                                     </div>
                                 ) : null}
                                 {objectFromCoordinates.fetchStatus === 'LOADING' ? (
                                     <div className={classes['object-from-coordinates-loader-container']}>
-                                        <MantineLoader size="sm" />
-
+                                        <span
+                                            className={clsx('fr-icon-refresh-line fr-icon--sm', classes['loader-icon'])}
+                                            aria-hidden="true"
+                                        />
                                         <div className={classes['loader-text']}>Recherche d&apos;une détection</div>
                                     </div>
                                 ) : null}
@@ -1857,15 +1878,7 @@ const Component: React.FC<ComponentProps> = ({
                             }
                         />
                     ) : null}
-                    <LoadingOverlay
-                        zIndex={10000000}
-                        visible={true}
-                        loaderProps={{
-                            children: (
-                                <MultipleDownloadBlocker state={multipleDownload} onCancel={cancelMultipleDownload} />
-                            ),
-                        }}
-                    />
+                    <MultipleDownloadBlocker state={multipleDownload} onCancel={cancelMultipleDownload} />
                 </>
             ) : null}
         </div>

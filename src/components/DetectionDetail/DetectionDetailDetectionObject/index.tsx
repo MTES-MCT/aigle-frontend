@@ -1,17 +1,16 @@
 import { detectionObjectEndpoints } from '@/api/endpoints';
 import { useDetectionTracking } from '@/components/DetectionDetail/tracking';
-import SelectItem from '@/components/ui/SelectItem';
+import Select from '@/components/dsfr/Select';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { ObjectType } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
 import api, { ApiError } from '@/utils/api';
 import { TRACKING_CATEGORIES, getErrorTrackingName } from '@/utils/tracking';
-import { Button, Loader as MantineLoader, Select, Textarea } from '@mantine/core';
 import { UseFormReturnType, useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { IconMessage } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
-import React, { useMemo, useRef, useState } from 'react';
+import clsx from 'clsx';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
 
 interface FormValues {
@@ -154,43 +153,72 @@ const Component: React.FC<ComponentProps> = ({ detectionObject }) => {
         mutation.mutate(values);
     };
 
+    const commentId = `detection-comment-${useId()}`;
+    const objectTypeColor = objectTypesMap[form.getValues().objectTypeUuid]?.color;
+
     return (
         <form className={classes.container} onSubmit={form.onSubmit(handleSubmit)}>
             {objectTypes ? (
                 <Select
-                    allowDeselect={false}
-                    label="Type d'objet"
-                    renderOption={(item) => <SelectItem item={item} color={objectTypesMap[item.option.value].color} />}
-                    data={objectTypes.map((type) => ({
+                    label={
+                        <span className={classes['object-type-label']}>
+                            Type d&apos;objet
+                            {objectTypeColor ? (
+                                <span
+                                    className={classes['object-type-swatch']}
+                                    // white (« Autres ») would vanish on the panel, as in the filters
+                                    style={{
+                                        borderColor:
+                                            objectTypeColor.toUpperCase() === '#FFFFFF' ? '#E3E3E3' : objectTypeColor,
+                                    }}
+                                    aria-hidden="true"
+                                />
+                            ) : null}
+                        </span>
+                    }
+                    options={objectTypes.map((type) => ({
                         value: type.uuid,
                         label: type.name,
                     }))}
-                    key={form.key('objectTypeUuid')}
+                    value={form.getValues().objectTypeUuid}
+                    error={form.errors.objectTypeUuid}
                     disabled={mutation.status === 'pending' || !detectionObject.userGroupRights.includes('WRITE')}
-                    rightSection={mutation.status === 'pending' ? <MantineLoader size="xs" /> : null}
-                    {...form.getInputProps('objectTypeUuid')}
+                    onChange={(objectTypeUuid) => form.setFieldValue('objectTypeUuid', objectTypeUuid)}
                 />
             ) : undefined}
 
             {commentInputShowed ? (
-                <Textarea
-                    label="Commentaire"
-                    placeholder="Mon commentaire"
-                    mt="md"
-                    autoFocus
-                    {...form.getInputProps('comment')}
-                    key={form.key('comment')}
-                />
+                <div className={clsx('fr-input-group', form.errors.comment && 'fr-input-group--error')}>
+                    <label className="fr-label" htmlFor={commentId}>
+                        Commentaire
+                    </label>
+                    <textarea
+                        className="fr-input"
+                        id={commentId}
+                        rows={3}
+                        placeholder="Mon commentaire"
+                        autoFocus
+                        value={form.getValues().comment}
+                        aria-describedby={form.errors.comment ? `${commentId}-messages` : undefined}
+                        onChange={(event) => form.setFieldValue('comment', event.currentTarget.value)}
+                    />
+                    <div className="fr-messages-group" id={`${commentId}-messages`} aria-live="polite">
+                        {form.errors.comment ? (
+                            <p className="fr-message fr-message--error">{form.errors.comment}</p>
+                        ) : null}
+                    </div>
+                </div>
             ) : (
-                <Button
-                    variant="subtle"
-                    mt="md"
-                    size="compact-sm"
+                <button
+                    type="button"
+                    className={clsx(
+                        'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-left fr-icon-chat-3-line',
+                        classes['comment-button'],
+                    )}
                     onClick={() => setCommentInputShowed(true)}
-                    leftSection={<IconMessage size={16} />}
                 >
                     Ajouter un commentaire
-                </Button>
+                </button>
             )}
         </form>
     );

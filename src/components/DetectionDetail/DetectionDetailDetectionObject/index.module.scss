@@ -1,3 +1,33 @@
 .container {
-    padding-bottom: var(--mantine-spacing-xs);
+    padding: 1.5rem 1rem;
+
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    // the gap spaces the fields: DSFR margins (written with :not(:last-child)) are outranked here
+    [class~='fr-select-group'],
+    [class~='fr-select-group']:not(:last-child),
+    [class~='fr-input-group'],
+    [class~='fr-input-group']:not(:last-child) {
+        margin: 0;
+    }
+}
+
+.object-type-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+// outlined like the detections on the map and the squares of the filters
+.object-type-swatch {
+    width: 0.75rem;
+    height: 0.75rem;
+
+    border: 2px solid;
+}
+
+.container .comment-button {
+    align-self: flex-start;
 }

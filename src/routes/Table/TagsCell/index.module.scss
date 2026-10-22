@@ -1,0 +1,22 @@
+.tags {
+    --ul-type: none;
+
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+
+    list-style: none;
+
+    > li {
+        padding: 0;
+    }
+
+    // a tag never breaks inside itself: the table scrolls in its DSFR container instead
+    [class~='fr-tag'] {
+        white-space: nowrap;
+    }
+}

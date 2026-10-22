@@ -37,3 +37,6 @@ export const getCustomZoneOpacities = (opacity: number) => ({
     fill: opacity,
     line: Math.min(opacity * 2, 1),
 });
+
+// white (« Autres ») would vanish on a white panel: the mockup draws it in light grey
+export const getObjectTypeSquareColor = (color: string) => (color.toUpperCase() === '#FFFFFF' ? '#E3E3E3' : color);

@@ -146,6 +146,38 @@ export const DETECTION_VALIDATION_STATUSES_COLORS_MAP: {
     INVALIDATED: '#495057',
 } as const;
 
+// DSFR badge colours of the statuses, same hues as the hex maps above (which the charts keep)
+export const DETECTION_VALIDATION_STATUSES_BADGE_CLASSES: {
+    [status in DetectionValidationStatus]: string;
+} = {
+    DETECTED_NOT_VERIFIED: 'fr-badge--info',
+    SUSPECT: 'fr-badge--yellow-tournesol',
+    ILLEGAL: 'fr-badge--error',
+    LEGITIMATE: 'fr-badge--success',
+    INVALIDATED: '',
+} as const;
+
+export const DETECTION_CONTROL_STATUSES_BADGE_CLASSES: {
+    [status in DetectionControlStatus]: string;
+} = {
+    NOT_CONTROLLED: 'fr-badge--info',
+    TO_CONTROL: 'fr-badge--green-archipel',
+    PRIOR_LETTER_SENT: 'fr-badge--yellow-tournesol',
+    CONTROLLED_FIELD: 'fr-badge--yellow-moutarde',
+    OFFICIAL_REPORT_DRAWN_UP: 'fr-badge--orange-terre-battue',
+    ADMINISTRATIVE_CONSTRAINT: 'fr-badge--pink-tuile',
+    OBSERVARTION_REPORT_REDACTED: 'fr-badge--error',
+    JUGEMENT: 'fr-badge--purple-glycine',
+    REHABILITATED: 'fr-badge--success',
+} as const;
+
+export const DETECTION_PRESCRIPTION_STATUSES_BADGE_CLASSES: {
+    [status in DetectionPrescriptionStatus]: string;
+} = {
+    PRESCRIBED: '',
+    NOT_PRESCRIBED: 'fr-badge--blue-ecume',
+} as const;
+
 export const USER_GROUP_TYPES_NAMES_MAP: {
     [type in UserGroupType]: string;
 } = {

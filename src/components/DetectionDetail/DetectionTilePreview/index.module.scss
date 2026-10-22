@@ -9,12 +9,31 @@
     .detection-tile-preview-container {
         position: relative;
 
+        border-radius: 4px;
+
+        // shown while the preview is hovered or one of its buttons has the focus
         .detection-tile-preview-controls {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 0.5rem;
 
-            gap: var(--mantine-spacing-xs);
+            backdrop-filter: blur(4px);
+
+            opacity: 0;
+            pointer-events: none;
+
+            transition: opacity 0.15s ease-out;
+        }
+
+        &:hover .detection-tile-preview-controls,
+        .detection-tile-preview-controls:focus-within {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         // sits above the map: the preview keeps an empty background rather than a
@@ -32,8 +51,9 @@
 
             padding: 0 4px;
 
-            color: var(--mantine-color-gray-6);
-            font-size: var(--mantine-font-size-xs);
+            color: var(--text-mention-grey);
+            font-size: 0.75rem;
+            line-height: 1.25rem;
             font-style: italic;
             text-align: center;
 
@@ -50,8 +70,11 @@
     }
 
     .detection-tile-preview-date {
-        color: var(--mantine-color-dark-filled);
-        font-style: italic;
+        margin: 0.25rem 0 0;
+
+        font-size: 0.875rem;
+        line-height: 1.5rem;
+        color: var(--text-mention-grey);
         text-align: center;
     }
 }

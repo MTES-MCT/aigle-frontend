@@ -1,0 +1,35 @@
+.table {
+    transition: opacity 0.2s ease;
+
+    // without the DSFR script the selected-row outline has no height: a tinted row stands in for it
+    [class~='fr-table__content'] tbody tr[aria-selected]::after,
+    [class~='fr-table__content'] tbody tr[aria-selected] + tr::after {
+        content: none;
+    }
+
+    [class~='fr-table__content'] tbody tr[aria-selected='true'] > td {
+        background-color: var(--background-alt-blue-france);
+    }
+}
+
+.busy {
+    opacity: 0.6;
+}
+
+// DSFR puts the detail after the header actions: a lone action button reads better at the end
+.table .header {
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    > [class~='fr-btn'] {
+        order: 2;
+    }
+
+    > [class~='fr-table__detail'] {
+        margin-bottom: 0;
+    }
+}
+
+.table .footer {
+    align-items: center;
+}
