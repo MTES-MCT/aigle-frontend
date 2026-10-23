@@ -170,6 +170,25 @@
     backdrop-filter: none;
 }
 
+// on the white page the veil of the map buttons vanishes: the DSFR grey rule outlines them instead,
+// on the three sides off the screen edge
+.container-column .rail-button {
+    background-color: var(--background-default-grey);
+    box-shadow:
+        inset 0 1px 0 0 var(--border-default-grey),
+        inset -1px 0 0 0 var(--border-default-grey),
+        inset 0 -1px 0 0 var(--border-default-grey);
+    backdrop-filter: none;
+
+    &:hover:not(:disabled) {
+        background-color: var(--background-default-grey-hover);
+    }
+
+    &:active:not(:disabled) {
+        background-color: var(--background-default-grey-active);
+    }
+}
+
 .rail-button-indicator {
     position: absolute;
     top: 6px;

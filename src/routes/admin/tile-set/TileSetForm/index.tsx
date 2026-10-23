@@ -380,6 +380,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                     <h3>Zones géographiques</h3>
                     <GeoCollectivitiesMultiSelects
                         form={form}
+                        codesPasteEnabled
                         initialGeoSelectedValues={initialGeoSelectedValues}
                         onChange={(geoSelectedValues: GeoValues) => {
                             const collectivitiesNames = [
@@ -493,7 +494,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
                         checked={form.values.shownInLayersPanel}
                         mt="md"
                         label="Afficher dans le panneau « Couches »"
-                        description="Décoché, ce fond de carte n'est pas proposé dans le panneau « Couches » de la carte : son affichage suit alors son statut."
+                        description="Décoché, ce fond de carte n'apparaît pas dans le panneau « Couches » et les agents ne peuvent pas le masquer : il reste affiché en permanence si son statut est « visible », jamais s'il est « caché par défaut »."
                         key={form.key('shownInLayersPanel')}
                         {...form.getInputProps('shownInLayersPanel')}
                     />

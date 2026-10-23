@@ -228,6 +228,7 @@ const Form: React.FC<FormProps> = ({
 
             <GeoCollectivitiesMultiSelects
                 form={form}
+                codesPasteEnabled
                 initialGeoSelectedValues={initialGeoSelectedValues}
                 displayedCollectivityTypes={COLLECTIVITY_TYPES_DISPLAYED}
                 disabledCollectivityTypes={disabledCollectivityTypes}

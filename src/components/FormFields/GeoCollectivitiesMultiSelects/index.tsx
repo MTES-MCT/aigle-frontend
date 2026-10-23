@@ -83,6 +83,8 @@ interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     displayedCollectivityTypes?: Set<CollectivityType>;
     // Per collectivity type: when set, the field is disabled and the string is shown on hover.
     disabledCollectivityTypes?: Partial<Record<CollectivityType, string>>;
+    // the « Coller des codes » shortcut, for the admin forms only
+    codesPasteEnabled?: boolean;
 }
 
 const Component = <T extends GeoCollectivitiesFormValues>({
@@ -93,10 +95,11 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     onUserChange,
     displayedCollectivityTypes = new Set(['region', 'department', 'epci', 'commune']),
     disabledCollectivityTypes = {},
+    codesPasteEnabled = false,
 }: ComponentProps<T>) => {
     const { userMe } = useAuth();
     // pasting raw INSEE/SIREN codes is a bulk-admin shortcut, not something regular users need
-    const canPasteCodes = !!userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole);
+    const canPasteCodes = codesPasteEnabled && !!userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole);
     const [geoInputValues, setGeoInputValues] = useState<{
         [key in CollectivityType]: string;
     }>({

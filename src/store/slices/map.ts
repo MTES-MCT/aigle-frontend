@@ -7,7 +7,9 @@ import { getCommonMapSettingsData, getInitialMapLayers } from '@/store/utils';
 import { formatDateOnly } from '@/utils/format';
 import {
     getCustomZoneLayersMoved,
+    getStoredAnnotationGridUnder,
     getTileSetLayersMoved,
+    storeAnnotationGridUnder,
     storeCustomZoneLayersOrder,
     storeTileSetLayersOrder,
 } from '@/utils/layers-order';
@@ -25,6 +27,8 @@ interface MapState {
     settings?: MapSettings;
     userLastPosition?: GeoJSON.Position | null;
     annotationLayerVisible?: boolean;
+    // the indicative tile set drawn right above the annotation grid, null for the grid on top of them
+    annotationGridUnder: string | null;
     otherObjectTypesUuids?: Set<string>; // contains objectTypes with status OTHER_CATEGORY
     initialDetectionObjectUuid?: string;
     isDetailFetching?: boolean; // we want to prioritize the detail fetching over the detections fetching
@@ -41,6 +45,7 @@ interface MapState {
     moveTileSetLayer: (uuid: string, targetUuid: string) => void;
     moveCustomZoneLayer: (uuids: string[], targetUuids: string[]) => void;
     setAnnotationLayerVisibility: (visible: boolean) => void;
+    setAnnotationGridUnder: (tileSetUuid: string | null) => void;
     getBackgroundTileSetYearDisplayed: () => string | undefined;
     getTileSets: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => TileSet[];
     getTileSetsUuids: (tileSetTypes: TileSetType[], tileSetStatuses: TileSetStatus[], displayed?: boolean) => string[];
@@ -72,6 +77,7 @@ const updateCustomZoneLayer = (
 };
 
 const useMap = create<MapState>()((set, get) => ({
+    annotationGridUnder: null,
     setMapSettings: (settings: MapSettings) => {
         const { layers, backgroundLayerYears } = getInitialMapLayers(settings);
         const {
@@ -87,6 +93,7 @@ const useMap = create<MapState>()((set, get) => ({
             layers,
             backgroundLayerYears,
             annotationLayerVisible: false,
+            annotationGridUnder: getStoredAnnotationGridUnder(),
             otherObjectTypesUuids: new Set(otherObjectTypesUuids),
             customZoneLayers: initialMapGeoCustomZoneLayers,
             objectTypes: allObjectTypes,
@@ -109,6 +116,10 @@ const useMap = create<MapState>()((set, get) => ({
         set({
             annotationLayerVisible: visible,
         });
+    },
+    setAnnotationGridUnder: (tileSetUuid: string | null) => {
+        set({ annotationGridUnder: tileSetUuid });
+        storeAnnotationGridUnder(tileSetUuid);
     },
     resetLayers: () => {
         const settings = get().settings;

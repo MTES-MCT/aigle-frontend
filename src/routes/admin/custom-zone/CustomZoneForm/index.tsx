@@ -237,6 +237,7 @@ const Form: React.FC<FormProps> = ({ uuid, initialValues, initialGeoSelectedValu
             {isSuperAdmin || uuid ? (
                 <GeoCollectivitiesMultiSelects
                     form={form}
+                    codesPasteEnabled
                     initialGeoSelectedValues={initialGeoSelectedValues}
                     disabledCollectivityTypes={isSuperAdmin ? undefined : PERIMETER_READ_ONLY}
                 />

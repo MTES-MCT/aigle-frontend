@@ -17,6 +17,9 @@ interface ComponentProps {
     loading?: boolean;
     disabled?: boolean;
     emptyText?: string;
+    // 'input' only: a suggestion is picked (DSFR valid state); otherwise typed text shows `unselectedError`
+    selected?: boolean;
+    unselectedError?: string;
     onChange: (value: string) => void;
     onSelect: (option: AutocompleteOption) => void;
 }
@@ -32,11 +35,14 @@ const Component: React.FC<ComponentProps> = ({
     loading = false,
     disabled = false,
     emptyText,
+    selected = false,
+    unselectedError,
     onChange,
     onSelect,
 }: ComponentProps) => {
     const id = `autocomplete-${useId()}`;
     const listboxId = `${id}-listbox`;
+    const messagesId = `${id}-messages`;
     const fieldRef = useRef<HTMLDivElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
@@ -45,6 +51,9 @@ const Component: React.FC<ComponentProps> = ({
     const expanded = opened && options.length > 0;
     const message = loading ? 'Recherche en cours…' : emptyText;
     const position = useAnchoredPosition(fieldRef, opened);
+    // once the list is closed, not while the agent is still typing
+    const errorShown = variant === 'input' && !!unselectedError && !!value && !selected && !focused && !disabled;
+    const validShown = variant === 'input' && selected && !disabled;
 
     const pick = (option: AutocompleteOption) => {
         onSelect(option);
@@ -91,6 +100,7 @@ const Component: React.FC<ComponentProps> = ({
         'aria-expanded': expanded,
         'aria-controls': listboxId,
         'aria-activedescendant': activeIndex !== -1 ? getSuggestionId(listboxId, activeIndex) : undefined,
+        'aria-describedby': errorShown ? messagesId : undefined,
         onFocus: () => setFocused(true),
         onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
             if (event.key === 'Escape') {
@@ -112,6 +122,8 @@ const Component: React.FC<ComponentProps> = ({
             className={clsx(
                 variant === 'input' && 'fr-input-group',
                 variant === 'input' && disabled && 'fr-input-group--disabled',
+                errorShown && 'fr-input-group--error',
+                validShown && 'fr-input-group--valid',
             )}
         >
             <div ref={fieldRef} onBlur={closeOnFocusLeaving}>
@@ -132,6 +144,11 @@ const Component: React.FC<ComponentProps> = ({
                             {hint ? <span className="fr-hint-text">{hint}</span> : null}
                         </label>
                         <input className="fr-input" type="text" {...inputProps} />
+                        {unselectedError ? (
+                            <div className="fr-messages-group" id={messagesId} aria-live="polite">
+                                {errorShown ? <p className="fr-message fr-message--error">{unselectedError}</p> : null}
+                            </div>
+                        ) : null}
                     </>
                 )}
             </div>

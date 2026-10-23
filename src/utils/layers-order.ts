@@ -7,6 +7,8 @@ const STORAGE_KEY = 'aigle.layers-order';
 interface LayersOrder {
     tileSets: string[];
     customZoneLayers: string[];
+    // the indicative tile set drawn right above the annotation grid, null for the grid on top
+    annotationGridUnder: string | null;
 }
 
 // the panel sections whose rows can be reordered
@@ -26,26 +28,33 @@ const getStoredLayersOrder = (): LayersOrder => {
         return {
             tileSets: isStringArray(stored?.tileSets) ? stored.tileSets : [],
             customZoneLayers: isStringArray(stored?.customZoneLayers) ? stored.customZoneLayers : [],
+            annotationGridUnder: typeof stored?.annotationGridUnder === 'string' ? stored.annotationGridUnder : null,
         };
     } catch {
-        return { tileSets: [], customZoneLayers: [] };
+        return { tileSets: [], customZoneLayers: [], annotationGridUnder: null };
     }
 };
 
-// Keys missing from the current list (another account or scope) are kept: they only ever rank among themselves.
-const storeLayersOrder = (field: keyof LayersOrder, keys: string[]) => {
-    const stored = getStoredLayersOrder();
-    const current = new Set(keys);
-
+const writeLayersOrder = (order: LayersOrder) => {
     try {
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({ ...stored, [field]: [...keys, ...stored[field].filter((key) => !current.has(key))] }),
-        );
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
     } catch {
         // no storage: the order lasts until the page is reloaded
     }
 };
+
+// Keys missing from the current list (another account or scope) are kept: they only ever rank among themselves.
+const storeLayersOrder = (field: 'tileSets' | 'customZoneLayers', keys: string[]) => {
+    const stored = getStoredLayersOrder();
+    const current = new Set(keys);
+
+    writeLayersOrder({ ...stored, [field]: [...keys, ...stored[field].filter((key) => !current.has(key))] });
+};
+
+export const getStoredAnnotationGridUnder = () => getStoredLayersOrder().annotationGridUnder;
+
+export const storeAnnotationGridUnder = (tileSetUuid: string | null) =>
+    writeLayersOrder({ ...getStoredLayersOrder(), annotationGridUnder: tileSetUuid });
 
 export const storeTileSetLayersOrder = (layers: MapTileSetLayer[]) =>
     storeLayersOrder(

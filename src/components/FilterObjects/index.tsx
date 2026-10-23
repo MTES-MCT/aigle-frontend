@@ -14,7 +14,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
-import { getObjectTypeSquareColor } from '@/utils/colors';
+import { getCustomZoneOpacities, getObjectTypeSquareColor, withAlpha } from '@/utils/colors';
 import {
     DETECTION_CONTROL_STATUSES_NAMES_MAP,
     DETECTION_VALIDATION_STATUSES_NAMES_MAP,
@@ -57,24 +57,44 @@ const getPrescriptedTrackingName = (prescripted: ObjectsFilter['prescripted']) =
     return prescripted ? 'PRESCRIBED' : 'NOT_PRESCRIBED';
 };
 
+interface ZoneSwatch {
+    color: string;
+    opacity: number;
+}
+
 /**
- * The square sits at the right end of the row and is outlined, as the map draws detections. The
- * name is truncated rather than wrapped (wrapping pushes the square out of line with the
- * checkbox), and it has to be its own element because the DSFR checkbox label is a flex row,
- * which drops the whitespace around a bare text node.
+ * The square sits at the right end of the row and is drawn as on the map and in the legend: an
+ * outline for an object type, a dashed tinted square for a zone. The name is truncated rather
+ * than wrapped (wrapping pushes the square out of line with the checkbox), and it has to be its
+ * own element because the DSFR checkbox label is a flex row, which drops the whitespace around a
+ * bare text node.
  */
-const LabelWithColor: React.FC<{ name: string; color?: string }> = ({ name, color }) => (
-    <span className={classes.label} title={name}>
-        <span className={classes['label-name']}>{name}</span>
-        {color ? (
-            <span
-                className={classes['color-square']}
-                style={{ borderColor: getObjectTypeSquareColor(color) }}
-                aria-hidden="true"
-            />
-        ) : null}
-    </span>
-);
+const LabelWithColor: React.FC<{ name: string; color?: string; zone?: ZoneSwatch }> = ({ name, color, zone }) => {
+    const zoneOpacities = zone ? getCustomZoneOpacities(zone.opacity) : undefined;
+
+    return (
+        <span className={classes.label} title={name}>
+            <span className={classes['label-name']}>{name}</span>
+            {color ? (
+                <span
+                    className={classes['color-square']}
+                    style={{ borderColor: getObjectTypeSquareColor(color) }}
+                    aria-hidden="true"
+                />
+            ) : null}
+            {zone && zoneOpacities ? (
+                <span
+                    className={clsx(classes['color-square'], classes['color-square-zone'])}
+                    style={{
+                        borderColor: withAlpha(zone.color, zoneOpacities.line),
+                        backgroundColor: withAlpha(zone.color, zoneOpacities.fill),
+                    }}
+                    aria-hidden="true"
+                />
+            ) : null}
+        </span>
+    );
+};
 
 interface ComponentProps {
     objectTypes: ObjectType[];
@@ -384,12 +404,12 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('CUSTOM_ZONES')}
                     onToggle={(expanded) => toggleSection('CUSTOM_ZONES', expanded)}
                 >
-                    {mapGeoCustomZoneLayers.map(({ name, customZoneUuids }) => (
+                    {mapGeoCustomZoneLayers.map(({ name, customZoneUuids, color, opacity }) => (
                         <Checkbox
                             key={customZoneUuids.join(',')}
                             className={classes.checkbox}
                             checked={customZoneUuids.some((uuid) => objectsFilter.customZonesUuids.includes(uuid))}
-                            label={<LabelWithColor name={name} />}
+                            label={<LabelWithColor name={name} zone={{ color, opacity }} />}
                             onChange={(checked) => {
                                 const zoneTrackingName = getZoneLayerTrackingName({ name, customZoneUuids }, settings);
 

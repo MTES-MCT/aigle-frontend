@@ -1,10 +1,10 @@
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
 import { useDetectionTracking } from '@/components/DetectionDetail/tracking';
-import Accordion from '@/components/dsfr/Accordion';
 import { DetectionWithTile } from '@/models/detection';
 import { DetectionObjectDetail } from '@/models/detection-object';
 import { TileSet } from '@/models/tile-set';
 import { TRACKING_CATEGORIES } from '@/utils/tracking';
+import { Button } from '@mantine/core';
 import { bbox } from '@turf/turf';
 import clsx from 'clsx';
 import React, { useMemo, useState } from 'react';
@@ -16,7 +16,6 @@ interface ComponentProps {
 }
 const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelected }) => {
     const [fullHistoryShowed, setFullHistoryShowed] = useState(false);
-    const [expanded, setExpanded] = useState(true);
     const { trackEvent } = useDetectionTracking();
     // a new identity here re-frames every preview map, so it must only change with the object
     const previewBounds = useMemo(
@@ -40,7 +39,9 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
     }, [fullHistoryShowed, detectionObject]);
 
     return (
-        <Accordion title="Historique de détections" expanded={expanded} onToggle={setExpanded}>
+        <div className={classes.container}>
+            <h2>Historique de détections</h2>
+
             <div className={classes['detection-tile-previews-container']}>
                 {tileSetsShowed.map(({ tileSet, preview }) => (
                     <DetectionTilePreview
@@ -60,7 +61,9 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
                         }
                         tileSet={tileSet}
                         classNames={{
-                            wrapper: clsx(!preview && classes['detection-tile-preview-animated']),
+                            wrapper: clsx(classes['detection-tile-preview'], {
+                                [classes['detection-tile-preview-animated']]: !preview,
+                            }),
                             inner: 'detection-tile-preview-detail-container',
                             main: 'detection-tile-preview-detail',
                         }}
@@ -69,14 +72,9 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
             </div>
 
             {detectionObject.tileSets.length > 3 ? (
-                <button
-                    type="button"
-                    className={clsx(
-                        'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-right',
-                        fullHistoryShowed ? 'fr-icon-arrow-up-s-line' : 'fr-icon-arrow-down-s-line',
-                        classes['more-button'],
-                    )}
-                    aria-expanded={fullHistoryShowed}
+                <Button
+                    variant="subtle"
+                    fullWidth
                     onClick={() => {
                         if (!fullHistoryShowed) {
                             trackEvent(
@@ -91,9 +89,9 @@ const Component: React.FC<ComponentProps> = ({ detectionObject, setTileSetSelect
                     }}
                 >
                     {fullHistoryShowed ? 'Voir moins' : "Voir tout l'historique"}
-                </button>
+                </Button>
             ) : null}
-        </Accordion>
+        </div>
     );
 };
 

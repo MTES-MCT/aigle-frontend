@@ -110,6 +110,10 @@ const fetchParcel = async (form: FormState): Promise<Parcel | null> => {
     return res.results[0] || null;
 };
 
+// typed text is not a value: only a picked suggestion is, which is why « Rechercher » stays disabled
+const getUnselectedError = (what: string) =>
+    `Sélectionnez ${what} parmi les suggestions : la recherche reste désactivée tant qu’aucune n’est choisie`;
+
 const toOptions = (items?: string[]): AutocompleteOption[] =>
     (items || []).map((item) => ({ value: item, label: item }));
 
@@ -263,6 +267,8 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
                 loading={isSearching('commune', debouncedCommuneSearch, communesLoading)}
                 placeholder="Rechercher une commune"
                 emptyText="Aucune commune trouvée"
+                selected={!!form.commune.option}
+                unselectedError={getUnselectedError('une commune')}
                 onChange={(search) => setField('commune', { search, option: null })}
                 onSelect={(option) => {
                     setField('commune', { search: option.label, option });
@@ -280,6 +286,8 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
                 loading={isSearching('section', debouncedSection, sectionsLoading)}
                 disabled={!form.commune.option}
                 emptyText="Introuvable"
+                selected={!!form.section.option}
+                unselectedError={getUnselectedError('une section')}
                 onChange={(search) => setField('section', { search, option: null })}
                 onSelect={(option) => setField('section', { search: option.label, option })}
             />
@@ -291,6 +299,8 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
                 loading={isSearching('numParcel', debouncedNumParcel, numParcelsLoading)}
                 disabled={!form.section.option}
                 emptyText="Introuvable"
+                selected={!!form.numParcel.option}
+                unselectedError={getUnselectedError('une parcelle')}
                 onChange={(search) => setField('numParcel', { search, option: null })}
                 onSelect={(option) => setField('numParcel', { search: option.label, option })}
             />

@@ -249,6 +249,42 @@ const GEOJSON_PARCEL_LAYER_ID = 'parcel-geojson-layer';
 const GEOJSON_ANNOTATION_GRID_LAYER_ID = 'annotation-grid-geojson-layer';
 const GEOJSON_ANNOTATION_GRID_LABEL_LAYER_ID = 'annotation-grid-label-geojson-layer';
 const GEOJSON_ANNOTATION_GRID_FILL_LAYER_ID = 'annotation-grid-fill-geojson-layer';
+// the grid layers from bottom to top
+const ANNOTATION_GRID_LAYER_IDS = [
+    GEOJSON_ANNOTATION_GRID_FILL_LAYER_ID,
+    GEOJSON_ANNOTATION_GRID_LABEL_LAYER_ID,
+    GEOJSON_ANNOTATION_GRID_LAYER_ID,
+];
+
+// mapbox has no public cheap layer order: `getStyle()` serialises the geojson sources too
+const getLayerOrder = (map: mapboxgl.Map): string[] =>
+    (map as unknown as { style?: { _order?: string[] } }).style?._order ??
+    (map.getStyle()?.layers ?? []).map(({ id }) => id);
+
+/**
+ * Moves the grid layers, together and in their order, right under `beforeId` (the top of the
+ * style when undefined). A no-op once they sit there, so it can run on every style change.
+ */
+const placeAnnotationGrid = (map: mapboxgl.Map, beforeId: string | undefined) => {
+    if (!ANNOTATION_GRID_LAYER_IDS.every((id) => map.getLayer(id)) || (beforeId && !map.getLayer(beforeId))) {
+        return;
+    }
+
+    const order = getLayerOrder(map);
+    const start = order.indexOf(ANNOTATION_GRID_LAYER_IDS[0]);
+    const placed =
+        ANNOTATION_GRID_LAYER_IDS.every((id, index) => order[start + index] === id) &&
+        order[start + ANNOTATION_GRID_LAYER_IDS.length] === beforeId;
+
+    if (placed) {
+        return;
+    }
+
+    const [fillId, labelId, lineId] = ANNOTATION_GRID_LAYER_IDS;
+    map.moveLayer(lineId, beforeId);
+    map.moveLayer(labelId, lineId);
+    map.moveLayer(fillId, labelId);
+};
 
 const GEOJSON_LAYER_EXTRA_COLOR = '#FF0000';
 
@@ -443,6 +479,7 @@ const Component: React.FC<ComponentProps> = ({
         settings,
         customZoneLayers,
         annotationLayerVisible,
+        annotationGridUnder,
         otherObjectTypesUuids,
         isDetailFetching,
     } = useMap();
@@ -1409,6 +1446,59 @@ const Component: React.FC<ComponentProps> = ({
 
         return undefined;
     };
+    // Right above the detections by default; once the agent ranks it among the indicative tile sets
+    // in « Couches », right under the closest one shown above it. null: the layers are not there yet.
+    const getAnnotationGridBeforeId = (map: mapboxgl.Map): string | undefined | null => {
+        const underIndex = annotationGridUnder
+            ? layers.findIndex(({ tileSet }) => tileSet.uuid === annotationGridUnder)
+            : -1;
+
+        if (underIndex === -1) {
+            const order = getLayerOrder(map).filter((id) => !ANNOTATION_GRID_LAYER_IDS.includes(id));
+            const detectionsIndex = order.indexOf(GEOJSON_DETECTIONS_LAYER_ID);
+
+            return detectionsIndex === -1 ? null : order[detectionsIndex + 1];
+        }
+
+        const layersShownAbove = layersDisplayed.filter((layer) => layers.indexOf(layer) <= underIndex);
+        const closestAbove = layersShownAbove[layersShownAbove.length - 1];
+
+        return closestAbove ? getLayerId(closestAbove) : getLayerBeforeId(0);
+    };
+
+    // react-map-gl stacks each raster under the previous one, which can lift one over the grid:
+    // it is put back after every render and every style change
+    const placeAnnotationGridRef = useRef<() => void>(() => {});
+    placeAnnotationGridRef.current = () => {
+        const map = mapRef ? (mapRef as unknown as MapRef).getMap() : undefined;
+
+        if (!map?.style) {
+            return;
+        }
+
+        const beforeId = getAnnotationGridBeforeId(map);
+
+        if (beforeId !== null) {
+            placeAnnotationGrid(map, beforeId);
+        }
+    };
+
+    useEffect(() => placeAnnotationGridRef.current());
+
+    useEffect(() => {
+        if (!mapRef) {
+            return;
+        }
+
+        const map = (mapRef as unknown as MapRef).getMap();
+        const onStyleData = () => placeAnnotationGridRef.current();
+        map.on('styledata', onStyleData);
+
+        return () => {
+            map.off('styledata', onStyleData);
+        };
+    }, [mapRef]);
+
     const handleTouchStart = () => {
         setIsDragging(false);
     };

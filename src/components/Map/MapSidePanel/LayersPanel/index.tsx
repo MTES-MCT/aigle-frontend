@@ -1,7 +1,7 @@
 import React, { useId, useMemo, useState } from 'react';
 
 import Collapse from '@/components/dsfr/Collapse';
-import LayerRow from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
+import LayerRow, { LayerRowSortableProps } from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
 import SortableLayerRows from '@/components/Map/MapSidePanel/LayersPanel/SortableLayerRows';
 import { getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
@@ -17,6 +17,12 @@ import classes from './index.module.scss';
 type OverlayTileSetType = Exclude<TileSetType, 'BACKGROUND'>;
 
 type LayersMap = Record<OverlayTileSetType, MapTileSetLayer[]>;
+
+// the annotation grid ranks among the indicative tile sets
+type IndicativeRow = { kind: 'grid' } | { kind: 'tileSet'; layer: MapTileSetLayer };
+
+const ANNOTATION_GRID_ROW_KEY = 'annotation-grid';
+const ANNOTATION_GRID_NAME = "Grille d'annotation";
 
 const TILE_SET_TYPE_ICONS: Record<OverlayTileSetType, string> = {
     PARTIAL: 'fr-icon-image-line',
@@ -96,6 +102,8 @@ const Component: React.FC<ComponentProps> = ({
         moveCustomZoneLayer,
         annotationLayerVisible,
         setAnnotationLayerVisibility,
+        annotationGridUnder,
+        setAnnotationGridUnder,
         settings,
     } = useMap();
 
@@ -139,24 +147,61 @@ const Component: React.FC<ComponentProps> = ({
 
     const indicativeTileSetsShown = displayLayersSelection ? layersMap.INDICATIVE : [];
 
+    // the grid under the row of `annotationGridUnder`, on top when that row is gone
+    const indicativeRows: IndicativeRow[] = useMemo(() => {
+        const tileSetRows: IndicativeRow[] = indicativeTileSetsShown.map((layer) => ({ kind: 'tileSet', layer }));
+        const gridIndex = indicativeTileSetsShown.findIndex(({ tileSet }) => tileSet.uuid === annotationGridUnder) + 1;
+        tileSetRows.splice(gridIndex, 0, { kind: 'grid' });
+
+        return tileSetRows;
+    }, [indicativeTileSetsShown, annotationGridUnder]);
+
+    const moveIndicativeRow = (row: IndicativeRow, target: IndicativeRow) => {
+        const moved = [...indicativeRows];
+        moved.splice(indicativeRows.indexOf(target), 0, ...moved.splice(indicativeRows.indexOf(row), 1));
+
+        if (row.kind === 'tileSet' && target.kind === 'tileSet') {
+            moveTileSetLayer(row.layer.tileSet.uuid, target.layer.tileSet.uuid);
+        }
+
+        const rowAboveGrid = moved[moved.findIndex(({ kind }) => kind === 'grid') - 1];
+        setAnnotationGridUnder(rowAboveGrid?.kind === 'tileSet' ? rowAboveGrid.layer.tileSet.uuid : null);
+    };
+
+    const renderAnnotationGridRow = (sortable?: LayerRowSortableProps) => (
+        <LayerRow
+            name={ANNOTATION_GRID_NAME}
+            icon="fr-icon-layout-grid-line"
+            displayed={!!annotationLayerVisible}
+            sortable={sortable}
+            pinned={!sortable}
+            onToggleDisplayed={(isDisplayed) => {
+                trackLayerToggled(isDisplayed, 'Grille d’annotation');
+                setAnnotationLayerVisibility(isDisplayed);
+            }}
+        />
+    );
+
+    const renderTileSetRow = (layer: MapTileSetLayer, sortable: LayerRowSortableProps) => (
+        <LayerRow
+            name={layer.tileSet.name}
+            icon={TILE_SET_TYPE_ICONS[layer.tileSet.tileSetType as OverlayTileSetType]}
+            displayed={layer.displayed}
+            sortable={sortable}
+            onToggleDisplayed={(displayed) => {
+                trackLayerToggled(displayed, `${layer.tileSet.tileSetType} : ${layer.tileSet.name}`);
+                setTileSetVisibility(layer.tileSet.uuid, displayed);
+            }}
+        />
+    );
+
     const renderTileSetRows = (type: OverlayTileSetType) => (
         <SortableLayerRows
             items={layersMap[type]}
             getKey={({ tileSet }) => tileSet.uuid}
             getName={({ tileSet }) => tileSet.name}
             onMove={(layer, target) => moveTileSetLayer(layer.tileSet.uuid, target.tileSet.uuid)}
-            renderRow={(layer, sortable) => (
-                <LayerRow
-                    name={layer.tileSet.name}
-                    icon={TILE_SET_TYPE_ICONS[type]}
-                    displayed={layer.displayed}
-                    sortable={sortable}
-                    onToggleDisplayed={(displayed) => {
-                        trackLayerToggled(displayed, `${layer.tileSet.tileSetType} : ${layer.tileSet.name}`);
-                        setTileSetVisibility(layer.tileSet.uuid, displayed);
-                    }}
-                />
-            )}
+            renderRow={renderTileSetRow}
         />
     );
 
@@ -186,18 +231,21 @@ const Component: React.FC<ComponentProps> = ({
                     }
                 }}
             >
-                {/* first and not movable: a vector layer, always drawn above the images */}
-                <LayerRow
-                    name="Grille d'annotation"
-                    icon="fr-icon-layout-grid-line"
-                    displayed={!!annotationLayerVisible}
-                    pinned
-                    onToggleDisplayed={(isDisplayed) => {
-                        trackLayerToggled(isDisplayed, 'Grille d’annotation');
-                        setAnnotationLayerVisibility(isDisplayed);
-                    }}
-                />
-                {displayLayersSelection ? renderTileSetRows('INDICATIVE') : null}
+                {indicativeRows.length > 1 ? (
+                    <SortableLayerRows
+                        items={indicativeRows}
+                        getKey={(row) => (row.kind === 'grid' ? ANNOTATION_GRID_ROW_KEY : row.layer.tileSet.uuid)}
+                        getName={(row) => (row.kind === 'grid' ? ANNOTATION_GRID_NAME : row.layer.tileSet.name)}
+                        onMove={moveIndicativeRow}
+                        renderRow={(row, sortable) =>
+                            row.kind === 'grid'
+                                ? renderAnnotationGridRow(sortable)
+                                : renderTileSetRow(row.layer, sortable)
+                        }
+                    />
+                ) : (
+                    renderAnnotationGridRow()
+                )}
             </Section>
 
             {customZoneLayers.length ? (

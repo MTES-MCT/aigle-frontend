@@ -62,6 +62,11 @@
     border: 2px solid;
 }
 
+// a zone, as the map and the legend draw it
+.color-square-zone {
+    border-style: dashed;
+}
+
 // the range keeps a row for its value bubble: the design puts that row right under the hint
 .score-hint {
     margin-bottom: 0;

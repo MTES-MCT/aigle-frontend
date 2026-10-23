@@ -1,21 +1,29 @@
 @use '@/constants.scss' as constants;
 
+$panel-position-from-borders: 10px;
+
 .container {
     height: 100%;
 
-    // flat against the right edge of the map, under the header, as the side panel is on the left
     .map-detection-detail-panel-container {
         position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
+
+        box-shadow: constants.$shadow;
+
+        top: $panel-position-from-borders;
+        right: $panel-position-from-borders;
+        bottom: $panel-position-from-borders;
 
         width: constants.$detection-detail-panel-width;
-        max-width: 100%;
+        max-width: calc(100% - 2 * $panel-position-from-borders);
+        border-radius: constants.$border-radius-medium;
 
         z-index: 100;
-        background-color: var(--background-default-grey);
-        box-shadow: -4px 0 8px 0 rgba(0, 0, 18, 0.08);
+        background: #ffffff;
+
+        @media screen and (max-width: 992px) {
+            width: calc(100% - 2 * $panel-position-from-borders);
+        }
     }
 }
 

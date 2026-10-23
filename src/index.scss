@@ -457,12 +457,14 @@ $map-control-button-size: 48px;
     }
 }
 
-// both right corners slide clear of the detail panel (`--map-detail-panel-open` is set by the Map component)
-// on a narrow map there is no room beside the panel: the controls stay under it rather than slide off screen
-@media (min-width: 48em) {
+// both right corners slide clear of the detail panel (`--map-detail-panel-open` is set by the Map component),
+// which floats 10px from the map edge and spans the whole map at 992px and below
+@media (min-width: 993px) {
     .mapboxgl-ctrl-top-right,
     .mapboxgl-ctrl-bottom-right {
-        transform: translateX(calc(var(--map-detail-panel-open, 0) * -#{constants.$detection-detail-panel-width}));
+        transform: translateX(
+            calc(var(--map-detail-panel-open, 0) * -#{constants.$detection-detail-panel-width + 10px})
+        );
         transition: transform constants.$map-side-panel-slide-duration ease;
     }
 }

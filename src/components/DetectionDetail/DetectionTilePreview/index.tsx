@@ -1,8 +1,10 @@
-import Tooltip from '@/components/dsfr/Tooltip';
 import { TileSet } from '@/models/tile-set';
 import { MAPBOX_TOKEN } from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { extendBbox } from '@/utils/geojson';
+import { ActionIcon, Overlay, Tooltip } from '@mantine/core';
+import { useHover } from '@mantine/hooks';
+import { IconPencil, IconPhotoOff, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { Polygon, Position } from 'geojson';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -204,54 +206,50 @@ const Component: React.FC<ComponentProps> = ({
         });
     }, [bounds_]);
 
+    const { hovered: previewHovered, ref: previewRef } = useHover();
+
     return (
         <div
             className={clsx(classes['detection-tile-preview-wrapper'], classNames?.wrapper, {
                 [classes['no-controls']]: !controlsDisplayed?.length,
             })}
         >
-            <div className={clsx(classes['detection-tile-preview-container'], classNames?.main)}>
-                {controlsDisplayed?.length ? (
-                    <div className={classes['detection-tile-preview-controls']}>
+            <div className={clsx(classes['detection-tile-preview-container'], classNames?.main)} ref={previewRef}>
+                {controlsDisplayed?.length && previewHovered ? (
+                    <Overlay blur={4} backgroundOpacity={0} className={classes['detection-tile-preview-controls']}>
                         {controlsDisplayed.includes('ZOOM') ? (
                             <>
-                                <Tooltip label="Dézoomer l'aperçu" placement="bottom">
-                                    <button
-                                        type="button"
-                                        className="fr-btn fr-btn--sm fr-icon-zoom-out-line"
+                                <Tooltip label="Dézoomer l'aperçu" position="bottom">
+                                    <ActionIcon
+                                        variant="filled"
                                         onClick={() => setCurrentExtendedLevel((prev) => prev + 1)}
                                     >
-                                        Dézoomer l&apos;aperçu
-                                    </button>
+                                        <IconZoomOut size={16} />
+                                    </ActionIcon>
                                 </Tooltip>
-                                <Tooltip label="Zoomer l'aperçu" placement="bottom">
-                                    <button
-                                        type="button"
-                                        className="fr-btn fr-btn--sm fr-icon-zoom-in-line"
+                                <Tooltip label="Zoomer l'aperçu" position="bottom">
+                                    <ActionIcon
+                                        variant="filled"
                                         onClick={() => setCurrentExtendedLevel((prev) => prev - 1)}
                                         disabled={currentExtendedLevel === 0}
                                     >
-                                        Zoomer l&apos;aperçu
-                                    </button>
+                                        <IconZoomIn size={16} />
+                                    </ActionIcon>
                                 </Tooltip>
                             </>
                         ) : null}
                         {controlsDisplayed.includes('EDIT') ? (
-                            <Tooltip label="Editer la détection" placement="bottom">
-                                <button
-                                    type="button"
-                                    className="fr-btn fr-btn--sm fr-icon-edit-line"
-                                    onClick={() => editDetection && editDetection()}
-                                >
-                                    Editer la détection
-                                </button>
+                            <Tooltip label="Editer la détection" position="bottom">
+                                <ActionIcon variant="filled" onClick={() => editDetection && editDetection()}>
+                                    <IconPencil size={16} />
+                                </ActionIcon>
                             </Tooltip>
                         ) : null}
-                    </div>
+                    </Overlay>
                 ) : null}
                 {imageryStatus === 'UNAVAILABLE' ? (
                     <div className={classes['detection-tile-preview-unavailable']}>
-                        <span className="fr-icon-image-line" aria-hidden="true" />
+                        <IconPhotoOff size={18} />
                         <span>Imagerie indisponible</span>
                     </div>
                 ) : null}

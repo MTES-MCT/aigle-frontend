@@ -1,106 +1,65 @@
+@use '@/constants.scss' as constants;
+
 .container {
     height: 100%;
 
-    overflow-x: hidden;
-    overflow-y: auto;
+    .inner {
+        padding: constants.$detection-detail-panel-padding;
 
-    background-color: var(--background-default-grey);
+        display: flex;
+        flex-direction: column;
+        gap: var(--mantine-spacing-sm);
 
-    // as in the side panel: each accordion rule sits on the row above its band, none after the last
-    [class~='fr-accordion']::before {
-        top: -1px;
+        .general-informations {
+            .general-informations-item {
+            }
+
+            .mantine-Accordion-panel {
+            }
+
+            .general-informations-content {
+                .general-informations-content-item {
+                    display: flex;
+                    gap: 8px;
+                    font-size: 0.85rem;
+                    align-items: center;
+                    justify-content: flex-start;
+
+                    &:not(:last-of-type) {
+                        margin-bottom: 8px;
+                    }
+                }
+
+                .general-informations-content-item-icon {
+                    flex-shrink: 0;
+                }
+
+                .general-informations-content-item-text {
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-start;
+
+                    &.general-informations-content-item-text-grey {
+                        color: var(--mantine-color-gray-7);
+                    }
+                }
+            }
+        }
+
+        .top-section {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+
+            align-items: center;
+        }
     }
-
-    [class~='fr-accordions-group']:last-child [class~='fr-accordion']:last-child::before {
-        box-shadow: inset 0 1px 0 0 var(--border-default-grey);
-    }
-}
-
-.section {
-    padding: 0 1rem 1.5rem;
-
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.actions-label {
-    margin: 0 0 -0.25rem;
-
-    font-size: 0.875rem;
-    line-height: 1.5rem;
-    font-weight: 700;
-}
-
-// two buttons share a row, a lone one takes it all
-.actions-row {
-    display: flex;
-    gap: 0.75rem;
-
-    > * {
-        flex: 1 1 0;
-    }
-
-    .container & [class~='fr-btn'] {
-        width: 100%;
-        max-width: none;
-
-        justify-content: center;
-    }
-}
-
-.container .alert {
-    // the app zeroes the DSFR text spacing: the alert lines need it back
-    p {
-        --text-spacing: 0 0 0.25rem;
-    }
-}
-
-.alert-action {
-    margin-top: 0.5rem;
-}
-
-.informations {
-    margin: 0;
-    padding: 0;
-
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-
-    list-style: none;
-
-    font-size: 0.875rem;
-    line-height: 1.5rem;
-}
-
-.container .informations-item {
-    padding: 0;
-
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-
-    // the icon centred on the first line of text
-    > [class*='fr-icon-'] {
-        flex: 0 0 auto;
-
-        margin-top: 0.25rem;
-
-        color: var(--text-mention-grey);
-    }
-}
-
-.informations-text {
-    display: block;
-}
-
-.informations-text-mention {
-    display: block;
-
-    color: var(--text-mention-grey);
 }
 
 .loader {
     height: 100%;
+}
+
+.user-group-last-update {
+    font-weight: 700;
 }
