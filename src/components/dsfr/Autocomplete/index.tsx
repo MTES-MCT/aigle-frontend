@@ -1,8 +1,7 @@
-import SuggestionsPopup, { SuggestionOption } from '@/components/dsfr/SuggestionsPopup';
-import { useAnchoredPosition } from '@/hooks/useAnchoredPosition';
-import { getSuggestionId, useSuggestionsKeyboard } from '@/hooks/useSuggestionsKeyboard';
+import SuggestionsPopup, { SuggestionOption, SuggestionsStatus } from '@/components/dsfr/SuggestionsPopup';
+import { useCombobox } from '@/hooks/useCombobox';
 import clsx from 'clsx';
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useId } from 'react';
 
 export type AutocompleteOption = SuggestionOption;
 
@@ -17,8 +16,9 @@ interface ComponentProps {
     loading?: boolean;
     disabled?: boolean;
     emptyText?: string;
-    // 'input' only: a suggestion is picked (DSFR valid state); otherwise typed text shows `unselectedError`
+    // 'input' only: a suggestion is picked (DSFR valid state, `validMessage`); otherwise typed text shows `unselectedError`
     selected?: boolean;
+    validMessage?: string;
     unselectedError?: string;
     onChange: (value: string) => void;
     onSelect: (option: AutocompleteOption) => void;
@@ -36,85 +36,33 @@ const Component: React.FC<ComponentProps> = ({
     disabled = false,
     emptyText,
     selected = false,
+    validMessage,
     unselectedError,
     onChange,
     onSelect,
 }: ComponentProps) => {
     const id = `autocomplete-${useId()}`;
-    const listboxId = `${id}-listbox`;
     const messagesId = `${id}-messages`;
-    const fieldRef = useRef<HTMLDivElement>(null);
-    const popupRef = useRef<HTMLDivElement>(null);
-    const [focused, setFocused] = useState(false);
-
-    const opened = focused && !!value;
-    const expanded = opened && options.length > 0;
-    const message = loading ? 'Recherche en cours…' : emptyText;
-    const position = useAnchoredPosition(fieldRef, opened);
-    // once the list is closed, not while the agent is still typing
-    const errorShown = variant === 'input' && !!unselectedError && !!value && !selected && !focused && !disabled;
-    const validShown = variant === 'input' && selected && !disabled;
-
-    const pick = (option: AutocompleteOption) => {
-        onSelect(option);
-        setFocused(false);
-    };
-    const { activeIndex, onKeyDown: onSuggestionsKeyDown } = useSuggestionsKeyboard(options, expanded, pick);
-
-    useEffect(() => {
-        if (!focused) {
-            return;
-        }
-
-        const closeOnOutsideClick = (event: MouseEvent) => {
-            const target = event.target as Node;
-
-            if (!fieldRef.current?.contains(target) && !popupRef.current?.contains(target)) {
-                setFocused(false);
-            }
-        };
-
-        document.addEventListener('mousedown', closeOnOutsideClick);
-
-        return () => document.removeEventListener('mousedown', closeOnOutsideClick);
-    }, [focused]);
-
-    // with the sections of the side panel kept mounted, a list left open would outlive its field
-    const closeOnFocusLeaving = (event: React.FocusEvent) => {
-        const next = event.relatedTarget as Node | null;
-
-        // null: a mouse press, which the outside mousedown handles, or a switch to another window
-        if (next && !fieldRef.current?.contains(next) && !popupRef.current?.contains(next)) {
-            setFocused(false);
-        }
-    };
-
-    const inputProps = {
+    const combobox = useCombobox({
         id,
-        name: id,
-        value,
+        query: value,
+        options,
+        loading,
+        emptyText,
+        onQueryChange: onChange,
+        onPick: onSelect,
+    });
+
+    // once the list is closed, not while the agent is still typing
+    const errorShown =
+        variant === 'input' && !!unselectedError && !!value && !selected && !combobox.focused && !disabled;
+    const validShown = variant === 'input' && selected && !disabled;
+    const hasMessages = variant === 'input' && (!!unselectedError || !!validMessage);
+    const inputProps = {
+        ...combobox.inputProps,
         placeholder,
         disabled,
-        autoComplete: 'off',
-        role: 'combobox' as const,
-        'aria-expanded': expanded,
-        'aria-controls': listboxId,
-        'aria-activedescendant': activeIndex !== -1 ? getSuggestionId(listboxId, activeIndex) : undefined,
-        'aria-describedby': errorShown ? messagesId : undefined,
-        onFocus: () => setFocused(true),
-        onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
-            if (event.key === 'Escape') {
-                setFocused(false);
-            } else if (!focused && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
-                setFocused(true);
-            } else if (expanded) {
-                onSuggestionsKeyDown(event);
-            }
-        },
-        onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
-            setFocused(true);
-            onChange(event.currentTarget.value);
-        },
+        'aria-describedby': hasMessages ? messagesId : undefined,
     };
 
     return (
@@ -126,14 +74,14 @@ const Component: React.FC<ComponentProps> = ({
                 validShown && 'fr-input-group--valid',
             )}
         >
-            <div ref={fieldRef} onBlur={closeOnFocusLeaving}>
+            <div {...combobox.fieldProps}>
                 {variant === 'search' ? (
                     <div className="fr-search-bar" role="search">
                         <label className="fr-label" htmlFor={id}>
                             {label}
                         </label>
                         <input className="fr-input" type="search" {...inputProps} />
-                        <button type="button" className="fr-btn" title={label} onClick={() => setFocused(true)}>
+                        <button type="button" className="fr-btn" title={label} onClick={combobox.open}>
                             {label}
                         </button>
                     </div>
@@ -144,26 +92,20 @@ const Component: React.FC<ComponentProps> = ({
                             {hint ? <span className="fr-hint-text">{hint}</span> : null}
                         </label>
                         <input className="fr-input" type="text" {...inputProps} />
-                        {unselectedError ? (
-                            <div className="fr-messages-group" id={messagesId} aria-live="polite">
-                                {errorShown ? <p className="fr-message fr-message--error">{unselectedError}</p> : null}
-                            </div>
-                        ) : null}
                     </>
                 )}
             </div>
 
-            {opened ? (
-                <SuggestionsPopup
-                    ref={popupRef}
-                    listboxId={listboxId}
-                    position={position}
-                    options={options}
-                    activeIndex={activeIndex}
-                    message={message}
-                    onSelect={pick}
-                />
+            {/* outside the box the list is anchored to, so the list opens right under the input */}
+            {hasMessages ? (
+                <div className="fr-messages-group" id={messagesId} aria-live="polite">
+                    {errorShown ? <p className="fr-message fr-message--error">{unselectedError}</p> : null}
+                    {validShown && validMessage ? <p className="fr-message fr-message--valid">{validMessage}</p> : null}
+                </div>
             ) : null}
+
+            <SuggestionsStatus {...combobox.statusProps} />
+            {combobox.popupProps ? <SuggestionsPopup {...combobox.popupProps} /> : null}
         </div>
     );
 };

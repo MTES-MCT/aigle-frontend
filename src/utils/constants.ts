@@ -119,13 +119,6 @@ export const DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP: {
     NOT_PRESCRIBED: 'Non prescrit',
 } as const;
 
-export const DETECTION_PRESCRIPTION_STATUSES_COLORS_MAP: {
-    [status in DetectionPrescriptionStatus]: string;
-} = {
-    PRESCRIBED: colors.GREY,
-    NOT_PRESCRIBED: colors.BLUE,
-} as const;
-
 export const DETECTION_VALIDATION_STATUSES_NAMES_MAP: {
     [status in DetectionValidationStatus]: string;
 } = {
@@ -146,7 +139,7 @@ export const DETECTION_VALIDATION_STATUSES_COLORS_MAP: {
     INVALIDATED: '#495057',
 } as const;
 
-// DSFR badge colours of the statuses, same hues as the hex maps above (which the charts keep)
+// DSFR badge colours of the statuses, same hues as the hex maps above
 export const DETECTION_VALIDATION_STATUSES_BADGE_CLASSES: {
     [status in DetectionValidationStatus]: string;
 } = {
@@ -217,6 +210,11 @@ export const DEFAULT_DATETIME_FORMAT = 'dd/MM/yyyy à HH:mm';
 // Opacity a "zone à enjeux" layer starts at. The slider goes up to a genuinely solid 100%,
 // so the default is what used to be hardcoded as the fill opacity rather than the maximum.
 export const DEFAULT_CUSTOM_ZONE_LAYER_OPACITY = 0.2;
+
+// « Zones exclues par les filtres »: the map greys out what lies outside the zones selected in Filtres,
+// with the legend swatch drawn the same
+export const CUSTOM_ZONE_NEGATIVE_COLOR = '#808080';
+export const CUSTOM_ZONE_NEGATIVE_OPACITY = 0.5;
 
 export const OTHER_OBJECT_TYPE: ObjectTypeMinimal = {
     name: 'Autres',

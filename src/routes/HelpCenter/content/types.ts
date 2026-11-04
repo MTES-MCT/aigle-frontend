@@ -22,9 +22,14 @@ export type ContentBlock =
 export interface Video {
     id: string;
     title: string;
-    durationSeconds: number;
+    // Unknown for a webinar replay, which only has its url.
+    durationSeconds?: number;
     url: string;
     embedUrl: string;
+}
+
+export interface TutorialVideo extends Video {
+    durationSeconds: number;
 }
 
 export interface FaqQuestion {
@@ -51,17 +56,4 @@ export interface Exercise {
     objective: string;
     relatedVideoIds: string[];
     sections: ExerciseSection[];
-}
-
-export interface Webinar {
-    id: string;
-    title: string;
-    // Paris wall-clock values, kept as strings so no user timezone ever shifts them.
-    date: string;
-    timeSlot?: { start: string; end: string };
-    description: ContentBlock[];
-    registrationUrl?: string;
-    visioUrl?: string;
-    replay?: Video;
-    supportUrl?: string;
 }

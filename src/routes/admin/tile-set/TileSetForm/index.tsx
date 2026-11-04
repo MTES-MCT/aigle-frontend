@@ -69,7 +69,8 @@ const MapPreview: React.FC<MapPreviewProps> = ({ url, scheme, name, type, monoch
                 tileSetStatus: 'VISIBLE',
                 tileSetScheme: scheme,
                 tileSetType: type,
-                geometry,
+                // the map outlines this area and frames the preview on it
+                geometryBbox: geometry,
             },
         },
     ];

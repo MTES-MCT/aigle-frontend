@@ -15,7 +15,7 @@ import { TRACKING_CATEGORIES, getErrorTrackingName } from '@/utils/tracking';
 import { notifications } from '@mantine/notifications';
 import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import React, { useId, useMemo, useState } from 'react';
+import React, { useId, useState } from 'react';
 import classes from './index.module.scss';
 
 const NO_EDIT_TEXT = 'Ne pas éditer';
@@ -93,7 +93,7 @@ const SelectField = <T extends string>({ label, value, options, error, onChange 
                 className="fr-select"
                 id={id}
                 value={value ?? ''}
-                aria-describedby={error ? `${id}-error` : undefined}
+                aria-describedby={`${id}-messages`}
                 onChange={(event) => onChange((event.currentTarget.value as T) || null)}
             >
                 <option value="">{NO_EDIT_TEXT}</option>
@@ -103,11 +103,9 @@ const SelectField = <T extends string>({ label, value, options, error, onChange 
                     </option>
                 ))}
             </select>
-            {error ? (
-                <p id={`${id}-error`} className="fr-error-text">
-                    {error}
-                </p>
-            ) : null}
+            <div className="fr-messages-group" id={`${id}-messages`} aria-live="polite">
+                {error ? <p className="fr-message fr-message--error">{error}</p> : null}
+            </div>
         </div>
     );
 };
@@ -136,15 +134,6 @@ const Form: React.FC<FormProps> = ({
     const [errors, setErrors] = useState<FormErrors>({});
     // in the modal: a notification would open under it, the modal being in the top layer
     const [submitError, setSubmitError] = useState<string | null>(null);
-    const objectTypesMap: Record<string, ObjectType> = useMemo(() => {
-        return (objectTypes || []).reduce(
-            (prev, curr) => ({
-                ...prev,
-                [curr.uuid]: curr,
-            }),
-            {},
-        );
-    }, [objectTypes]);
 
     const mutation: UseMutationResult<void, ApiError, FormValues> = useMutation({
         mutationKey: MUTATION_KEY,
@@ -160,7 +149,8 @@ const Form: React.FC<FormProps> = ({
                 [
                     values.detectionValidationStatus && `Validation : ${values.detectionValidationStatus}`,
                     values.detectionControlStatus && `Contrôle : ${values.detectionControlStatus}`,
-                    values.objectTypeUuid && `Type : ${objectTypesMap[values.objectTypeUuid]?.name ?? 'Inconnu'}`,
+                    values.objectTypeUuid &&
+                        `Type : ${objectTypes.find(({ uuid }) => uuid === values.objectTypeUuid)?.name ?? 'Inconnu'}`,
                 ]
                     .filter((name): name is string => !!name)
                     .forEach((name) =>
@@ -222,7 +212,10 @@ const Form: React.FC<FormProps> = ({
             }}
         >
             <div className="fr-alert fr-alert--info fr-alert--sm">
-                <p>Vous êtes sur le point d’éditer {getDetectionsCountText(detectionsUuids.length)}.</p>
+                <p>
+                    <span className="fr-sr-only">Information : </span>
+                    Vous êtes sur le point d’éditer {getDetectionsCountText(detectionsUuids.length)}.
+                </p>
             </div>
 
             {submitError ? (
@@ -290,7 +283,6 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ detectionsUuids, hide, tracki
         <Modal
             opened
             gutters
-            bodyClassName={classes.body}
             onClose={cancel}
             title={
                 <>
@@ -298,12 +290,13 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ detectionsUuids, hide, tracki
                 </>
             }
             footer={
-                <div className={classes.actions}>
-                    <button type="button" className="fr-btn fr-btn--secondary" onClick={cancel}>
-                        Annuler
-                    </button>
+                // the DSFR modal footer: primary action first, shown on the right
+                <div className="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg">
                     <button type="submit" form={formId} className="fr-btn" disabled={pending || !dirty}>
                         Editer {getDetectionsCountText(detectionsUuids.length)}
+                    </button>
+                    <button type="button" className="fr-btn fr-btn--secondary" onClick={cancel}>
+                        Annuler
                     </button>
                 </div>
             }

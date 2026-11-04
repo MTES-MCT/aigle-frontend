@@ -1,8 +1,7 @@
-import SuggestionsPopup, { SuggestionOption } from '@/components/dsfr/SuggestionsPopup';
-import { useAnchoredPosition } from '@/hooks/useAnchoredPosition';
-import { getSuggestionId, useSuggestionsKeyboard } from '@/hooks/useSuggestionsKeyboard';
+import SuggestionsPopup, { SuggestionOption, SuggestionsStatus } from '@/components/dsfr/SuggestionsPopup';
+import { useCombobox } from '@/hooks/useCombobox';
 import clsx from 'clsx';
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useId, useRef } from 'react';
 import classes from './index.module.scss';
 
 interface ComponentProps {
@@ -10,7 +9,6 @@ interface ComponentProps {
     search: string;
     options: SuggestionOption[];
     selected: SuggestionOption[];
-    hint?: string;
     placeholder?: string;
     loading?: boolean;
     disabled?: boolean;
@@ -30,7 +28,6 @@ const Component: React.FC<ComponentProps> = ({
     search,
     options,
     selected,
-    hint,
     placeholder,
     loading = false,
     disabled = false,
@@ -40,49 +37,35 @@ const Component: React.FC<ComponentProps> = ({
     onRemove,
 }: ComponentProps) => {
     const id = `multi-autocomplete-${useId()}`;
-    const listboxId = `${id}-listbox`;
-    const fieldRef = useRef<HTMLDivElement>(null);
-    const popupRef = useRef<HTMLDivElement>(null);
-    const [focused, setFocused] = useState(false);
-
+    const inputRef = useRef<HTMLInputElement>(null);
     const selectedValues = new Set(selected.map((option) => option.value));
     const selectableOptions = options.filter((option) => !selectedValues.has(option.value));
+    const combobox = useCombobox({
+        id,
+        query: search,
+        options: selectableOptions,
+        loading,
+        emptyText,
+        onQueryChange: onSearchChange,
+        onPick: (option) => {
+            onSelect(option);
+            onSearchChange('');
+        },
+    });
 
-    const opened = focused && !!search;
-    const expanded = opened && selectableOptions.length > 0;
-    const message = loading ? 'Recherche en cours…' : emptyText;
-    const position = useAnchoredPosition(fieldRef, opened);
+    // the removed tag held the focus: on to the next tag, else the previous one, else the field (as DSFR does)
+    const remove = (event: React.MouseEvent<HTMLButtonElement>, value: string) => {
+        const item = event.currentTarget.closest('li');
+        const neighbour = (item?.nextElementSibling ?? item?.previousElementSibling)?.querySelector('button');
 
-    const pick = (option: SuggestionOption) => {
-        onSelect(option);
-        onSearchChange('');
-        setFocused(false);
+        (neighbour ?? inputRef.current)?.focus();
+        onRemove(value);
     };
-    const { activeIndex, onKeyDown: onSuggestionsKeyDown } = useSuggestionsKeyboard(selectableOptions, expanded, pick);
-
-    useEffect(() => {
-        if (!focused) {
-            return;
-        }
-
-        const closeOnOutsideClick = (event: MouseEvent) => {
-            const target = event.target as Node;
-
-            if (!fieldRef.current?.contains(target) && !popupRef.current?.contains(target)) {
-                setFocused(false);
-            }
-        };
-
-        document.addEventListener('mousedown', closeOnOutsideClick);
-
-        return () => document.removeEventListener('mousedown', closeOnOutsideClick);
-    }, [focused]);
 
     return (
         <div className={clsx('fr-input-group', disabled && 'fr-input-group--disabled')}>
             <label className="fr-label" htmlFor={id}>
                 {label}
-                {hint ? <span className="fr-hint-text">{hint}</span> : null}
             </label>
 
             {selected.length ? (
@@ -92,8 +75,9 @@ const Component: React.FC<ComponentProps> = ({
                             <button
                                 type="button"
                                 className="fr-tag fr-tag--sm fr-tag--dismiss"
+                                aria-label={`Retirer ${option.label}`}
                                 disabled={disabled}
-                                onClick={() => onRemove(option.value)}
+                                onClick={(event) => remove(event, option.value)}
                             >
                                 {option.label}
                             </button>
@@ -102,58 +86,19 @@ const Component: React.FC<ComponentProps> = ({
                 </ul>
             ) : null}
 
-            <div
-                ref={fieldRef}
-                onBlur={(event) => {
-                    const next = event.relatedTarget as Node | null;
-
-                    // null: a mouse press, which the outside mousedown handles, or a switch to another window
-                    if (next && !fieldRef.current?.contains(next) && !popupRef.current?.contains(next)) {
-                        setFocused(false);
-                    }
-                }}
-            >
+            <div {...combobox.fieldProps}>
                 <input
-                    id={id}
-                    name={id}
+                    ref={inputRef}
                     className="fr-input"
                     type="text"
-                    value={search}
                     placeholder={placeholder}
                     disabled={disabled}
-                    autoComplete="off"
-                    role="combobox"
-                    aria-expanded={expanded}
-                    aria-controls={listboxId}
-                    aria-activedescendant={activeIndex !== -1 ? getSuggestionId(listboxId, activeIndex) : undefined}
-                    onFocus={() => setFocused(true)}
-                    onKeyDown={(event) => {
-                        if (event.key === 'Escape') {
-                            setFocused(false);
-                        } else if (!focused && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
-                            setFocused(true);
-                        } else if (expanded) {
-                            onSuggestionsKeyDown(event);
-                        }
-                    }}
-                    onChange={(event) => {
-                        setFocused(true);
-                        onSearchChange(event.currentTarget.value);
-                    }}
+                    {...combobox.inputProps}
                 />
             </div>
 
-            {opened ? (
-                <SuggestionsPopup
-                    ref={popupRef}
-                    listboxId={listboxId}
-                    position={position}
-                    options={selectableOptions}
-                    activeIndex={activeIndex}
-                    message={message}
-                    onSelect={pick}
-                />
-            ) : null}
+            <SuggestionsStatus {...combobox.statusProps} />
+            {combobox.popupProps ? <SuggestionsPopup {...combobox.popupProps} /> : null}
         </div>
     );
 };

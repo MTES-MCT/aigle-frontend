@@ -18,6 +18,8 @@ import UserGroupForm from '@/routes/admin/user-group/UserGroupForm';
 import UserGroupList from '@/routes/admin/user-group/UserGroupList';
 import UserForm from '@/routes/admin/user/UserForm';
 import UserList from '@/routes/admin/user/UserList';
+import WebinarForm from '@/routes/admin/webinar/WebinarForm';
+import WebinarList from '@/routes/admin/webinar/WebinarList';
 import { RouteGroup } from './types';
 
 export const adminRoutes: RouteGroup = {
@@ -179,6 +181,25 @@ export const adminRoutes: RouteGroup = {
         {
             path: '/admin/user-action-logs',
             component: UserActionLogList,
+            roles: ['SUPER_ADMIN'],
+            requiresAuth: true,
+        },
+
+        {
+            path: '/admin/webinars',
+            component: WebinarList,
+            roles: ['SUPER_ADMIN'],
+            requiresAuth: true,
+        },
+        {
+            path: '/admin/webinars/form',
+            component: WebinarForm,
+            roles: ['SUPER_ADMIN'],
+            requiresAuth: true,
+        },
+        {
+            path: '/admin/webinars/form/:uuid',
+            component: WebinarForm,
             roles: ['SUPER_ADMIN'],
             requiresAuth: true,
         },

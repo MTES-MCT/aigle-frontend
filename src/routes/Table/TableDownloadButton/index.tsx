@@ -13,7 +13,6 @@ import { trackEvent } from '@/utils/matomo';
 import { TRACKING_CATEGORIES, getErrorTrackingName, getFilterTrackingName } from '@/utils/tracking';
 import { notifications } from '@mantine/notifications';
 import { UseMutationResult, useMutation } from '@tanstack/react-query';
-import clsx from 'clsx';
 import { format } from 'date-fns';
 
 // Set by the API on every export (aigle-api core/views/detection/detection_list.py), which caps the rows.
@@ -82,9 +81,8 @@ const DOWNLOAD_FORMATS: DownloadOutputFormat[] = ['csv', 'xlsx'];
 
 interface ComponentProps extends FormValues {
     ordering?: string;
-    className?: string;
 }
-const Component: React.FC<ComponentProps> = ({ ordering, className, ...collectivities }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ ordering, ...collectivities }: ComponentProps) => {
     const { objectsFilter } = useObjectsFilter();
     const { otherObjectTypesUuids } = useStatistics();
 
@@ -132,10 +130,7 @@ const Component: React.FC<ComponentProps> = ({ ordering, className, ...collectiv
     const pendingFormat = mutation.isPending ? mutation.variables : undefined;
 
     return (
-        <ul
-            className={clsx('fr-btns-group fr-btns-group--inline-sm fr-btns-group--icon-left', className)}
-            aria-live="polite"
-        >
+        <ul className="fr-btns-group fr-btns-group--inline-sm fr-btns-group--icon-left" aria-live="polite">
             {DOWNLOAD_FORMATS.map((outputFormat) => (
                 <li key={outputFormat}>
                     <button

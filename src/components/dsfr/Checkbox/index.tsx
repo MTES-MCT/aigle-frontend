@@ -1,6 +1,5 @@
 import clsx from 'clsx';
 import React, { ReactNode, useId } from 'react';
-import classes from './index.module.scss';
 
 interface ComponentProps {
     label: ReactNode;
@@ -15,7 +14,7 @@ const Component: React.FC<ComponentProps> = ({ label, checked, onChange, classNa
     const id = `checkbox-${useId()}`;
 
     return (
-        <div className={clsx('fr-checkbox-group', classes.container, className)}>
+        <div className={clsx('fr-checkbox-group', className)}>
             <input
                 type="checkbox"
                 id={id}

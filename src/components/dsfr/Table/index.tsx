@@ -58,7 +58,6 @@ interface ComponentProps extends PropsWithChildren {
     header?: ReactNode;
     footerStart?: ReactNode;
     footerMiddle?: ReactNode;
-    footerEnd?: ReactNode;
     size?: 'sm' | 'md';
     bordered?: boolean;
     busy?: boolean;
@@ -75,7 +74,6 @@ const Component: React.FC<ComponentProps> = ({
     header,
     footerStart,
     footerMiddle,
-    footerEnd,
     size = 'md',
     bordered = false,
     busy = false,
@@ -106,11 +104,10 @@ const Component: React.FC<ComponentProps> = ({
                 </div>
             </div>
         </div>
-        {footerStart || footerMiddle || footerEnd ? (
+        {footerStart || footerMiddle ? (
             <div className={clsx('fr-table__footer', classes.footer)}>
                 <div className="fr-table__footer--start">{footerStart}</div>
                 <div className="fr-table__footer--middle">{footerMiddle}</div>
-                {footerEnd ? <div className="fr-table__footer--end">{footerEnd}</div> : null}
             </div>
         ) : null}
     </div>

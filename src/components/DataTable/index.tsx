@@ -1,4 +1,4 @@
-import React, { ReactElement, ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactElement, useEffect, useRef, useState } from 'react';
 
 import SoloAccordion from '@/components/SoloAccordion';
 import ErrorCard from '@/components/ui/ErrorCard';
@@ -6,11 +6,10 @@ import Loader from '@/components/ui/Loader';
 import { Paginated, Uuided } from '@/models/data';
 import { PAGINATION_OFFSET_LIMIT_INITIAL_VALUE, PaginationOffsetLimit } from '@/models/table';
 import api from '@/utils/api';
-import { HEADER_HEIGHT_PX } from '@/utils/constants';
+import { scrollBelowHeader } from '@/utils/html';
 import { getPaginationPage } from '@/utils/pagination';
 import {
     ActionIcon,
-    Checkbox,
     CopyButton,
     Flex,
     LoadingOverlay,
@@ -54,17 +53,6 @@ const selectValueToInterval = (value: string | null): number | false => {
     return Number(value);
 };
 
-const scrollToTable = (tableRef: React.RefObject<HTMLTableElement>) => {
-    if (tableRef.current) {
-        const y = tableRef.current.getBoundingClientRect().top + window.pageYOffset - HEADER_HEIGHT_PX;
-
-        window.scrollTo({
-            top: y,
-            behavior: 'smooth',
-        });
-    }
-};
-
 const LIMITS: (typeof PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit)[] = [5, 10, 20, 50];
 
 const CopyUuidButton: React.FC<{ uuid: string }> = ({ uuid }) => (
@@ -94,19 +82,12 @@ interface ComponentProps<T_DATA extends Uuided, T_FILTER extends object | undefi
     SoloAccordion?: ReactElement<typeof SoloAccordion>;
     tableHeader: ReactElement<typeof Table.Th>[];
     tableBodyRenderFns: ((item: T_DATA) => React.ReactNode)[];
-    beforeTable?: ReactNode;
     onItemClick?: (item: T_DATA) => void;
-    initialLimit?: number;
     queryEnabled?: boolean;
     paginated?: boolean;
-    tableContainerClassName?: string;
     layout?: TableProps['layout'];
-    showSelection?: boolean;
     // Admin-only: prepends a column with a copy-to-clipboard button for each item's uuid.
     showCopyUuidCol?: boolean;
-    showRefresh?: boolean;
-    selectedUuids?: string[];
-    setSelectedUuids?: React.Dispatch<React.SetStateAction<string[]>>;
     getExpandedContent?: (item: T_DATA) => React.ReactNode;
     striped?: boolean;
     highlightOnHover?: boolean;
@@ -124,29 +105,17 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
     SoloAccordion,
     tableHeader,
     tableBodyRenderFns,
-    beforeTable,
     onItemClick,
-    selectedUuids,
-    setSelectedUuids,
     getExpandedContent,
-    tableContainerClassName,
     queryEnabled = true,
     paginated = true,
     layout = 'fixed',
-    initialLimit = PAGINATION_OFFSET_LIMIT_INITIAL_VALUE.limit,
-    showSelection = false,
     showCopyUuidCol = false,
-    showRefresh = true,
     striped = true,
     highlightOnHover = true,
     refetchInterval,
-    onRowExpand,
-    onDataSettled,
 }: ComponentProps<T_DATA, T_FILTER>) => {
-    const [pagination, setPagination] = useState<PaginationOffsetLimit>({
-        ...PAGINATION_OFFSET_LIMIT_INITIAL_VALUE,
-        limit: initialLimit,
-    });
+    const [pagination, setPagination] = useState<PaginationOffsetLimit>(PAGINATION_OFFSET_LIMIT_INITIAL_VALUE);
     const tableRef = useRef<HTMLTableElement>(null);
     const [rowsExpanded, setRowsExpanded] = useState<Set<string>>(new Set());
 
@@ -187,7 +156,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
         }
     };
 
-    const { isLoading, error, data, isFetching, isPlaceholderData, refetch } = useQuery({
+    const { isLoading, error, data, isFetching, refetch } = useQuery({
         queryKey: [endpoint, pagination.limit, pagination.offset, ...(filter ? Object.values(filter) : [])],
         queryFn: ({ signal }) => fetchData(signal, pagination),
         placeholderData: keepPreviousData,
@@ -195,27 +164,14 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
         refetchInterval: refetchControlShown ? userRefetchInterval : false,
     });
 
-    // Kept in a ref so that a new callback on each parent render does not report the same data again.
-    const onDataSettledRef = useRef(onDataSettled);
-    useEffect(() => {
-        onDataSettledRef.current = onDataSettled;
-    });
-    useEffect(() => {
-        if (data && !isPlaceholderData) {
-            onDataSettledRef.current?.(data);
-        }
-    }, [data, isPlaceholderData]);
-
     const paginationPage = getPaginationPage(pagination);
-    const colsCount = tableHeader.length + (showSelection ? 1 : 0) + (showCopyUuidCol ? 1 : 0);
+    const colsCount = tableHeader.length + (showCopyUuidCol ? 1 : 0);
 
     return (
         <>
             {SoloAccordion ? <div className={classes['filters-section']}>{SoloAccordion}</div> : null}
 
             {error ? <ErrorCard className={classes['error-card']}>{error.message}</ErrorCard> : null}
-
-            {beforeTable ? <div className={classes['before-table-container']}>{beforeTable}</div> : null}
 
             <div className={classes['table-header']}>
                 <div>
@@ -226,53 +182,49 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                         </p>
                     ) : null}
                 </div>
-                {showRefresh || paginated || refetchControlShown ? (
-                    <Flex gap="xs" align="flex-end" justify="flex-end">
-                        {refetchControlShown ? (
-                            <Flex gap="xs" align="center" className={classes['refetch-control']} aria-live="polite">
-                                <div className={classes['refetch-loader']}>
-                                    {isFetching ? <MantineLoader size="xs" /> : null}
-                                </div>
-                                <Select
-                                    label="Rafraîchissement auto"
-                                    data={REFETCH_INTERVAL_OPTIONS}
-                                    value={intervalToSelectValue(userRefetchInterval)}
-                                    onChange={(value) => setUserRefetchInterval(selectValueToInterval(value))}
-                                    allowDeselect={false}
-                                />
-                            </Flex>
-                        ) : null}
-                        {showRefresh ? (
-                            <ActionIcon
-                                variant="subtle"
-                                onClick={() => refetch({ cancelRefetch: true })}
-                                title="Rafraichir la liste"
-                                size="lg"
-                            >
-                                <IconRefresh />
-                            </ActionIcon>
-                        ) : null}
-                        {paginated ? (
+                <Flex gap="xs" align="flex-end" justify="flex-end">
+                    {refetchControlShown ? (
+                        <Flex gap="xs" align="center" className={classes['refetch-control']} aria-live="polite">
+                            <div className={classes['refetch-loader']}>
+                                {isFetching ? <MantineLoader size="xs" /> : null}
+                            </div>
                             <Select
-                                label="Nombre de lignes"
-                                className={classes['select-limit']}
-                                data={LIMITS.map(String)}
-                                value={String(pagination.limit)}
+                                label="Rafraîchissement auto"
+                                data={REFETCH_INTERVAL_OPTIONS}
+                                value={intervalToSelectValue(userRefetchInterval)}
+                                onChange={(value) => setUserRefetchInterval(selectValueToInterval(value))}
                                 allowDeselect={false}
-                                onChange={(limit) =>
-                                    setPagination((prev) => ({
-                                        ...prev,
-                                        limit: Number(limit),
-                                    }))
-                                }
                             />
-                        ) : null}
-                    </Flex>
-                ) : null}
+                        </Flex>
+                    ) : null}
+                    <ActionIcon
+                        variant="subtle"
+                        onClick={() => refetch({ cancelRefetch: true })}
+                        title="Rafraichir la liste"
+                        size="lg"
+                    >
+                        <IconRefresh />
+                    </ActionIcon>
+                    {paginated ? (
+                        <Select
+                            label="Nombre de lignes"
+                            className={classes['select-limit']}
+                            data={LIMITS.map(String)}
+                            value={String(pagination.limit)}
+                            allowDeselect={false}
+                            onChange={(limit) =>
+                                setPagination((prev) => ({
+                                    ...prev,
+                                    limit: Number(limit),
+                                }))
+                            }
+                        />
+                    ) : null}
+                </Flex>
             </div>
 
             {queryEnabled ? (
-                <div className={clsx(classes['table-container'], tableContainerClassName)}>
+                <div className={classes['table-container']}>
                     {isLoading ? (
                         <Loader className={classes.loader} />
                     ) : (
@@ -289,7 +241,6 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                 <Table.Thead>
                                     <Table.Tr>
                                         {showCopyUuidCol ? <Table.Th key="copy-uuid" w={48} /> : null}
-                                        {showSelection ? <Table.Th key="select-row" /> : null}
                                         {tableHeader}
                                     </Table.Tr>
                                 </Table.Thead>
@@ -305,14 +256,9 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                             </Table.Td>
                                         </Table.Tr>
                                     ) : null}
-                                    {data?.map((item, index) => (
+                                    {data?.map((item) => (
                                         <React.Fragment key={item.uuid}>
                                             <Table.Tr
-                                                bg={
-                                                    (selectedUuids || []).includes(item.uuid)
-                                                        ? 'var(--mantine-primary-color-light)'
-                                                        : undefined
-                                                }
                                                 className={clsx(classes['table-row'], {
                                                     [classes['row-clickable']]: !!onItemClick || !!getExpandedContent,
                                                 })}
@@ -320,22 +266,6 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                                 {showCopyUuidCol ? (
                                                     <Table.Td>
                                                         <CopyUuidButton uuid={item.uuid} />
-                                                    </Table.Td>
-                                                ) : null}
-                                                {showSelection ? (
-                                                    <Table.Td>
-                                                        <Checkbox
-                                                            aria-label="Selectionner l'élément"
-                                                            checked={(selectedUuids || []).includes(item.uuid)}
-                                                            onChange={(event) =>
-                                                                setSelectedUuids &&
-                                                                setSelectedUuids((uuids) =>
-                                                                    event.currentTarget.checked
-                                                                        ? [...uuids, item.uuid]
-                                                                        : uuids.filter((uuid) => uuid !== item.uuid),
-                                                                )
-                                                            }
-                                                        />
                                                     </Table.Td>
                                                 ) : null}
                                                 {tableBodyRenderFns.map((renderFn, cellIndex) => (
@@ -347,13 +277,6 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                                                                       onItemClick && onItemClick(item);
 
                                                                       if (getExpandedContent) {
-                                                                          // Read here, not in the updater: StrictMode runs updaters twice.
-                                                                          if (!rowsExpanded.has(item.uuid)) {
-                                                                              onRowExpand?.(
-                                                                                  item,
-                                                                                  pagination.offset + index + 1,
-                                                                              );
-                                                                          }
                                                                           setRowsExpanded((prev) => {
                                                                               const newSet = new Set(prev);
                                                                               if (newSet.has(item.uuid)) {
@@ -399,7 +322,7 @@ const Component = <T_DATA extends Uuided, T_FILTER extends object | undefined>({
                             ...prev,
                             offset: (page - 1) * prev.limit,
                         }));
-                        scrollToTable(tableRef);
+                        scrollBelowHeader(tableRef.current);
                     }}
                     total={paginationPage.totalPages}
                 />

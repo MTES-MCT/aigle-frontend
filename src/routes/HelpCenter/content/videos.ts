@@ -1,20 +1,36 @@
-import { Video } from './types';
+import { TutorialVideo, Video } from './types';
 
-const loomVideo = (id: string, title: string, durationSeconds: number): Video => ({
+const loomVideo = (id: string, title: string): Video => ({
     id,
     title,
-    durationSeconds,
     url: `https://www.loom.com/share/${id}`,
     embedUrl: `https://www.loom.com/embed/${id}?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true`,
 });
 
-export const tubeVideo = (shortUuid: string, title: string, durationSeconds: number): Video => ({
-    id: shortUuid,
+const tubeVideo = (videoId: string, title: string): Video => ({
+    id: videoId,
     title,
-    durationSeconds,
-    url: `https://tube.numerique.gouv.fr/w/${shortUuid}`,
-    embedUrl: `https://tube.numerique.gouv.fr/videos/embed/${shortUuid}?title=0&warningTitle=0&peertubeLink=0`,
+    url: `https://tube.numerique.gouv.fr/w/${videoId}`,
+    embedUrl: `https://tube.numerique.gouv.fr/videos/embed/${videoId}?title=0&warningTitle=0&peertubeLink=0`,
 });
+
+const TUBE_VIDEO_URL_REGEX = /^https:\/\/tube\.numerique\.gouv\.fr\/(?:w|videos\/watch|videos\/embed)\/([\w-]+)/;
+const LOOM_VIDEO_URL_REGEX = /^https:\/\/(?:www\.)?loom\.com\/(?:share|embed)\/(\w+)/;
+
+// A link to tube.numerique.gouv.fr or Loom plays in the video modal; any other one is opened as is.
+export const getPlayableVideo = (url: string, title: string): Video | null => {
+    const tubeVideoId = url.match(TUBE_VIDEO_URL_REGEX)?.[1];
+    if (tubeVideoId) {
+        return tubeVideo(tubeVideoId, title);
+    }
+
+    const loomVideoId = url.match(LOOM_VIDEO_URL_REGEX)?.[1];
+    if (loomVideoId) {
+        return loomVideo(loomVideoId, title);
+    }
+
+    return null;
+};
 
 export const TUBE_CHANNEL_URL = 'https://tube.numerique.gouv.fr/video-channels/videos_formation_aigle';
 
@@ -30,15 +46,20 @@ export const VIDEO_IDS = {
     SUPPORT: 'e708a6042a5d49879f764461220202b1',
 } as const;
 
+const tutorial = (id: string, title: string, durationSeconds: number): TutorialVideo => ({
+    ...loomVideo(id, title),
+    durationSeconds,
+});
+
 // In the order the team recommends watching them.
-export const VIDEOS: Video[] = [
-    loomVideo(VIDEO_IDS.INTRODUCTION, 'Introduction à AIGLE', 233),
-    loomVideo(VIDEO_IDS.CUSTOM_ZONES, 'Les zones à enjeux', 201),
-    loomVideo(VIDEO_IDS.HISTORY, 'Historique des détections et millésimes', 204),
-    loomVideo(VIDEO_IDS.MAP, 'L’interface cartographique', 300),
-    loomVideo(VIDEO_IDS.TABLE, 'Édition multiple et interface tableau', 301),
-    loomVideo(VIDEO_IDS.DETECTED_OBJECTS, 'Les objets détectés', 284),
-    loomVideo(VIDEO_IDS.STATUSES, 'Fiche objet et gestion des statuts (1/2)', 300),
-    loomVideo(VIDEO_IDS.CONTROL_STATUSES, 'Les statuts de contrôle (2/2)', 300),
-    loomVideo(VIDEO_IDS.SUPPORT, 'Support, centre d’aide et ressources disponibles', 84),
+export const VIDEOS: TutorialVideo[] = [
+    tutorial(VIDEO_IDS.INTRODUCTION, 'Introduction à AIGLE', 233),
+    tutorial(VIDEO_IDS.CUSTOM_ZONES, 'Les zones à enjeux', 201),
+    tutorial(VIDEO_IDS.HISTORY, 'Historique des détections et millésimes', 204),
+    tutorial(VIDEO_IDS.MAP, 'L’interface cartographique', 300),
+    tutorial(VIDEO_IDS.TABLE, 'Édition multiple et interface tableau', 301),
+    tutorial(VIDEO_IDS.DETECTED_OBJECTS, 'Les objets détectés', 284),
+    tutorial(VIDEO_IDS.STATUSES, 'Fiche objet et gestion des statuts (1/2)', 300),
+    tutorial(VIDEO_IDS.CONTROL_STATUSES, 'Les statuts de contrôle (2/2)', 300),
+    tutorial(VIDEO_IDS.SUPPORT, 'Support, centre d’aide et ressources disponibles', 84),
 ];

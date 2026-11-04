@@ -1,7 +1,11 @@
 import React, { useId, useMemo, useState } from 'react';
 
 import Collapse from '@/components/dsfr/Collapse';
-import LayerRow, { LayerRowSortableProps } from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
+import LayerRow, {
+    ExpandButton,
+    LayerRowSortableProps,
+    VisibilityButton,
+} from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
 import SortableLayerRows from '@/components/Map/MapSidePanel/LayersPanel/SortableLayerRows';
 import { getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
@@ -48,30 +52,17 @@ const Section: React.FC<SectionProps> = ({ title, anyDisplayed, onToggleDisplaye
                 <span className={classes['section-handle-slot']} aria-hidden="true" />
                 <span className={clsx(classes['section-vignette'], 'fr-icon-folder-2-line')} aria-hidden="true" />
                 <h3 className={classes['section-title']}>{title}</h3>
-                <button
-                    type="button"
-                    className={clsx(
-                        'fr-btn fr-btn--tertiary-no-outline fr-btn--sm',
-                        anyDisplayed ? 'fr-icon-eye-line' : 'fr-icon-eye-off-line',
-                    )}
-                    title={toggleLabel}
+                <VisibilityButton
+                    displayed={anyDisplayed}
+                    label={toggleLabel}
                     onClick={() => onToggleDisplayed(!anyDisplayed)}
-                >
-                    {toggleLabel}
-                </button>
-                <button
-                    type="button"
-                    className={clsx(
-                        'fr-btn fr-btn--tertiary-no-outline fr-btn--sm',
-                        expanded ? 'fr-icon-arrow-up-s-line' : 'fr-icon-arrow-down-s-line',
-                    )}
-                    title={expanded ? `Replier ${title}` : `Déplier ${title}`}
-                    aria-expanded={expanded}
-                    aria-controls={contentId}
+                />
+                <ExpandButton
+                    name={title}
+                    expanded={expanded}
+                    controls={contentId}
                     onClick={() => setExpanded((previous) => !previous)}
-                >
-                    {expanded ? `Replier ${title}` : `Déplier ${title}`}
-                </button>
+                />
             </div>
             <Collapse id={contentId} expanded={expanded}>
                 <div className={classes['section-content']}>{children}</div>
@@ -145,7 +136,10 @@ const Component: React.FC<ComponentProps> = ({
             displayed,
         );
 
-    const indicativeTileSetsShown = displayLayersSelection ? layersMap.INDICATIVE : [];
+    const indicativeTileSetsShown = useMemo(
+        () => (displayLayersSelection ? layersMap.INDICATIVE : []),
+        [displayLayersSelection, layersMap],
+    );
 
     // the grid under the row of `annotationGridUnder`, on top when that row is gone
     const indicativeRows: IndicativeRow[] = useMemo(() => {

@@ -1,10 +1,8 @@
 import clsx from 'clsx';
 import React, {
     cloneElement,
-    isValidElement,
     ReactElement,
     ReactNode,
-    Ref,
     useCallback,
     useEffect,
     useId,
@@ -25,39 +23,40 @@ interface Position {
 
 // kept clear of the viewport edges, like the DSFR script does
 const VIEWPORT_MARGIN = 8;
-
-const assignRef = <T,>(ref: Ref<T> | undefined, value: T) => {
-    if (typeof ref === 'function') {
-        ref(value);
-    } else if (ref) {
-        (ref as React.MutableRefObject<T>).current = value;
-    }
-};
+// lets the pointer cross from the trigger onto the bubble, which stays open while hovered (WCAG 1.4.13)
+const UNHOVER_DELAY_MS = 100;
 
 interface ComponentProps {
     label: ReactNode;
     // a single focusable element: it receives the hover and focus handlers and `aria-describedby`
-    children: ReactElement;
-    placement?: Placement;
+    children: ReactElement<React.HTMLAttributes<HTMLElement>>;
 }
 
 /**
- * The DSFR tooltip (`fr-tooltip fr-placement`) without the DSFR script: shown on hover and focus,
- * hidden on Escape, portalled to the body with fixed coordinates so no scrolling ancestor clips
- * it. It flips below its trigger when there is no room above.
+ * The DSFR tooltip (`fr-tooltip fr-placement`) without the DSFR script: shown while its trigger is
+ * hovered or focused, hidden on Escape, portalled to the body with fixed coordinates so no scrolling
+ * ancestor clips it. It flips below its trigger when there is no room above.
  */
-const Component: React.FC<ComponentProps> = ({ label, children, placement = 'top' }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ label, children }: ComponentProps) => {
     const id = `tooltip-${useId()}`;
     const triggerRef = useRef<HTMLElement | null>(null);
     const tooltipRef = useRef<HTMLSpanElement>(null);
-    const [shown, setShown] = useState(false);
+    const unhoverTimerRef = useRef<number>();
+    // two flags, as in the DSFR script: leaving with the pointer must not hide it from a focused trigger
+    const [hovered, setHovered] = useState(false);
+    const [focused, setFocused] = useState(false);
     const [position, setPosition] = useState<Position>();
+    const shown = hovered || focused;
 
-    const show = () => setShown(true);
-    const hide = () => {
-        setShown(false);
-        setPosition(undefined);
+    const hover = () => {
+        window.clearTimeout(unhoverTimerRef.current);
+        setHovered(true);
     };
+    const unhover = () => {
+        unhoverTimerRef.current = window.setTimeout(() => setHovered(false), UNHOVER_DELAY_MS);
+    };
+
+    useEffect(() => () => window.clearTimeout(unhoverTimerRef.current), []);
 
     const place = useCallback(() => {
         const trigger = triggerRef.current;
@@ -72,20 +71,21 @@ const Component: React.FC<ComponentProps> = ({ label, children, placement = 'top
         const center = rect.left + rect.width / 2;
         const maxLeft = document.documentElement.clientWidth - width - VIEWPORT_MARGIN;
         const left = Math.max(VIEWPORT_MARGIN, Math.min(center - width / 2, maxLeft));
-        const fitsAbove = rect.top - height >= VIEWPORT_MARGIN;
-        const actualPlacement: Placement = placement === 'top' && !fitsAbove ? 'bottom' : placement;
+        const placement: Placement = rect.top - height >= VIEWPORT_MARGIN ? 'top' : 'bottom';
 
         setPosition({
-            top: actualPlacement === 'top' ? rect.top - height : rect.bottom,
+            top: placement === 'top' ? rect.top - height : rect.bottom,
             left,
             arrowX: center - (left + width / 2),
-            placement: actualPlacement,
+            placement,
         });
-    }, [placement]);
+    }, []);
 
     useLayoutEffect(() => {
         if (shown) {
             place();
+        } else {
+            setPosition(undefined);
         }
     }, [shown, label, place]);
 
@@ -96,7 +96,9 @@ const Component: React.FC<ComponentProps> = ({ label, children, placement = 'top
 
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                hide();
+                window.clearTimeout(unhoverTimerRef.current);
+                setHovered(false);
+                setFocused(false);
             }
         };
 
@@ -111,34 +113,26 @@ const Component: React.FC<ComponentProps> = ({ label, children, placement = 'top
         };
     }, [shown, place]);
 
-    if (!isValidElement(children)) {
-        return children;
-    }
+    const { onMouseEnter, onMouseLeave, onFocus, onBlur } = children.props;
 
-    const child = children as ReactElement<React.HTMLAttributes<HTMLElement>> & { ref?: Ref<HTMLElement> };
-    const { onMouseEnter, onMouseLeave, onFocus, onBlur } = child.props;
-
-    const trigger = cloneElement(child, {
-        ref: (node: HTMLElement | null) => {
-            triggerRef.current = node;
-            assignRef(child.ref, node);
-        },
-        'aria-describedby': clsx(child.props['aria-describedby'], id),
+    const trigger = cloneElement(children, {
+        ref: triggerRef,
+        'aria-describedby': clsx(children.props['aria-describedby'], id),
         onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
             onMouseEnter?.(event);
-            show();
+            hover();
         },
         onMouseLeave: (event: React.MouseEvent<HTMLElement>) => {
             onMouseLeave?.(event);
-            hide();
+            unhover();
         },
         onFocus: (event: React.FocusEvent<HTMLElement>) => {
             onFocus?.(event);
-            show();
+            setFocused(true);
         },
         onBlur: (event: React.FocusEvent<HTMLElement>) => {
             onBlur?.(event);
-            hide();
+            setFocused(false);
         },
     } as React.HTMLAttributes<HTMLElement>);
 
@@ -152,9 +146,11 @@ const Component: React.FC<ComponentProps> = ({ label, children, placement = 'top
                     role="tooltip"
                     className={clsx(
                         'fr-tooltip fr-placement',
-                        `fr-placement--${position?.placement ?? placement}`,
+                        `fr-placement--${position?.placement ?? 'top'}`,
                         shown && 'fr-tooltip--shown',
                     )}
+                    onMouseEnter={hover}
+                    onMouseLeave={unhover}
                     style={
                         {
                             position: 'fixed',

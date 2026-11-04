@@ -1,4 +1,6 @@
-// portalled to the body, so it is positioned from the field's viewport rect
+@use '@/constants.scss' as constants;
+
+// portalled to the body, so positioned from the viewport rect of the field
 .popup {
     position: fixed;
 
@@ -6,7 +8,7 @@
     overflow-y: auto;
 
     background-color: var(--background-overlap-grey);
-    box-shadow: 0 2px 6px 0 rgba(0, 0, 18, 0.16);
+    box-shadow: constants.$map-control-shadow;
 
     // above the map side panel (95) and the detection detail panel (100)
     z-index: 1000;
@@ -22,7 +24,6 @@
 }
 
 .suggestion {
-    width: 100%;
     padding: 0.5rem 1rem;
 
     display: flex;
@@ -30,17 +31,10 @@
     align-items: flex-start;
     gap: 0.125rem;
 
-    text-align: left;
-
-    background-color: transparent;
-    border: 0;
     cursor: pointer;
-
-    &:hover {
-        background-color: var(--background-default-grey-hover);
-    }
 }
 
+.suggestion:hover,
 .suggestion-active {
     background-color: var(--background-default-grey-hover);
 }

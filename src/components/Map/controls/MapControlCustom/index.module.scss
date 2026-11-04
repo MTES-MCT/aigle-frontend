@@ -2,18 +2,17 @@
 
 $content-padding: 16px;
 
+// in the flow of its corner, and what the close button anchors to
 .content {
-    position: absolute;
+    position: relative;
     z-index: 93;
 
     padding: $content-padding;
 
-    max-width: calc(100% - 2 * constants.$margin-map-elements);
-
     border-radius: 4px;
 
     background-color: var(--background-default-grey);
-    box-shadow: 0 2px 6px 0 rgba(0, 0, 18, 0.16);
+    box-shadow: constants.$map-control-shadow;
 
     display: none;
 
@@ -34,11 +33,4 @@ $content-padding: 16px;
     flex-direction: column;
     align-items: flex-start;
     gap: constants.$map-control-gap;
-}
-
-// in the flow of its corner instead of over the map: the close button still anchors to it
-.content.content-inline {
-    position: relative;
-
-    max-width: none;
 }

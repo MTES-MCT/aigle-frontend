@@ -1,4 +1,3 @@
-import clsx from 'clsx';
 import React from 'react';
 
 // pages shown on each side of the current one, the first and last pages always are
@@ -35,16 +34,15 @@ interface ComponentProps {
     page: number;
     totalPages: number;
     onChange: (page: number) => void;
-    className?: string;
 }
 
 // The DSFR pagination with buttons: the pages are client state, not urls.
-const Component: React.FC<ComponentProps> = ({ page, totalPages, onChange, className }: ComponentProps) => {
+const Component: React.FC<ComponentProps> = ({ page, totalPages, onChange }: ComponentProps) => {
     const isFirst = page <= 1;
     const isLast = page >= totalPages;
 
     return (
-        <nav role="navigation" className={clsx('fr-pagination', className)} aria-label="Pagination">
+        <nav role="navigation" className="fr-pagination" aria-label="Pagination">
             <ul className="fr-pagination__list">
                 <li>
                     <button

@@ -3,7 +3,7 @@ import React, { PropsWithChildren } from 'react';
 import Header from '@/components/Header';
 import { useAuth } from '@/store/slices/auth';
 import { HEADER_HEIGHT_PX } from '@/utils/constants';
-import { getPageTitle } from '@/utils/html';
+import { getPageTitle, MAIN_CONTENT_ID } from '@/utils/html';
 import { AppShell, NavLink } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -14,6 +14,7 @@ import {
     IconHexagon,
     IconHistory,
     IconMap,
+    IconPresentation,
     IconReportAnalytics,
     IconTerminal,
     IconUser,
@@ -122,6 +123,15 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 ) : null}
                 {userMe?.userRole === 'SUPER_ADMIN' ? (
                     <NavLink
+                        label="Webinaires"
+                        component={Link}
+                        to="/admin/webinars"
+                        active={pathname.includes('/admin/webinars')}
+                        leftSection={<IconPresentation size={ICON_SIZE} />}
+                    />
+                ) : null}
+                {userMe?.userRole === 'SUPER_ADMIN' ? (
+                    <NavLink
                         label="Commandes"
                         component={Link}
                         to="/admin/run-command"
@@ -151,7 +161,7 @@ const Component: React.FC<ComponentProps> = ({ children, title }) => {
                 ) : null}
             </AppShell.Navbar>
 
-            <AppShell.Main m="md">
+            <AppShell.Main id={MAIN_CONTENT_ID} m="md">
                 <title>{getPageTitle(`[admin] ${title}`)}</title>
                 <div className={classes['content-container']}>
                     <div className={classes['content']}>{children}</div>

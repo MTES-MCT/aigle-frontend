@@ -13,9 +13,9 @@ interface Options<T_DATA> {
 }
 
 /**
- * The paginated half of the shared DataTable, for the DSFR table of /table. The query key keeps
- * DataTable's shape (`[endpoint, limit, offset, ...filter values]`) so that invalidating
- * `[endpoint]` after a bulk edit still refreshes it.
+ * A paginated list for the DSFR tables of /table. The query key starts with the endpoint alone
+ * (`[endpoint, limit, offset, ...filter values]`) so that invalidating `[endpoint]` after a bulk
+ * edit refreshes it.
  */
 export const usePaginatedList = <T_DATA, T_FILTER extends object>(
     endpoint: string,
@@ -43,6 +43,15 @@ export const usePaginatedList = <T_DATA, T_FILTER extends object>(
         enabled,
     });
 
+    // a refresh can leave the page past the end (edited rows leaving the filter): back to the last page
+    useEffect(() => {
+        const { total, offset, limit } = pagination;
+
+        if (total && offset >= total) {
+            setPagination((prev) => ({ ...prev, offset: Math.floor((total - 1) / limit) * limit }));
+        }
+    }, [pagination]);
+
     // kept in a ref so that a new callback on each parent render does not report the same data again
     const onDataSettledRef = useRef(onDataSettled);
     useEffect(() => {
@@ -54,5 +63,7 @@ export const usePaginatedList = <T_DATA, T_FILTER extends object>(
         }
     }, [query.data, query.isPlaceholderData]);
 
-    return { ...query, pagination, setPagination };
+    const { data, isLoading, isFetching, error, refetch } = query;
+
+    return { data, isLoading, isFetching, error, refetch, pagination, setPagination };
 };

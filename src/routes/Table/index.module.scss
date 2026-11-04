@@ -23,10 +23,8 @@
 .search-notice[class~='fr-alert'] {
     margin-top: 1rem;
 
-    // the app zeroes the DSFR text spacing and shrinks paragraphs: the alert gets both back
+    // the app shrinks paragraphs: the alert gets the DSFR size back
     p {
-        --text-spacing: 0;
-
         font-size: 0.875rem;
         line-height: 1.5rem;
     }

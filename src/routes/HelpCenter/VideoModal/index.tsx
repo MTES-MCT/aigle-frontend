@@ -56,9 +56,13 @@ const Component: React.FC<ComponentProps> = ({ selection, onSelect, onClose }: C
                     <div className={classes.footer}>
                         <p className={classes.meta}>
                             {index !== -1 ? `Vidéo ${index + 1} sur ${playlist.length} · ` : ''}
-                            <span className="fr-icon-time-line fr-icon--sm" aria-hidden="true" />
-                            {formatVideoDuration(shown.video.durationSeconds)}
-                            {' · '}
+                            {shown.video.durationSeconds !== undefined ? (
+                                <>
+                                    <span className="fr-icon-time-line fr-icon--sm" aria-hidden="true" />
+                                    {formatVideoDuration(shown.video.durationSeconds)}
+                                    {' · '}
+                                </>
+                            ) : null}
                             <a
                                 href={shown.video.url}
                                 target="_blank"

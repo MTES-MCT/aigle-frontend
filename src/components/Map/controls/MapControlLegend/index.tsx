@@ -5,7 +5,13 @@ import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
 import { useMap } from '@/store/slices/map';
 import { getCustomZoneOpacities, getObjectTypeSquareColor, withAlpha } from '@/utils/colors';
-import { DEFAULT_CUSTOM_ZONE_LAYER_OPACITY, OTHER_OBJECT_TYPE, PARCEL_COLOR } from '@/utils/constants';
+import {
+    CUSTOM_ZONE_NEGATIVE_COLOR,
+    CUSTOM_ZONE_NEGATIVE_OPACITY,
+    DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+    OTHER_OBJECT_TYPE,
+    PARCEL_COLOR,
+} from '@/utils/constants';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
@@ -80,7 +86,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, otherObjec
     return (
         <div className={classes['legends-container']}>
             <div>
-                <h2>Types d&apos;objets</h2>
+                <h2 className="fr-h6">Types d&apos;objets</h2>
 
                 <ul className={classes['legends']}>
                     {objectTypesDisplayed.map((type) => (
@@ -93,7 +99,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, otherObjec
             <div className={classes['legends-column']}>
                 {customZoneLayers.length ? (
                     <div>
-                        <h2>Zones à enjeux</h2>
+                        <h2 className="fr-h6">Zones à enjeux</h2>
 
                         <ul className={classes['legends']}>
                             {customZoneLayers.map(({ name, color, customZoneUuids, opacity }) => (
@@ -104,11 +110,24 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ objectTypes, otherObjec
                                     opacity={opacity}
                                 />
                             ))}
+                            {/* the grey of the map, plain like its fill */}
+                            <li className={classes['legend-item']}>
+                                <div
+                                    className={classes['legend-item-square']}
+                                    style={{
+                                        backgroundColor: withAlpha(
+                                            CUSTOM_ZONE_NEGATIVE_COLOR,
+                                            CUSTOM_ZONE_NEGATIVE_OPACITY,
+                                        ),
+                                    }}
+                                />
+                                Zones exclues par les filtres
+                            </li>
                         </ul>
                     </div>
                 ) : null}
                 <div>
-                    <h2>Indications</h2>
+                    <h2 className="fr-h6">Indications</h2>
 
                     <ul className={classes['legends']}>
                         <li className={classes['legend-item']}>
@@ -148,7 +167,6 @@ const Component: React.FC<ComponentProps> = ({ isShowed, setIsShowed }) => {
             controlInner="Afficher la légende"
             controlType="TOGGLE"
             position="bottom-left"
-            inline
             controlClassName={classes.control}
             contentClassName={classes.content}
             containerClassName={classes.container}

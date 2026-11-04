@@ -6,6 +6,7 @@
 @import url('@mantine/dates/styles.css');
 @import url('@mantine/notifications/styles.css');
 @import url('@mantine/charts/styles.css');
+@import url('@mantine/tiptap/styles.css');
 
 @import url('mapbox-gl/dist/mapbox-gl.css');
 
@@ -244,18 +245,13 @@ header.fr-header {
 
     z-index: 200;
 
-    .fr-header__brand-top.fr-hidden-lg {
-        max-width: 6rem;
-    }
-
     .fr-header__service::before {
         display: none;
     }
 
     // Both rows are flex items of the header, so their z-index applies even though they are
-    // static. DSFR parks the nav row at 1750 for its mobile modal — which this app never
-    // opens — and that would paint its top border over the user menu hanging down from the
-    // row above.
+    // static. DSFR parks the nav row at 1750 for its mobile modal, and on desktop that would
+    // paint its top border over the user menu hanging down from the row above.
     .fr-header__body {
         z-index: 1;
 
@@ -285,15 +281,23 @@ header.fr-header {
         }
     }
 
-    // the nav row: fr-modal keeps it hidden below 992px, where the burger menu takes over. It keeps
+    // DSFR also fades `visibility` in, and while it is still hidden the menu modal cannot take the
+    // focus it is opened with: it shows at once and fades only the opacity (as dsfr/Modal does)
+    .fr-header__menu.fr-modal--opened {
+        transition: opacity 0.3s;
+    }
+
+    // the nav row on desktop; below 992px it is the DSFR menu modal, left as DSFR draws it. It keeps
     // the centred DSFR container while the row above spans the page.
-    .fr-header__menu {
-        z-index: auto;
+    @media (min-width: 62em) {
+        .fr-header__menu {
+            z-index: auto;
 
-        height: constants.$header-nav-height;
+            height: constants.$header-nav-height;
 
-        // the row above already draws the rule between the two: DSFR's own would double it
-        box-shadow: none;
+            // the row above already draws the rule between the two: the DSFR one would double it
+            box-shadow: none;
+        }
     }
 
     // DSFR spaces out a nav of two to four items by 1.25rem; the design keeps the links side by side
@@ -302,15 +306,12 @@ header.fr-header {
     }
 
     // the shared .fr-btns-group bottom margins would push the tools row off-centre
-    .fr-header__tools-links .fr-btns-group {
-        margin-bottom: 0;
-    }
-
+    .fr-header__tools-links .fr-btns-group,
     .fr-header__tools-links .fr-btn {
         margin-bottom: 0;
     }
 
-    /* Just above the burger breakpoint the tools row (group selector, links, user menu) is wider
+    /* Just above the menu modal breakpoint the tools row (group selector, links, user menu) is wider
        than the room left by the brand: tighten the items rather than clip the user menu. DSFR sets
        the padding through a chain of :not() selectors, hence !important. */
     @media (min-width: 62em) and (max-width: 74.99em) {
@@ -321,6 +322,16 @@ header.fr-header {
             padding-left: 0.5rem !important;
         }
     }
+}
+
+// DSFR shows a focused skip link in flow above the header, which is fixed here and would cover it
+.fr-skiplinks:focus-within {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+
+    z-index: 201;
 }
 
 .fr-btns-group .fr-btn {
@@ -410,7 +421,6 @@ $map-control-button-size: 48px;
     background-color: var(--background-default-grey);
     box-shadow: constants.$map-control-shadow !important;
 
-    // direct children only: MapControlCustom also mounts into a mapbox ctrl container
     > button {
         width: $map-control-button-size;
         height: $map-control-button-size;
@@ -423,6 +433,21 @@ $map-control-button-size: 48px;
 
         &:active:not(:disabled) {
             background-color: var(--background-default-grey-active);
+        }
+
+        // mapbox clears the outline and glows its own blue instead: the DSFR focus ring takes over
+        &:focus,
+        &:focus:focus-visible {
+            box-shadow: none;
+        }
+
+        // lifted so the rule between the zoom buttons does not cross the ring
+        &:focus-visible {
+            position: relative;
+            z-index: 1;
+
+            outline: 2px solid #0a76f6;
+            outline-offset: 2px;
         }
     }
 
@@ -463,7 +488,9 @@ $map-control-button-size: 48px;
     .mapboxgl-ctrl-top-right,
     .mapboxgl-ctrl-bottom-right {
         transform: translateX(
-            calc(var(--map-detail-panel-open, 0) * -#{constants.$detection-detail-panel-width + 10px})
+            calc(
+                var(--map-detail-panel-open, 0) * -#{constants.$detection-detail-panel-width + constants.$detection-detail-panel-inset}
+            )
         );
         transition: transform constants.$map-side-panel-slide-duration ease;
     }
@@ -498,14 +525,31 @@ $map-control-button-size: 48px;
             background-color: var(--background-default-grey-hover);
         }
 
+        // each tool is its own card: the shadow stays when focused (the group rule above clears it)
+        &:focus,
+        &:focus:focus-visible {
+            box-shadow: constants.$map-control-shadow;
+        }
+
         // marks the tool a drawing session is running with
-        &.active {
+        &.active,
+        &.active:focus,
+        &.active:focus:focus-visible {
             background-color: var(--background-alt-blue-france);
             box-shadow:
                 constants.$map-control-shadow,
                 inset 0 0 0 2px var(--border-active-blue-france);
         }
     }
+}
+
+// both bottom corners lay their controls out with flex and `gap`
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl,
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl {
+    float: none;
+    clear: none;
+
+    margin: 0;
 }
 
 // geolocation, zoom and fullscreen, stacked from the bottom corner
@@ -517,18 +561,6 @@ $map-control-button-size: 48px;
     flex-direction: column;
     align-items: flex-end;
     gap: constants.$map-control-gap;
-
-    .mapboxgl-ctrl {
-        float: none;
-        clear: none;
-
-        margin: 0;
-    }
-}
-
-.mapbox-gl-draw_ctrl-draw-btn {
-    width: $map-control-button-size !important;
-    height: $map-control-button-size !important;
 }
 
 // Map/index.tsx stamps a DSFR icon class onto each mapbox control button; drop the glyph the
@@ -551,9 +583,11 @@ $map-control-button-size: 48px;
 .mapboxgl-ctrl-bottom-left {
     bottom: constants.$map-control-inset;
 
-    // short of the bottom-right button column; on a narrow map the last controls wrap above
+    // short of the bottom-right button column, the side panel slide included; on a narrow map the
+    // last controls wrap above
     max-width: calc(
-        100% - #{constants.$map-year-list-offset + $map-control-button-size + 2 * constants.$map-control-inset}
+        100% - var(--map-side-panel-open, 0) * #{constants.$map-year-list-panel-slide} - #{constants.$map-year-list-offset +
+            $map-control-button-size + 2 * constants.$map-control-inset}
     );
 
     // wrap-reverse stacks the lines upwards and swaps the cross axis: flex-start is the bottom edge
@@ -563,13 +597,6 @@ $map-control-button-size: 48px;
     gap: constants.$map-control-gap;
 
     @include constants.map-control-offset-bottom-left;
-
-    .mapboxgl-ctrl {
-        float: none;
-        clear: none;
-
-        margin: 0;
-    }
 
     // the scale line of the IGN DSFR viewer (cartes.gouv.fr): DSFR text and rule on a light veil
     .mapboxgl-ctrl-scale {
@@ -590,7 +617,7 @@ $map-control-button-size: 48px;
     }
 
     // the wrapper of the hidden mapbox logo: out of the row, or it would open a gap before the year list
-    > div[class='mapboxgl-ctrl'] {
+    > .mapboxgl-ctrl:has(> .mapboxgl-ctrl-logo) {
         position: absolute;
     }
 }
@@ -612,9 +639,8 @@ body.hide-support-widgets #sentry-feedback {
     display: none;
 }
 
-// The Sentry report button (z-index 100000) owns the bottom-right corner on
-// every page. On the map that corner also holds the fullscreen/zoom stack, so
-// lift that whole container to sit above the button.
+// The Sentry report button (z-index 100000) sits left of the Brevo chat button, clear of the
+// bottom-right controls of the map.
 #sentry-feedback {
     --inset: auto #{$brevo-button-width + $brevo-button-offset-right + 8px} 0 auto;
 }

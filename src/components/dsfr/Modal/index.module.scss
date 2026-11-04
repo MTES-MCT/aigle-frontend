@@ -20,3 +20,14 @@
         transition: none;
     }
 }
+
+// the close button 1rem from the edge, as the DSFR design kit draws it (DSFR leaves 2rem)
+.body-kit [class~='fr-modal__header'] {
+    padding-right: 1rem;
+}
+
+/* index.scss trims the bottom margin of every grouped button to 0.5rem while the group keeps the
+   DSFR -1rem: the footer group gets DSFR's own 1rem back, which is the design's footer height. */
+.dialog [class~='fr-modal__footer'] [class~='fr-btns-group'] [class~='fr-btn'] {
+    margin-bottom: 1rem;
+}

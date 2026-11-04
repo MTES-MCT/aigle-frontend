@@ -7,7 +7,7 @@ interface ComponentProps {
     labels: string[];
 }
 
-// Static DSFR tags, one per line, so long names wrap instead of being cut.
+// Static DSFR tags, one per line: a long name is never cut, the table scrolls instead.
 const Component: React.FC<ComponentProps> = ({ labels }: ComponentProps) => {
     if (!labels.length) {
         return <OptionalText />;

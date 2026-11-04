@@ -1,5 +1,5 @@
 import Header from '@/components/Header';
-import { getPageTitle } from '@/utils/html';
+import { getPageTitle, MAIN_CONTENT_ID } from '@/utils/html';
 import { PropsWithChildren } from 'react';
 import classes from './index.module.scss';
 
@@ -12,7 +12,9 @@ const Component: React.FC<ComponentProps> = ({ children, title }: ComponentProps
         <>
             <title>{getPageTitle(title)}</title>
             <Header />
-            <div className={classes.content}>{children}</div>
+            <main id={MAIN_CONTENT_ID} className={classes.content}>
+                {children}
+            </main>
         </>
     );
 };

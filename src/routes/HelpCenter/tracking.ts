@@ -1,5 +1,6 @@
+import { Webinar } from '@/models/help-center';
 import { trackEvent } from '@/utils/matomo';
-import { Exercise, Video, Webinar } from './content/types';
+import { Exercise, Video } from './content/types';
 import { VIDEOS } from './content/videos';
 
 // One Matomo event category per section, under a shared prefix so they sort together.
@@ -23,7 +24,7 @@ export const trackVideoOpen = (video: Video) => {
 
 export const getExerciseTrackingName = (exercise: Exercise): string => `${exercise.label} : ${exercise.title}`;
 
-export type WebinarLink = 'Inscription' | 'Lien de connexion' | 'Replay' | 'Support';
+export type WebinarLink = 'Inscription' | 'Lien de connexion' | 'Replay';
 
 // The date tells apart sessions that share a title.
 export const trackWebinarLink = (link: WebinarLink, webinar: Webinar) =>

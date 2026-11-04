@@ -10,6 +10,56 @@ const formatOpacity = (opacity: number) => `${Math.round(opacity)} %`;
 
 export type DropPosition = 'before' | 'after';
 
+interface VisibilityButtonProps {
+    displayed: boolean;
+    // what a click does, e.g. « Masquer Zone agricole »
+    label: string;
+    onClick: () => void;
+}
+
+// the eye of a layer row or of a group header
+export const VisibilityButton: React.FC<VisibilityButtonProps> = ({ displayed, label, onClick }) => (
+    <button
+        type="button"
+        className={clsx(
+            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm',
+            displayed ? 'fr-icon-eye-line' : 'fr-icon-eye-off-line',
+        )}
+        title={label}
+        onClick={onClick}
+    >
+        {label}
+    </button>
+);
+
+interface ExpandButtonProps {
+    name: string;
+    expanded: boolean;
+    controls: string;
+    onClick: () => void;
+}
+
+// the chevron that folds a layer row or a group
+export const ExpandButton: React.FC<ExpandButtonProps> = ({ name, expanded, controls, onClick }) => {
+    const label = expanded ? `Replier ${name}` : `Déplier ${name}`;
+
+    return (
+        <button
+            type="button"
+            className={clsx(
+                'fr-btn fr-btn--tertiary-no-outline fr-btn--sm',
+                expanded ? 'fr-icon-arrow-up-s-line' : 'fr-icon-arrow-down-s-line',
+            )}
+            title={label}
+            aria-expanded={expanded}
+            aria-controls={controls}
+            onClick={onClick}
+        >
+            {label}
+        </button>
+    );
+};
+
 export interface LayerRowSortableProps {
     dragged: boolean;
     dropPosition?: DropPosition;
@@ -121,31 +171,18 @@ const Component: React.FC<ComponentProps> = ({
                 <span className={classes.title}>
                     <span className={classes.name}>{name}</span>
                 </span>
-                <button
-                    type="button"
-                    className={clsx(
-                        'fr-btn fr-btn--tertiary-no-outline fr-btn--sm',
-                        displayed ? 'fr-icon-eye-line' : 'fr-icon-eye-off-line',
-                    )}
-                    title={displayed ? `Masquer ${name}` : `Afficher ${name}`}
+                <VisibilityButton
+                    displayed={displayed}
+                    label={displayed ? `Masquer ${name}` : `Afficher ${name}`}
                     onClick={() => onToggleDisplayed(!displayed)}
-                >
-                    {displayed ? `Masquer ${name}` : `Afficher ${name}`}
-                </button>
+                />
                 {expandable ? (
-                    <button
-                        type="button"
-                        className={clsx(
-                            'fr-btn fr-btn--tertiary-no-outline fr-btn--sm',
-                            expanded ? 'fr-icon-arrow-up-s-line' : 'fr-icon-arrow-down-s-line',
-                        )}
-                        title={expanded ? `Replier ${name}` : `Déplier ${name}`}
-                        aria-expanded={expanded}
-                        aria-controls={detailsId}
+                    <ExpandButton
+                        name={name}
+                        expanded={expanded}
+                        controls={detailsId}
                         onClick={() => setExpanded((prev) => !prev)}
-                    >
-                        {expanded ? `Replier ${name}` : `Déplier ${name}`}
-                    </button>
+                    />
                 ) : (
                     // keeps the eye in the same column as on the rows that unfold
                     <span className={classes['toggle-slot']} aria-hidden="true" />

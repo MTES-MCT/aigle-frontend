@@ -50,7 +50,12 @@ const MapPreview: React.FC<MapPreviewProps> = ({ name, geometry }) => {
                 tileSetStatus: 'VISIBLE',
                 tileSetScheme: 'xyz',
                 tileSetType: 'BACKGROUND',
-                geometry,
+                minZoom: null,
+                maxZoom: null,
+                monochrome: false,
+                shownInLayersPanel: true,
+                // the map outlines this area and frames the preview on it
+                geometryBbox: geometry,
             },
         },
     ];

@@ -260,6 +260,16 @@ const PathValidationChecklist: React.FC<PathValidationChecklistProps> = ({
     );
 };
 
+interface HtmlProps {
+    // Sanitized by the API: only the tags its rich text editor produces.
+    html: string;
+}
+
+// Rich text written in the admin, with the same typography as the content blocks.
+export const RichHtml: React.FC<HtmlProps> = ({ html }: HtmlProps) => (
+    <div className={classes.container} dangerouslySetInnerHTML={{ __html: html }} />
+);
+
 interface ComponentProps {
     blocks: ContentBlock[];
     highlightTerms?: string[];

@@ -14,8 +14,3 @@
 .table[class~='fr-table'] .nowrap {
     white-space: nowrap;
 }
-
-// a status never breaks inside itself
-.table [class~='fr-badge'] {
-    white-space: nowrap;
-}

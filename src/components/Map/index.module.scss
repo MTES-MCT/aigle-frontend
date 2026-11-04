@@ -1,7 +1,5 @@
 @use '@/constants.scss' as constants;
 
-$panel-position-from-borders: 10px;
-
 .container {
     height: 100%;
 
@@ -10,19 +8,19 @@ $panel-position-from-borders: 10px;
 
         box-shadow: constants.$shadow;
 
-        top: $panel-position-from-borders;
-        right: $panel-position-from-borders;
-        bottom: $panel-position-from-borders;
+        top: constants.$detection-detail-panel-inset;
+        right: constants.$detection-detail-panel-inset;
+        bottom: constants.$detection-detail-panel-inset;
 
         width: constants.$detection-detail-panel-width;
-        max-width: calc(100% - 2 * $panel-position-from-borders);
+        max-width: calc(100% - 2 * constants.$detection-detail-panel-inset);
         border-radius: constants.$border-radius-medium;
 
         z-index: 100;
         background: #ffffff;
 
         @media screen and (max-width: 992px) {
-            width: calc(100% - 2 * $panel-position-from-borders);
+            width: calc(100% - 2 * constants.$detection-detail-panel-inset);
         }
     }
 }
@@ -39,11 +37,10 @@ $panel-position-from-borders: 10px;
     flex-direction: row;
     gap: 0.5rem;
 
-    .detections-loader-container,
-    .object-from-coordinates-loader-container {
+    .loader {
         padding: 8px;
 
-        box-shadow: 0 2px 6px 0 rgba(0, 0, 18, 0.16);
+        box-shadow: constants.$map-control-shadow;
         background-color: var(--background-default-grey);
 
         border-radius: 4px;
@@ -79,19 +76,30 @@ $panel-position-from-borders: 10px;
     }
 }
 
-// blocks the whole page while the signalement sheets are generated: the DSFR modal backdrop
+// blocks the whole page while the signalement sheets are generated: the DSFR modal backdrop over
+// the full screen, with the UA box of a modal <dialog> (size cap, margin, border) reset
 .multiple-download-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 10000000;
 
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
     padding: 1rem;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
+    color: inherit;
     background-color: rgba(22, 22, 22, 0.64);
+    border: 0;
+
+    &::backdrop {
+        background: transparent;
+    }
 }
 
 .multiple-download-dialog {
@@ -140,10 +148,8 @@ $panel-position-from-borders: 10px;
     }
 }
 
-.container .multiple-download-cancel,
 .multiple-download-dialog .multiple-download-cancel {
     width: 100%;
-    max-width: none;
     margin-top: 1rem;
 
     justify-content: center;

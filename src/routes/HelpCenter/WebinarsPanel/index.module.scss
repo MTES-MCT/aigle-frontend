@@ -31,3 +31,16 @@
     font-size: 1rem;
     line-height: 1.5rem;
 }
+
+/* Inside the tab panel, not under the header: no container gives it side padding. */
+.live {
+    margin-bottom: tokens.$space-section;
+    padding-right: tokens.$space-block;
+    padding-left: tokens.$space-block;
+}
+
+.live-body {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: tokens.$space-related tokens.$space-block;
+}

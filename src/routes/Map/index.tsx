@@ -5,7 +5,7 @@ import MapComponent from '@/components/Map';
 import Loader from '@/components/ui/Loader';
 import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
-import { getPageTitle } from '@/utils/html';
+import { getPageTitle, MAIN_CONTENT_ID } from '@/utils/html';
 import { trackEvent } from '@/utils/matomo';
 import { TRACKING_CATEGORIES } from '@/utils/tracking';
 import classes from './index.module.scss';
@@ -53,7 +53,8 @@ const Component: React.FC = () => {
         <>
             <title>{getPageTitle('Carte')}</title>
             <Header />
-            <div className={classes['map-container']}>
+            <main id={MAIN_CONTENT_ID} className={classes['map-container']}>
+                <h1 className="fr-sr-only">Carte des détections</h1>
                 {layers ? (
                     <MapComponent
                         layers={layers}
@@ -64,7 +65,7 @@ const Component: React.FC = () => {
                 ) : (
                     <Loader className={classes.loader} />
                 )}
-            </div>
+            </main>
         </>
     );
 };

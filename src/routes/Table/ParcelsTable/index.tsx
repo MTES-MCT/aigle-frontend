@@ -9,8 +9,9 @@ import { ParcelListItem } from '@/models/parcel';
 import DetectionCountCell from '@/routes/Table/DetectionCountCell';
 import TagsCell from '@/routes/Table/TagsCell';
 import { usePaginatedList } from '@/routes/Table/usePaginatedList';
-import { HEADER_HEIGHT_PX } from '@/utils/constants';
+import { TableOrder } from '@/routes/Table/utils';
 import { formatBigInt, formatParcel } from '@/utils/format';
+import { scrollBelowHeader } from '@/utils/html';
 import { getPaginationPage } from '@/utils/pagination';
 import clsx from 'clsx';
 import classes from './index.module.scss';
@@ -19,19 +20,7 @@ const LIMITS = [5, 10, 20, 50];
 
 export type ParcelsSortField = 'detectionsCount' | 'parcel';
 
-export interface ParcelsOrder {
-    sortOrder?: SortOrder;
-    field: ParcelsSortField;
-}
-
-const scrollToTable = (table: HTMLTableElement | null) => {
-    if (table) {
-        window.scrollTo({
-            top: table.getBoundingClientRect().top + window.scrollY - HEADER_HEIGHT_PX,
-            behavior: 'smooth',
-        });
-    }
-};
+export type ParcelsOrder = TableOrder<ParcelsSortField>;
 
 interface ComponentProps<T_FILTER extends object> {
     endpoint: string;
@@ -119,7 +108,7 @@ const Component = <T_FILTER extends object>({
                             type="button"
                             className="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-refresh-line"
                             title="Rafraîchir la liste"
-                            onClick={() => refetch({ cancelRefetch: true })}
+                            onClick={() => refetch()}
                         >
                             Rafraîchir la liste
                         </button>
@@ -142,7 +131,7 @@ const Component = <T_FILTER extends object>({
                             totalPages={paginationPage.totalPages}
                             onChange={(page) => {
                                 setPagination((prev) => ({ ...prev, offset: (page - 1) * prev.limit }));
-                                scrollToTable(tableRef.current);
+                                scrollBelowHeader(tableRef.current);
                             }}
                         />
                     ) : null
@@ -185,10 +174,7 @@ const Component = <T_FILTER extends object>({
 
                         return (
                             <React.Fragment key={item.uuid}>
-                                <tr
-                                    className={clsx(classes.row, expanded && classes['row-expanded'])}
-                                    onClick={() => toggleRow(item, index)}
-                                >
+                                <tr className={classes.row} onClick={() => toggleRow(item, index)}>
                                     <td>
                                         <OptionalText text={`${item.commune.name} (${item.commune.code})`} />
                                     </td>
@@ -199,18 +185,10 @@ const Component = <T_FILTER extends object>({
                                         <DetectionCountCell parcel={item} />
                                     </td>
                                     <td>
-                                        <OptionalText
-                                            text={
-                                                parcelLabel ? (
-                                                    <>
-                                                        <span className="fr-cell__title">{parcelLabel}</span>
-                                                        <span className={clsx('fr-cell__desc', classes['parcel-id'])}>
-                                                            {item.idParcellaire}
-                                                        </span>
-                                                    </>
-                                                ) : null
-                                            }
-                                        />
+                                        <span className="fr-cell__title">{parcelLabel}</span>
+                                        <span className={clsx('fr-cell__desc', classes['parcel-id'])}>
+                                            {item.idParcellaire}
+                                        </span>
                                     </td>
                                     <td className="fr-cell--right">
                                         <button

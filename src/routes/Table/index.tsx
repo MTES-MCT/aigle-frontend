@@ -19,12 +19,13 @@ import DetectionsTable from '@/routes/Table/DetectionsTable';
 import ParcelsTable, { ParcelsOrder, ParcelsSortField } from '@/routes/Table/ParcelsTable';
 import TableDownloadButton from '@/routes/Table/TableDownloadButton';
 import TableHeader from '@/routes/Table/TableHeader';
-import { FormValues } from '@/routes/Table/utils';
+import { DataTableFilter, FormValues, getOrdering } from '@/routes/Table/utils';
 import { useAuth } from '@/store/slices/auth';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import { useStatistics } from '@/store/slices/statistics';
+import { formatParcel } from '@/utils/format';
 import { geoZoneToGeoOption } from '@/utils/geojson';
-import { getPageTitle } from '@/utils/html';
+import { MAIN_CONTENT_ID, getPageTitle } from '@/utils/html';
 import { trackEvent } from '@/utils/matomo';
 import { isObjectsFilterDefault } from '@/utils/objects-filter';
 import { TRACKING_CATEGORIES, getFilterTrackingName } from '@/utils/tracking';
@@ -33,19 +34,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import React, { useMemo, useRef, useState } from 'react';
 import classes from './index.module.scss';
 
-const getOrderParams = (
-    order?: ParcelsOrder,
-): {
-    ordering?: string;
-} => {
-    if (!order) {
-        return {};
-    }
-    return {
-        ordering: order.sortOrder === 'asc' ? order.field : `-${order.field}`,
-    };
-};
-
 const ENDPOINT = parcelEndpoints.listItems;
 
 type SidePanelSectionId = 'SEARCH' | 'FILTER';
@@ -53,16 +41,12 @@ type SidePanelSectionId = 'SEARCH' | 'FILTER';
 const COLLECTIVITY_CHANGE_TRACKING_NAMES: Record<GeoCollectivitiesUserChange, string> = {
     added: 'ajout',
     removed: 'retrait',
-    codesPasted: 'codes collés',
-    codesRejected: 'codes ignorés',
 };
 
 const trackSort = (field: string, sortOrder?: SortOrder) =>
     trackEvent(TRACKING_CATEGORIES.table, 'Tri modifié', `${field} : ${sortOrder ?? 'aucun'}`);
 
-interface DataTableFilter extends ObjectsFilter, FormValues {}
-
-// The DSFR info alert, closable for the visit as the former InfoCard was.
+// The DSFR info alert, closable for the visit.
 const SearchNotice: React.FC = () => {
     const [shown, setShown] = useState(true);
 
@@ -132,7 +116,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
         ...objectsFilterToApiParams(objectsFilter, otherObjectTypesUuids),
         ...form.getValues(),
     };
-    const orderParams = getOrderParams(order);
+    const orderParams = order ? { ordering: getOrdering(order) } : {};
     // The export lists detections: it can follow the parcel sort, but has no detections count to sort on (API 500).
     const exportOrdering = order?.field === 'parcel' ? orderParams.ordering : undefined;
     const filter = useMemo(() => ({ ...dataTableFilter, ...orderParams }), [objectsFilter, form.getValues(), order]);
@@ -191,10 +175,12 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
 
     return (
         // the bulk edit button reads this to clear the side panel
-        <div
+        <main
+            id={MAIN_CONTENT_ID}
             className={classes.page}
             style={{ '--table-side-panel-open': sidePanelSection ? 1 : 0 } as React.CSSProperties}
         >
+            <h1 className="fr-sr-only">Tableau des détections</h1>
             <SidePanel
                 layout="column"
                 sections={sidePanelSections}
@@ -256,6 +242,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     getExpandedContent={(item: ParcelListItem) => (
                         <DetectionsTable
                             parcelUuid={item.uuid}
+                            parcelLabel={formatParcel(item, false)}
                             dataTableFilter={dataTableFilter}
                             selectionShowed={selectionShowed}
                             selectedUuids={selectedUuids}
@@ -264,7 +251,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     )}
                 />
 
-                {selectedUuids?.length ? (
+                {selectedUuids.length ? (
                     <div className={classes['edit-selection']}>
                         <button
                             type="button"
@@ -283,7 +270,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                                 );
                             }}
                         >
-                            Editer la sélection ({selectedUuids?.length})
+                            Editer la sélection ({selectedUuids.length})
                         </button>
                     </div>
                 ) : null}
@@ -295,7 +282,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         setSelectedUuids([]);
 
                         if (dataUpdated) {
-                            // DataTable keys start with their endpoint alone: one prefix per list, plus the header counts.
+                            // each list key starts with its endpoint: one prefix per list, plus the header counts
                             [ENDPOINT, detectionEndpoints.getList(), parcelEndpoints.overview].forEach((endpoint) =>
                                 queryClient.invalidateQueries({ queryKey: [endpoint] }),
                             );
@@ -305,7 +292,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                     trackingSource="Tableau"
                 />
             </div>
-        </div>
+        </main>
     );
 };
 

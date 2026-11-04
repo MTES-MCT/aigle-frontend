@@ -19,6 +19,8 @@ interface ComponentProps {
     // the track alone, the value written after it instead of the bubble and the min/max labels
     valueAtEnd?: boolean;
     formatValue?: (value: number) => string;
+    // ids of the hint and message around the slider when they sit outside its label
+    describedBy?: string;
     onChange: (value: number) => void;
 }
 
@@ -37,6 +39,7 @@ const Component: React.FC<ComponentProps> = ({
     small = false,
     valueAtEnd = false,
     formatValue,
+    describedBy,
     onChange,
 }: ComponentProps) => {
     const id = `range-${useId()}`;
@@ -75,37 +78,22 @@ const Component: React.FC<ComponentProps> = ({
             step={step}
             value={value}
             onChange={(event) => onChange(Number(event.currentTarget.value))}
-            aria-labelledby={`${id}-label`}
+            aria-describedby={describedBy}
         />
     );
-
-    return (
-        <div className={clsx('fr-range-group', valueAtEnd && classes['group-value-at-end'])}>
-            <label className={clsx('fr-label', labelHidden && 'fr-sr-only')} id={`${id}-label`} htmlFor={id}>
-                {label}
-            </label>
+    const range = (
+        <div
+            ref={rangeRef}
+            className={clsx('fr-range', small && 'fr-range--sm', valueAtEnd && classes.track)}
+            data-fr-js-range="true"
+            style={{ '--progress-right': progressRight } as React.CSSProperties}
+        >
             {valueAtEnd ? (
-                <div className={classes['value-at-end']}>
-                    <div
-                        ref={rangeRef}
-                        className={clsx('fr-range', small && 'fr-range--sm', classes.track)}
-                        data-fr-js-range="true"
-                        style={{ '--progress-right': progressRight } as React.CSSProperties}
-                    >
-                        {input}
-                    </div>
-                    <span className={classes['end-value']} aria-hidden="true">
-                        {format(value)}
-                    </span>
-                </div>
+                input
             ) : (
-                <div
-                    ref={rangeRef}
-                    className={clsx('fr-range', small && 'fr-range--sm')}
-                    data-fr-js-range="true"
-                    style={{ '--progress-right': progressRight } as React.CSSProperties}
-                >
-                    <span className="fr-range__output" style={{ transform: outputTransform }}>
+                <>
+                    {/* the slider gives its own value to screen readers, as in the DSFR markup */}
+                    <span className="fr-range__output" aria-hidden="true" style={{ transform: outputTransform }}>
                         {format(value)}
                     </span>
                     {input}
@@ -115,7 +103,25 @@ const Component: React.FC<ComponentProps> = ({
                     <span className="fr-range__max" aria-hidden="true">
                         {format(max)}
                     </span>
+                </>
+            )}
+        </div>
+    );
+
+    return (
+        <div className={clsx('fr-range-group', valueAtEnd && classes['group-value-at-end'])}>
+            <label className={clsx('fr-label', labelHidden && 'fr-sr-only')} htmlFor={id}>
+                {label}
+            </label>
+            {valueAtEnd ? (
+                <div className={classes['value-at-end']}>
+                    {range}
+                    <span className={classes['end-value']} aria-hidden="true">
+                        {format(value)}
+                    </span>
                 </div>
+            ) : (
+                range
             )}
         </div>
     );

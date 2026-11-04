@@ -1,4 +1,4 @@
-import { helpCenterEndpoints, userGroupEndpoints, usersEndpoints } from '@/api/endpoints';
+import { helpCenterEndpoints, userGroupEndpoints, usersEndpoints, webinarEndpoints } from '@/api/endpoints';
 import { UserRole } from '@/models/user';
 
 /**
@@ -81,8 +81,8 @@ const getActiveScopedUserGroupUuid = (): string | undefined => {
 const isScopeBootstrapPath = (path: string): boolean =>
     path.startsWith('/auth/') || [usersEndpoints.me, userGroupEndpoints.list].includes(path.split('?')[0]);
 
-/** Personal endpoints: the API ignores the group scope there, so it is neither sent nor required. */
-const SCOPE_AGNOSTIC_PATHS = [helpCenterEndpoints.pathValidation];
+/** Personal or global endpoints: the API ignores the group scope there, so it is neither sent nor required. */
+const SCOPE_AGNOSTIC_PATHS = [helpCenterEndpoints.pathValidation, webinarEndpoints.list];
 
 export type RequestScope =
     | { readonly kind: 'send'; readonly uuid: string } // attach this uuid

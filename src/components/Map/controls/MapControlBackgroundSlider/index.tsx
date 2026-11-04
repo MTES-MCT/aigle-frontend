@@ -41,7 +41,6 @@ const Component: React.FC<ComponentProps> = ({ tracked = false }) => {
             controlClassName={classes.control}
             controlType="SIMPLE"
             position="bottom-left"
-            inline
             isShowed={true}
         >
             <div className={classes.years} role="group" aria-label="Année du fond de carte">

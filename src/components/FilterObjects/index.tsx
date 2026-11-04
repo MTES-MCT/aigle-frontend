@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useId, useMemo, useRef } from 'react';
 
 import Accordion from '@/components/dsfr/Accordion';
 import Checkbox from '@/components/dsfr/Checkbox';
@@ -247,6 +247,8 @@ const Component: React.FC<ComponentProps> = ({
     const isPrescriptedChecked = (target: boolean) =>
         objectsFilter.prescripted === null || objectsFilter.prescripted === target;
 
+    const hintsId = `objects-filter-${useId()}`;
+
     return (
         <div className={classes.container}>
             <div className={clsx('fr-select-group', classes.preset)}>
@@ -276,49 +278,58 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('OBJECT_TYPES')}
                     onToggle={(expanded) => toggleSection('OBJECT_TYPES', expanded)}
                 >
-                    <button
-                        type="button"
-                        className={clsx(
-                            'fr-btn fr-btn--tertiary fr-icon-check-line fr-btn--icon-left',
-                            classes['select-all'],
-                        )}
-                        onClick={() => {
-                            trackFilterEvent(
-                                'Filtre modifié',
-                                `Type d’objet : ${objectsFilter.objectTypesUuids.length ? '-' : '+'}TOUS`,
-                            );
-                            updateFromUser({
-                                // the rows shown, « Autres » included: its uuid stands for the grouped types
-                                objectTypesUuids: objectsFilter.objectTypesUuids.length
-                                    ? []
-                                    : objectTypesToDisplay.map(({ uuid }) => uuid),
-                            });
-                        }}
-                    >
-                        {objectsFilter.objectTypesUuids.length ? 'Tout désélectionner' : 'Tout sélectionner'}
-                    </button>
-                    {objectTypesToDisplay.map(({ uuid, name, color }) => (
-                        <Checkbox
-                            key={uuid}
-                            className={classes.checkbox}
-                            checked={objectsFilter.objectTypesUuids.includes(uuid)}
-                            label={<LabelWithColor name={name} color={color} />}
-                            onChange={(checked) => {
-                                const objectTypesUuids = toggleInArray(objectsFilter.objectTypesUuids, uuid, checked);
-
-                                trackListChanges(
-                                    'Type d’objet',
-                                    objectsFilter.objectTypesUuids,
-                                    objectTypesUuids,
-                                    getObjectTypeTrackingName,
+                    <fieldset className={classes.fieldset}>
+                        <legend className="fr-sr-only">Catégories</legend>
+                        <button
+                            type="button"
+                            className={clsx(
+                                'fr-btn fr-btn--tertiary fr-icon-check-line fr-btn--icon-left',
+                                classes['select-all'],
+                            )}
+                            onClick={() => {
+                                trackFilterEvent(
+                                    'Filtre modifié',
+                                    `Type d’objet : ${objectsFilter.objectTypesUuids.length ? '-' : '+'}TOUS`,
                                 );
-                                updateFromUser({ objectTypesUuids });
+                                updateFromUser({
+                                    // the rows shown, « Autres » included: its uuid stands for the grouped types
+                                    objectTypesUuids: objectsFilter.objectTypesUuids.length
+                                        ? []
+                                        : objectTypesToDisplay.map(({ uuid }) => uuid),
+                                });
                             }}
-                        />
-                    ))}
-                    {!objectsFilter.objectTypesUuids.length ? (
-                        <p className={classes['empty-filter-text']}>Aucun filtre sur les types n&apos;est appliqué</p>
-                    ) : null}
+                        >
+                            {objectsFilter.objectTypesUuids.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                        </button>
+                        {objectTypesToDisplay.map(({ uuid, name, color }) => (
+                            <Checkbox
+                                key={uuid}
+                                className={classes.checkbox}
+                                checked={objectsFilter.objectTypesUuids.includes(uuid)}
+                                label={<LabelWithColor name={name} color={color} />}
+                                onChange={(checked) => {
+                                    const objectTypesUuids = toggleInArray(
+                                        objectsFilter.objectTypesUuids,
+                                        uuid,
+                                        checked,
+                                    );
+
+                                    trackListChanges(
+                                        'Type d’objet',
+                                        objectsFilter.objectTypesUuids,
+                                        objectTypesUuids,
+                                        getObjectTypeTrackingName,
+                                    );
+                                    updateFromUser({ objectTypesUuids });
+                                }}
+                            />
+                        ))}
+                        {!objectsFilter.objectTypesUuids.length ? (
+                            <p className={classes['empty-filter-text']}>
+                                Aucun filtre sur les types n&apos;est appliqué
+                            </p>
+                        ) : null}
+                    </fieldset>
                 </Accordion>
 
                 <Accordion
@@ -326,22 +337,25 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('PRESCRIPTION')}
                     onToggle={(expanded) => toggleSection('PRESCRIPTION', expanded)}
                 >
-                    <p className={classes['section-hint']}>
-                        Les prescriptions sont appliquées automatiquement aux constructions et piscines détectées il y a
-                        plus de 6 ans.
-                    </p>
-                    <Checkbox
-                        className={classes.checkbox}
-                        label="Non prescrit"
-                        checked={isPrescriptedChecked(false)}
-                        onChange={(checked) => setPrescripted(false, checked)}
-                    />
-                    <Checkbox
-                        className={classes.checkbox}
-                        label="Prescrit"
-                        checked={isPrescriptedChecked(true)}
-                        onChange={(checked) => setPrescripted(true, checked)}
-                    />
+                    <fieldset className={classes.fieldset} aria-describedby={`${hintsId}-prescription`}>
+                        <legend className="fr-sr-only">Prescription</legend>
+                        <p id={`${hintsId}-prescription`} className={classes['section-hint']}>
+                            Les prescriptions sont appliquées automatiquement aux constructions et piscines détectées il
+                            y a plus de 6 ans.
+                        </p>
+                        <Checkbox
+                            className={classes.checkbox}
+                            label="Non prescrit"
+                            checked={isPrescriptedChecked(false)}
+                            onChange={(checked) => setPrescripted(false, checked)}
+                        />
+                        <Checkbox
+                            className={classes.checkbox}
+                            label="Prescrit"
+                            checked={isPrescriptedChecked(true)}
+                            onChange={(checked) => setPrescripted(true, checked)}
+                        />
+                    </fieldset>
                 </Accordion>
 
                 <Accordion
@@ -349,20 +363,23 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('VALIDATION')}
                     onToggle={(expanded) => toggleSection('VALIDATION', expanded)}
                 >
-                    {detectionValidationStatusesSelectable.map((status) => (
-                        <Checkbox
-                            key={status}
-                            className={classes.checkbox}
-                            label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
-                            checked={objectsFilter.detectionValidationStatuses.includes(status)}
-                            onChange={(checked) => toggleValidationStatus(status, checked)}
-                        />
-                    ))}
-                    {!objectsFilter.detectionValidationStatuses.length ? (
-                        <p className={classes['empty-filter-text']}>
-                            Aucun filtre sur les statuts de validation n&apos;est appliqué
-                        </p>
-                    ) : null}
+                    <fieldset className={classes.fieldset}>
+                        <legend className="fr-sr-only">Etat de conformité</legend>
+                        {detectionValidationStatusesSelectable.map((status) => (
+                            <Checkbox
+                                key={status}
+                                className={classes.checkbox}
+                                label={DETECTION_VALIDATION_STATUSES_NAMES_MAP[status]}
+                                checked={objectsFilter.detectionValidationStatuses.includes(status)}
+                                onChange={(checked) => toggleValidationStatus(status, checked)}
+                            />
+                        ))}
+                        {!objectsFilter.detectionValidationStatuses.length ? (
+                            <p className={classes['empty-filter-text']}>
+                                Aucun filtre sur les statuts de validation n&apos;est appliqué
+                            </p>
+                        ) : null}
+                    </fieldset>
                 </Accordion>
 
                 <Accordion
@@ -370,33 +387,36 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('CONTROL')}
                     onToggle={(expanded) => toggleSection('CONTROL', expanded)}
                 >
-                    {detectionControlStatuses.map((status) => (
-                        <Checkbox
-                            key={status}
-                            className={classes.checkbox}
-                            label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
-                            checked={objectsFilter.detectionControlStatuses.includes(status)}
-                            onChange={(checked) => {
-                                const detectionControlStatuses = toggleInArray(
-                                    objectsFilter.detectionControlStatuses,
-                                    status,
-                                    checked,
-                                );
+                    <fieldset className={classes.fieldset}>
+                        <legend className="fr-sr-only">Statut du contrôle</legend>
+                        {detectionControlStatuses.map((status) => (
+                            <Checkbox
+                                key={status}
+                                className={classes.checkbox}
+                                label={DETECTION_CONTROL_STATUSES_NAMES_MAP[status]}
+                                checked={objectsFilter.detectionControlStatuses.includes(status)}
+                                onChange={(checked) => {
+                                    const detectionControlStatuses = toggleInArray(
+                                        objectsFilter.detectionControlStatuses,
+                                        status,
+                                        checked,
+                                    );
 
-                                trackListChanges(
-                                    'Contrôle',
-                                    objectsFilter.detectionControlStatuses,
-                                    detectionControlStatuses,
-                                );
-                                updateFromUser({ detectionControlStatuses });
-                            }}
-                        />
-                    ))}
-                    {!objectsFilter.detectionControlStatuses.length ? (
-                        <p className={classes['empty-filter-text']}>
-                            Aucun filtre sur les statuts de contrôle n&apos;est appliqué
-                        </p>
-                    ) : null}
+                                    trackListChanges(
+                                        'Contrôle',
+                                        objectsFilter.detectionControlStatuses,
+                                        detectionControlStatuses,
+                                    );
+                                    updateFromUser({ detectionControlStatuses });
+                                }}
+                            />
+                        ))}
+                        {!objectsFilter.detectionControlStatuses.length ? (
+                            <p className={classes['empty-filter-text']}>
+                                Aucun filtre sur les statuts de contrôle n&apos;est appliqué
+                            </p>
+                        ) : null}
+                    </fieldset>
                 </Accordion>
 
                 <Accordion
@@ -404,46 +424,52 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('CUSTOM_ZONES')}
                     onToggle={(expanded) => toggleSection('CUSTOM_ZONES', expanded)}
                 >
-                    {mapGeoCustomZoneLayers.map(({ name, customZoneUuids, color, opacity }) => (
-                        <Checkbox
-                            key={customZoneUuids.join(',')}
-                            className={classes.checkbox}
-                            checked={customZoneUuids.some((uuid) => objectsFilter.customZonesUuids.includes(uuid))}
-                            label={<LabelWithColor name={name} zone={{ color, opacity }} />}
-                            onChange={(checked) => {
-                                const zoneTrackingName = getZoneLayerTrackingName({ name, customZoneUuids }, settings);
+                    <fieldset className={classes.fieldset}>
+                        <legend className="fr-sr-only">Zones à enjeux</legend>
+                        {mapGeoCustomZoneLayers.map(({ name, customZoneUuids, color, opacity }) => (
+                            <Checkbox
+                                key={customZoneUuids.join(',')}
+                                className={classes.checkbox}
+                                checked={customZoneUuids.some((uuid) => objectsFilter.customZonesUuids.includes(uuid))}
+                                label={<LabelWithColor name={name} zone={{ color, opacity }} />}
+                                onChange={(checked) => {
+                                    const zoneTrackingName = getZoneLayerTrackingName(
+                                        { name, customZoneUuids },
+                                        settings,
+                                    );
 
-                                if (checked) {
-                                    trackFilterEvent('Filtre modifié', `Zone à enjeux : +${zoneTrackingName}`);
-                                    updateFromUser({
-                                        customZonesUuids: Array.from(
-                                            new Set([...objectsFilter.customZonesUuids, ...customZoneUuids]),
-                                        ),
-                                    });
-                                    return;
-                                }
+                                    if (checked) {
+                                        trackFilterEvent('Filtre modifié', `Zone à enjeux : +${zoneTrackingName}`);
+                                        updateFromUser({
+                                            customZonesUuids: Array.from(
+                                                new Set([...objectsFilter.customZonesUuids, ...customZoneUuids]),
+                                            ),
+                                        });
+                                        return;
+                                    }
 
-                                const next = objectsFilter.customZonesUuids.filter(
-                                    (uuid) => !customZoneUuids.includes(uuid),
-                                );
+                                    const next = objectsFilter.customZonesUuids.filter(
+                                        (uuid) => !customZoneUuids.includes(uuid),
+                                    );
 
-                                if (!next.length) {
-                                    // Detections outside every custom zone (zones urbaines) must not be
-                                    // shown, so an empty selection is not a valid state.
-                                    notifications.show({
-                                        color: 'red',
-                                        title: 'Zone à enjeux',
-                                        message: 'Au moins une zone à enjeux doit rester sélectionnée',
-                                    });
-                                    trackFilterEvent('Filtre refusé', 'Dernière zone à enjeux');
-                                    return;
-                                }
+                                    if (!next.length) {
+                                        // Detections outside every custom zone (zones urbaines) must not be
+                                        // shown, so an empty selection is not a valid state.
+                                        notifications.show({
+                                            color: 'red',
+                                            title: 'Zone à enjeux',
+                                            message: 'Au moins une zone à enjeux doit rester sélectionnée',
+                                        });
+                                        trackFilterEvent('Filtre refusé', 'Dernière zone à enjeux');
+                                        return;
+                                    }
 
-                                trackFilterEvent('Filtre modifié', `Zone à enjeux : -${zoneTrackingName}`);
-                                updateFromUser({ customZonesUuids: next });
-                            }}
-                        />
-                    ))}
+                                    trackFilterEvent('Filtre modifié', `Zone à enjeux : -${zoneTrackingName}`);
+                                    updateFromUser({ customZonesUuids: next });
+                                }}
+                            />
+                        ))}
+                    </fieldset>
                 </Accordion>
 
                 <Accordion
@@ -451,7 +477,7 @@ const Component: React.FC<ComponentProps> = ({
                     expanded={isExpanded('SCORE')}
                     onToggle={(expanded) => toggleSection('SCORE', expanded)}
                 >
-                    <p className={clsx(classes['section-hint'], classes['score-hint'])}>
+                    <p id={`${hintsId}-score`} className={clsx(classes['section-hint'], classes['score-hint'])}>
                         Plus le score est élevé plus les détections affichées seront fiables, mais moins exhaustives.
                     </p>
                     <Range
@@ -462,9 +488,13 @@ const Component: React.FC<ComponentProps> = ({
                         step={5}
                         value={Math.round(objectsFilter.score * 100)}
                         formatValue={formatScore}
+                        describedBy={`${hintsId}-score ${hintsId}-score-message`}
                         onChange={(value) => changeScore(value / 100)}
                     />
-                    <p className={clsx('fr-message fr-message--info', classes['score-message'])}>
+                    <p
+                        id={`${hintsId}-score-message`}
+                        className={clsx('fr-message fr-message--info', classes['score-message'])}
+                    >
                         Avec un score à 30, le taux d’erreur de l’IA est d’environ 10%
                     </p>
                 </Accordion>

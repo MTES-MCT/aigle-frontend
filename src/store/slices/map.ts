@@ -103,8 +103,6 @@ const useMap = create<MapState>()((set, get) => ({
         }));
         useObjectsFilter.getState().updateObjectsFilter(objectsFilter);
         get().eventEmitter.emit('LAYERS_UPDATED');
-
-        document.documentElement.style.setProperty('--nbr-background-layers', backgroundLayerYears.length.toString());
     },
     // the uuid comes from the url the app was loaded with: once /map has opened it, a later visit must not reopen it
     clearInitialDetectionObjectUuid: () => {

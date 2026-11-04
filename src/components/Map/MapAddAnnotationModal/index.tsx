@@ -172,7 +172,6 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, o
         <Modal
             opened
             gutters
-            bodyClassName={classes.body}
             onClose={onCancel}
             title={
                 <>
@@ -181,10 +180,8 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, o
             }
             footer={
                 noTileSet ? undefined : (
-                    <div className={classes.actions}>
-                        <button type="button" className="fr-btn fr-btn--secondary" onClick={onCancel}>
-                            Annuler
-                        </button>
+                    // the DSFR modal footer: primary action first, shown on the right
+                    <div className="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg">
                         <button
                             type="submit"
                             form={formId}
@@ -193,13 +190,16 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, o
                         >
                             Ajouter cet objet
                         </button>
+                        <button type="button" className="fr-btn fr-btn--secondary" onClick={onCancel}>
+                            Annuler
+                        </button>
                     </div>
                 )
             }
         >
             {noTileSet ? (
-                <div className="fr-alert fr-alert--error">
-                    <h2 className="fr-alert__title">Erreur lors de l&apos;ajout de la détection</h2>
+                <div className="fr-alert fr-alert--error" role="alert">
+                    <h3 className="fr-alert__title">Erreur lors de l&apos;ajout de la détection</h3>
                     <p>Aucun fond de carte associé à la géométrie dessiné n&apos;a été trouvé</p>
                     <p>Vos droits sont insuffisants pour ajouter une détection dans cette zone ?</p>
                     <p>Si le problème persiste, contactez les administrateurs</p>
@@ -215,6 +215,7 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, o
                 >
                     <div className="fr-alert fr-alert--info fr-alert--sm">
                         <p>
+                            <span className="fr-sr-only">Information : </span>
                             Fond de carte associé :{' '}
                             <b>
                                 {!tileSetIsLoading && tileSet
@@ -251,7 +252,7 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, o
                             className="fr-select"
                             id={`${fieldsId}-object-type`}
                             value={values.objectTypeUuid}
-                            aria-describedby={errors.objectTypeUuid ? `${fieldsId}-object-type-error` : undefined}
+                            aria-describedby={`${fieldsId}-object-type-messages`}
                             onChange={(event) => setValue('objectTypeUuid', event.currentTarget.value)}
                         >
                             {objectTypes.map(({ uuid, name }) => (
@@ -260,11 +261,11 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, o
                                 </option>
                             ))}
                         </select>
-                        {errors.objectTypeUuid ? (
-                            <p id={`${fieldsId}-object-type-error`} className="fr-error-text">
-                                {errors.objectTypeUuid}
-                            </p>
-                        ) : null}
+                        <div className="fr-messages-group" id={`${fieldsId}-object-type-messages`} aria-live="polite">
+                            {errors.objectTypeUuid ? (
+                                <p className="fr-message fr-message--error">{errors.objectTypeUuid}</p>
+                            ) : null}
+                        </div>
                     </div>
 
                     <div className={clsx('fr-input-group', errors.comment && 'fr-input-group--error', classes.field)}>
@@ -272,19 +273,17 @@ const OpenedModal: React.FC<OpenedModalProps> = ({ objectTypes, polygon, hide, o
                             Commentaire
                         </label>
                         <textarea
-                            className={clsx('fr-input', errors.comment && 'fr-input--error')}
+                            className="fr-input"
                             id={`${fieldsId}-comment`}
                             rows={3}
                             maxLength={COMMENT_MAX_LENGTH}
                             value={values.comment}
-                            aria-describedby={errors.comment ? `${fieldsId}-comment-error` : undefined}
+                            aria-describedby={`${fieldsId}-comment-messages`}
                             onChange={(event) => setValue('comment', event.currentTarget.value)}
                         />
-                        {errors.comment ? (
-                            <p id={`${fieldsId}-comment-error`} className="fr-error-text">
-                                {errors.comment}
-                            </p>
-                        ) : null}
+                        <div className="fr-messages-group" id={`${fieldsId}-comment-messages`} aria-live="polite">
+                            {errors.comment ? <p className="fr-message fr-message--error">{errors.comment}</p> : null}
+                        </div>
                     </div>
                 </form>
             )}

@@ -1,4 +1,5 @@
-import { AppFilterLink, ContentBlock, Webinar } from './content/types';
+import { Webinar } from '@/models/help-center';
+import { AppFilterLink, ContentBlock } from './content/types';
 
 export const HELP_CENTER_PATH = '/help';
 
@@ -104,10 +105,16 @@ const PARIS_NOW_FORMATTER = new Intl.DateTimeFormat('sv-SE', {
 });
 
 // "YYYY-MM-DD HH:MM" in Paris time, comparable as a plain string with the webinar data.
-const getParisNow = (): string => PARIS_NOW_FORMATTER.format(new Date());
+export const getParisNow = (): string => PARIS_NOW_FORMATTER.format(new Date());
 
-export const isWebinarUpcoming = (webinar: Webinar): boolean =>
-    getParisNow() < `${webinar.date} ${webinar.timeSlot?.end ?? '23:59'}`;
+// A webinar with no time slot stays upcoming until the end of its day, and is never shown as in progress.
+export const isWebinarUpcoming = (webinar: Webinar, parisNow: string): boolean =>
+    parisNow < `${webinar.date} ${webinar.endTime ?? '23:59'}`;
+
+export const isWebinarInProgress = (webinar: Webinar, parisNow: string): boolean =>
+    !!webinar.startTime && `${webinar.date} ${webinar.startTime}` <= parisNow && isWebinarUpcoming(webinar, parisNow);
+
+export const getWebinarSortKey = (webinar: Webinar): string => `${webinar.date} ${webinar.startTime ?? ''}`;
 
 // The date is built and formatted in UTC so the weekday cannot drift with the viewer's timezone.
 const WEBINAR_DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
@@ -126,5 +133,12 @@ export const formatWebinarDate = (isoDate: string): string => {
 
 const formatTime = (time: string): string => time.replace(':', 'h');
 
-export const formatWebinarTimeSlot = (timeSlot: { start: string; end: string }): string =>
-    `${formatTime(timeSlot.start)} – ${formatTime(timeSlot.end)} (heure de Paris)`;
+export const formatWebinarTimeSlot = (startTime: string, endTime: string): string =>
+    `${formatTime(startTime)} – ${formatTime(endTime)} (heure de Paris)`;
+
+export const formatWebinarSchedule = (webinar: Webinar, separator: string): string =>
+    `${formatWebinarDate(webinar.date)}${
+        webinar.startTime && webinar.endTime
+            ? `${separator}${formatWebinarTimeSlot(webinar.startTime, webinar.endTime)}`
+            : ''
+    }`;

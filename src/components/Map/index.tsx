@@ -31,7 +31,13 @@ import { useMap } from '@/store/slices/map';
 import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api, { ApiError } from '@/utils/api';
 import { getCustomZoneOpacities } from '@/utils/colors';
-import { DEFAULT_CUSTOM_ZONE_LAYER_OPACITY, MAPBOX_TOKEN, PARCEL_COLOR } from '@/utils/constants';
+import {
+    CUSTOM_ZONE_NEGATIVE_COLOR,
+    CUSTOM_ZONE_NEGATIVE_OPACITY,
+    DEFAULT_CUSTOM_ZONE_LAYER_OPACITY,
+    MAPBOX_TOKEN,
+    PARCEL_COLOR,
+} from '@/utils/constants';
 import { formatDateOnly } from '@/utils/format';
 import { getViewStateFromUrl, setViewStateInUrl } from '@/utils/map-url';
 import { trackEvent } from '@/utils/matomo';
@@ -40,7 +46,7 @@ import { notifications } from '@mantine/notifications';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { bbox, bboxPolygon, booleanIntersects, centroid, getCoord } from '@turf/turf';
+import { bbox, bboxPolygon, booleanIntersects, centroid, feature, featureCollection, getCoord } from '@turf/turf';
 import clsx from 'clsx';
 import { FeatureCollection, Polygon } from 'geojson';
 import { isEqual } from 'lodash';
@@ -155,7 +161,6 @@ const buildDrawControl = () =>
         },
     });
 
-// mapbox ships these in english and exposes no option to translate them
 // mapbox and mapbox-gl-draw build their own control buttons, in English and with their own
 // glyphs. These give each one a French label and a DSFR icon; index.scss hides the glyph the
 // library painted.
@@ -204,13 +209,15 @@ const syncMapControls = (container: HTMLElement) => {
 
     // moved in the DOM rather than with CSS order, so the keyboard follows the same order
     const drawGroup = container.querySelector(DRAW_BUTTONS_ORDER[0])?.parentElement;
-    DRAW_BUTTONS_ORDER.forEach((selector) => {
-        const button = drawGroup?.querySelector(selector);
+    if (drawGroup) {
+        DRAW_BUTTONS_ORDER.forEach((selector) => {
+            const button = drawGroup.querySelector(selector);
 
-        if (button) {
-            drawGroup?.appendChild(button);
-        }
-    });
+            if (button) {
+                drawGroup.appendChild(button);
+            }
+        });
+    }
 
     // mapbox stacks a bottom corner in reverse order of addition: geolocation goes back on top
     const geolocateGroup = container.querySelector('.mapboxgl-ctrl-geolocate')?.parentElement;
@@ -239,11 +246,11 @@ const DETECTION_ENDPOINT = detectionEndpoints.getList(false, true);
 
 const GEOJSON_CUSTOM_ZONES_LAYER_ID = 'custom-zones-geojson-layer';
 const GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID = 'custom-zones-geojson-layer-outline';
+const GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID = 'custom-zone-negative-geojson-layer';
 
 const GEOJSON_DETECTIONS_LAYER_ID = 'detections-geojson-layer';
 const GEOJSON_DETECTION_FROM_COORDINATES_LAYER_ID = 'detection-from-coordinates-geojson-layer';
 const GEOJSON_DETECTIONS_LAYER_OUTLINE_ID = 'detections-geojson-layer-outline';
-const GEOJSON_LAYER_EXTRA_ID = 'geojson-layer-data-extra';
 const GEOJSON_LAYER_EXTRA_BOUNDINGS_ID = 'geojson-layer-data-extra-boundings';
 const GEOJSON_PARCEL_LAYER_ID = 'parcel-geojson-layer';
 const GEOJSON_ANNOTATION_GRID_LAYER_ID = 'annotation-grid-geojson-layer';
@@ -310,18 +317,26 @@ const MultipleDownloadBlocker: React.FC<{ state: MultipleDownloadState; onCancel
     state,
     onCancel,
 }) => {
+    const dialogRef = useRef<HTMLDialogElement>(null);
     const total = state.pages?.length;
     const fetching = total === undefined;
     const assembling = total !== undefined && state.nbrProcessed >= total;
 
+    // a modal <dialog>: the page behind is inert and keeps no focus until the run ends
+    useEffect(() => {
+        dialogRef.current?.showModal();
+    }, []);
+
     return (
-        <div className={classes['multiple-download-backdrop']}>
-            <div
-                className={classes['multiple-download-dialog']}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="multiple-download-title"
-            >
+        <dialog
+            ref={dialogRef}
+            className={classes['multiple-download-backdrop']}
+            aria-labelledby="multiple-download-title"
+            // cancelling is the only way out: Escape (stopped at keydown, before the browser closes it) does nothing
+            onKeyDown={(event) => event.key === 'Escape' && event.preventDefault()}
+            onCancel={(event) => event.preventDefault()}
+        >
+            <div className={classes['multiple-download-dialog']}>
                 <h2 id="multiple-download-title" className="fr-h5">
                     Génération des rapports...
                 </h2>
@@ -347,14 +362,13 @@ const MultipleDownloadBlocker: React.FC<{ state: MultipleDownloadState; onCancel
                         'fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-close-circle-line',
                         classes['multiple-download-cancel'],
                     )}
-                    // the page is blocked until the run ends: cancelling is the only way out
                     autoFocus
                     onClick={onCancel}
                 >
                     Annuler
                 </button>
             </div>
-        </div>
+        </dialog>
     );
 };
 
@@ -1002,6 +1016,8 @@ const Component: React.FC<ComponentProps> = ({
             drawControl.changeMode('simple_select');
             drawModeRef.current = null;
             setDrawMode(null);
+            // neither draw.modechange nor draw.create fires here, which is where the hint goes otherwise
+            notifications.hide(DRAW_HINT_NOTIFICATION_ID);
         };
 
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -1111,8 +1127,11 @@ const Component: React.FC<ComponentProps> = ({
         }
     }, [annotationGridError]);
 
+    // « Zones exclues par les filtres »: always shown with the detections, never listed in « Couches »
+    const customZonesNegativeUuids = displayDetections ? objectsFilter?.customZonesUuids || [] : [];
+
     const fetchCustomZoneGeometries = async (signal: AbortSignal, mapBounds?: MapBounds) => {
-        if (!mapBounds || customZoneLayersDisplayedUuids.length === 0) {
+        if (!mapBounds || (customZoneLayersDisplayedUuids.length === 0 && customZonesNegativeUuids.length === 0)) {
             return null;
         }
 
@@ -1120,6 +1139,7 @@ const Component: React.FC<ComponentProps> = ({
             params: {
                 ...mapBounds,
                 uuids: customZoneLayersDisplayedUuids,
+                uuidsNegative: customZonesNegativeUuids,
             },
             signal,
         });
@@ -1129,6 +1149,7 @@ const Component: React.FC<ComponentProps> = ({
             utilsEndpoints.customGeometry,
             ...Object.values(mapBounds || {}),
             customZoneLayersDisplayedUuids.join(','),
+            customZonesNegativeUuids.join(','),
         ],
         queryFn: ({ signal }) => fetchCustomZoneGeometries(signal, mapBounds),
         placeholderData: keepPreviousData,
@@ -1437,11 +1458,12 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         if (displayDetections) {
-            return GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID;
+            return GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID;
         }
 
+        // under the outline of the tile set areas (the admin previews)
         if (displayLayersGeometry) {
-            return GEOJSON_LAYER_EXTRA_ID;
+            return GEOJSON_LAYER_EXTRA_BOUNDINGS_ID;
         }
 
         return undefined;
@@ -1460,8 +1482,10 @@ const Component: React.FC<ComponentProps> = ({
             return detectionsIndex === -1 ? null : order[detectionsIndex + 1];
         }
 
-        const layersShownAbove = layersDisplayed.filter((layer) => layers.indexOf(layer) <= underIndex);
-        const closestAbove = layersShownAbove[layersShownAbove.length - 1];
+        const closestAbove = layers
+            .slice(0, underIndex + 1)
+            .filter(({ displayed }) => displayed)
+            .pop();
 
         return closestAbove ? getLayerId(closestAbove) : getLayerBeforeId(0);
     };
@@ -1550,6 +1574,11 @@ const Component: React.FC<ComponentProps> = ({
         setIsDragging(false);
     };
 
+    const loadingTexts = [
+        isDetectionsFetching ? 'Chargement des détections' : null,
+        objectFromCoordinates.fetchStatus === 'LOADING' ? "Recherche d'une détection" : null,
+    ].filter((text): text is string => !!text);
+
     return (
         // the map controls read these to clear the side panel and the detail panel
         <div
@@ -1612,7 +1641,8 @@ const Component: React.FC<ComponentProps> = ({
                             tracked={syncViewStateToUrl}
                             onFilterUserChange={syncViewStateToUrl ? armEmptyViewportCheck : undefined}
                         />
-                        {displayTileSetControls ? <MapControlBackgroundSlider tracked={syncViewStateToUrl} /> : null}
+                        {/* mapbox prepends each control added to a bottom corner: the year list, added after the
+                            legend, comes first in the DOM, so the keyboard follows the row as drawn */}
                         <MapControlLegend
                             isShowed={legendShowed}
                             setIsShowed={(state: boolean) => {
@@ -1622,6 +1652,7 @@ const Component: React.FC<ComponentProps> = ({
                                 setLegendShowed(state);
                             }}
                         />
+                        {displayTileSetControls ? <MapControlBackgroundSlider tracked={syncViewStateToUrl} /> : null}
                         <MapAddAnnotationModal
                             isShowed={!!addAnnotationPolygon}
                             hide={() => setAddAnnotationPolygon(undefined)}
@@ -1640,26 +1671,17 @@ const Component: React.FC<ComponentProps> = ({
                             detectionsUuids={multipleEditDetectionsUuids}
                             trackingSource={syncViewStateToUrl ? 'Carte' : undefined}
                         />
-                        {isDetectionsFetching || objectFromCoordinates.fetchStatus === 'LOADING' ? (
+                        {loadingTexts.length ? (
                             <div className={classes['loaders-container']}>
-                                {isDetectionsFetching ? (
-                                    <div className={classes['detections-loader-container']}>
+                                {loadingTexts.map((text) => (
+                                    <div key={text} className={classes.loader}>
                                         <span
                                             className={clsx('fr-icon-refresh-line fr-icon--sm', classes['loader-icon'])}
                                             aria-hidden="true"
                                         />
-                                        <div className={classes['loader-text']}>Chargement des détections</div>
+                                        <div>{text}</div>
                                     </div>
-                                ) : null}
-                                {objectFromCoordinates.fetchStatus === 'LOADING' ? (
-                                    <div className={classes['object-from-coordinates-loader-container']}>
-                                        <span
-                                            className={clsx('fr-icon-refresh-line fr-icon--sm', classes['loader-icon'])}
-                                            aria-hidden="true"
-                                        />
-                                        <div className={classes['loader-text']}>Recherche d&apos;une détection</div>
-                                    </div>
-                                ) : null}
+                                ))}
                             </div>
                         ) : null}
                     </>
@@ -1844,6 +1866,28 @@ const Component: React.FC<ComponentProps> = ({
                         }}
                     />
                 </Source>
+                {/* before the rasters, which are stacked under it */}
+                {displayDetections ? (
+                    <Source
+                        id="custom-zone-negative-geojson-data"
+                        type="geojson"
+                        data={
+                            customZonesData?.customZoneNegative
+                                ? featureCollection([feature(customZonesData.customZoneNegative)])
+                                : EMPTY_GEOJSON_FEATURE_COLLECTION
+                        }
+                    >
+                        <Layer
+                            id={GEOJSON_CUSTOM_ZONE_NEGATIVE_LAYER_ID}
+                            beforeId={GEOJSON_CUSTOM_ZONES_LAYER_OUTLINE_ID}
+                            type="fill"
+                            paint={{
+                                'fill-color': CUSTOM_ZONE_NEGATIVE_COLOR,
+                                'fill-opacity': CUSTOM_ZONE_NEGATIVE_OPACITY,
+                            }}
+                        />
+                    </Source>
+                ) : null}
                 {layersDisplayed.map((layer, index) => (
                     <Source
                         key={layer.tileSet.uuid}

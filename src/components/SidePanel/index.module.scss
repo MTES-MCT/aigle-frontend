@@ -179,14 +179,6 @@
         inset -1px 0 0 0 var(--border-default-grey),
         inset 0 -1px 0 0 var(--border-default-grey);
     backdrop-filter: none;
-
-    &:hover:not(:disabled) {
-        background-color: var(--background-default-grey-hover);
-    }
-
-    &:active:not(:disabled) {
-        background-color: var(--background-default-grey-active);
-    }
 }
 
 .rail-button-indicator {

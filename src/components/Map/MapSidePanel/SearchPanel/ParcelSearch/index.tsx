@@ -268,6 +268,7 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
                 placeholder="Rechercher une commune"
                 emptyText="Aucune commune trouvée"
                 selected={!!form.commune.option}
+                validMessage="Commune sélectionnée"
                 unselectedError={getUnselectedError('une commune')}
                 onChange={(search) => setField('commune', { search, option: null })}
                 onSelect={(option) => {
@@ -287,6 +288,7 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
                 disabled={!form.commune.option}
                 emptyText="Introuvable"
                 selected={!!form.section.option}
+                validMessage="Section sélectionnée"
                 unselectedError={getUnselectedError('une section')}
                 onChange={(search) => setField('section', { search, option: null })}
                 onSelect={(option) => setField('section', { search: option.label, option })}
@@ -300,14 +302,19 @@ const Component: React.FC<ComponentProps> = ({ onSearched, tracked }: ComponentP
                 disabled={!form.section.option}
                 emptyText="Introuvable"
                 selected={!!form.numParcel.option}
+                validMessage="Parcelle sélectionnée"
                 unselectedError={getUnselectedError('une parcelle')}
                 onChange={(search) => setField('numParcel', { search, option: null })}
                 onSelect={(option) => setField('numParcel', { search: option.label, option })}
             />
 
             {lookupFailure ? (
-                <div className="fr-alert fr-alert--error fr-alert--sm fr-mb-2w" role="alert">
-                    <p>{LOOKUP_FAILURE_MESSAGES[lookupFailure]}</p>
+                <div className="fr-alert fr-alert--error fr-alert--sm" role="alert">
+                    <p>
+                        {/* DSFR alerts state their type in words; the other message already says « erreur » */}
+                        {lookupFailure === 'Introuvable' ? <span className="fr-sr-only">Erreur : </span> : null}
+                        {LOOKUP_FAILURE_MESSAGES[lookupFailure]}
+                    </p>
                 </div>
             ) : null}
 

@@ -7,7 +7,6 @@ import { GeoDepartment } from '@/models/geo/geo-department';
 import { GeoEpci } from '@/models/geo/geo-epci';
 import { GeoRegion } from '@/models/geo/geo-region';
 import { SelectOption } from '@/models/ui/select-option';
-import { useAuth } from '@/store/slices/auth';
 import api from '@/utils/api';
 import { GeoValues, geoZoneToGeoOption } from '@/utils/geojson';
 import { UseFormReturnType } from '@mantine/form';
@@ -70,7 +69,7 @@ const fetchGeoCollectivities = async <T extends GeoCollectivity>(
     return res.results;
 };
 
-export type GeoCollectivitiesUserChange = 'added' | 'removed' | 'codesPasted' | 'codesRejected';
+export type GeoCollectivitiesUserChange = 'added' | 'removed';
 
 interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     form: UseFormReturnType<T>;
@@ -78,7 +77,7 @@ interface ComponentProps<T extends GeoCollectivitiesFormValues> {
     className?: string;
     onChange?: (geoSelectedValues: GeoValues) => void;
     // Opt-in, for tracking: a change the user made, with the number of collectivities of that type
-    // selected after it ('codesRejected': the number of codes that matched nothing).
+    // selected after it.
     onUserChange?: (collectivityType: CollectivityType, change: GeoCollectivitiesUserChange, count: number) => void;
     displayedCollectivityTypes?: Set<CollectivityType>;
     // Per collectivity type: when set, the field is disabled and the string is shown on hover.
@@ -97,9 +96,6 @@ const Component = <T extends GeoCollectivitiesFormValues>({
     disabledCollectivityTypes = {},
     codesPasteEnabled = false,
 }: ComponentProps<T>) => {
-    const { userMe } = useAuth();
-    // pasting raw INSEE/SIREN codes is a bulk-admin shortcut, not something regular users need
-    const canPasteCodes = codesPasteEnabled && !!userMe?.userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userMe.userRole);
     const [geoInputValues, setGeoInputValues] = useState<{
         [key in CollectivityType]: string;
     }>({
@@ -254,17 +250,8 @@ const Component = <T extends GeoCollectivitiesFormValues>({
 
     // Resolve the typed codes against the backend, keep the matches, toast the rejected ones.
     const applyRawMode = async (collectivityType: CollectivityType) => {
-        // Leaving raw mode without editing the codes gives back the same selection: not a change.
-        const reportPaste = (options: SelectOption[]) => {
-            const previousUuids = new Set(geoSelectedValuesRef.current[collectivityType].map((option) => option.value));
-            if (options.length !== previousUuids.size || options.some((option) => !previousUuids.has(option.value))) {
-                onUserChange?.(collectivityType, 'codesPasted', options.length);
-            }
-        };
-
         const codes = parseCodes(rawInputs[collectivityType]);
         if (codes.length === 0) {
-            reportPaste([]);
             setSelected(collectivityType, []);
             setRawModes((prev) => ({ ...prev, [collectivityType]: false }));
             return;
@@ -287,12 +274,8 @@ const Component = <T extends GeoCollectivitiesFormValues>({
                 }
             });
 
-            reportPaste(matched);
             setSelected(collectivityType, matched);
             setRawModes((prev) => ({ ...prev, [collectivityType]: false }));
-            if (rejected.length) {
-                onUserChange?.(collectivityType, 'codesRejected', rejected.length);
-            }
 
             const label = FIELD_CONFIG[collectivityType].label.toLowerCase();
             if (rejected.length) {
@@ -372,7 +355,7 @@ const Component = <T extends GeoCollectivitiesFormValues>({
                     />
                 )}
 
-                {canPasteCodes ? (
+                {codesPasteEnabled ? (
                     <button
                         type="button"
                         className={

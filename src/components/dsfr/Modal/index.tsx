@@ -1,3 +1,4 @@
+import { isEscapeKeptByFocusedField, lockPageScroll } from '@/utils/html';
 import clsx from 'clsx';
 import React, { PropsWithChildren, ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import classes from './index.module.scss';
@@ -10,7 +11,7 @@ interface ComponentProps extends PropsWithChildren {
     closeTitle?: string;
     // DSFR grid classes of the column that holds the modal body: they set its width.
     colClassName?: string;
-    // with the grid gutters, the body is a gutter narrower: the width of the DSFR design kit's modal
+    // the modal of the DSFR design kit: a gutter narrower, the close button 1rem from the edge
     gutters?: boolean;
     bodyClassName?: string;
 }
@@ -48,14 +49,7 @@ const Component: React.FC<ComponentProps> = ({
             return;
         }
 
-        const root = document.documentElement;
-        const scrollY = window.scrollY;
-        const scrollbarWidth = window.innerWidth - root.clientWidth;
-        root.setAttribute('data-fr-scrolling', 'false');
-        document.body.style.top = `${-scrollY}px`;
-        if (scrollbarWidth > 0) {
-            root.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`);
-        }
+        const unlockPageScroll = lockPageScroll();
 
         dialog.showModal();
         if (!dialog.contains(document.activeElement)) {
@@ -65,10 +59,7 @@ const Component: React.FC<ComponentProps> = ({
         return () => {
             // Closed while the body is still fixed, so handing focus back cannot scroll the page.
             dialog.close();
-            root.removeAttribute('data-fr-scrolling');
-            document.body.style.top = '';
-            root.style.removeProperty('--scrollbar-width');
-            window.scrollTo({ top: scrollY, behavior: 'instant' });
+            unlockPageScroll();
         };
     }, [opened]);
 
@@ -101,6 +92,12 @@ const Component: React.FC<ComponentProps> = ({
             id={id}
             className={clsx('fr-modal', opened && 'fr-modal--opened', classes.dialog)}
             aria-labelledby={`${id}-title`}
+            // Escape in a field belongs to the field, as with the DSFR JS
+            onKeyDown={(event) => {
+                if (event.key === 'Escape' && isEscapeKeptByFocusedField()) {
+                    event.preventDefault();
+                }
+            }}
             onCancel={(event) => {
                 event.preventDefault();
                 onClose();
@@ -120,7 +117,12 @@ const Component: React.FC<ComponentProps> = ({
                     <div className={colClassName}>
                         <div
                             ref={bodyRef}
-                            className={clsx('fr-modal__body', scrollDivided && 'fr-scroll-divider', bodyClassName)}
+                            className={clsx(
+                                'fr-modal__body',
+                                scrollDivided && 'fr-scroll-divider',
+                                gutters && classes['body-kit'],
+                                bodyClassName,
+                            )}
                         >
                             <div className="fr-modal__header">
                                 <button
@@ -135,9 +137,9 @@ const Component: React.FC<ComponentProps> = ({
                                 </button>
                             </div>
                             <div className="fr-modal__content">
-                                <h1 id={`${id}-title`} className="fr-modal__title">
+                                <h2 id={`${id}-title`} className="fr-modal__title">
                                     {title}
-                                </h1>
+                                </h2>
                                 {children}
                             </div>
                             {footer ? <div className="fr-modal__footer">{footer}</div> : null}

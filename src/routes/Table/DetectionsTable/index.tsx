@@ -5,7 +5,7 @@ import OptionalText from '@/components/ui/OptionalText';
 import { DetectionListItem } from '@/models/detection';
 import ObjectTypeSquare from '@/routes/Table/ObjectTypeSquare';
 import TagsCell from '@/routes/Table/TagsCell';
-import { DataTableFilter } from '@/routes/Table/utils';
+import { DataTableFilter, TableOrder, getOrdering } from '@/routes/Table/utils';
 import api from '@/utils/api';
 import {
     DETECTION_CONTROL_STATUSES_BADGE_CLASSES,
@@ -26,11 +26,6 @@ import classes from './index.module.scss';
 
 const ENDPOINT = detectionEndpoints.getList();
 
-interface FieldOrder {
-    sortOrder?: SortOrder;
-    field: string;
-}
-
 interface ParcelDataTableFilter extends DataTableFilter {
     parcelsUuids: string[];
     ordering?: string;
@@ -50,6 +45,7 @@ const Badge: React.FC<{ label: string; className: string }> = ({ label, classNam
 
 interface ComponentProps {
     parcelUuid: string;
+    parcelLabel: string;
     dataTableFilter: DataTableFilter;
     selectionShowed: boolean;
     selectedUuids: string[];
@@ -58,21 +54,22 @@ interface ComponentProps {
 
 const Component: React.FC<ComponentProps> = ({
     parcelUuid,
+    parcelLabel,
     dataTableFilter,
     selectionShowed,
     selectedUuids,
     setSelectedUuids,
 }: ComponentProps) => {
     const checkboxIdPrefix = `detection-select-${useId()}`;
-    const [order, setOrder] = React.useState<FieldOrder | undefined>();
+    const [order, setOrder] = React.useState<TableOrder | undefined>();
     const filter: ParcelDataTableFilter = {
         ...dataTableFilter,
         parcelsUuids: [parcelUuid],
-        ...(order ? { ordering: order.sortOrder === 'asc' ? order.field : `-${order.field}` } : {}),
+        ...(order ? { ordering: getOrdering(order) } : {}),
     };
 
-    // same key shape as the shared DataTable: the bulk edit invalidates the `[ENDPOINT]` prefix
-    const { data, isLoading, isFetching, error } = useQuery({
+    // keyed under the `[ENDPOINT]` prefix that the bulk edit invalidates
+    const { data, isFetching, error } = useQuery({
         queryKey: [ENDPOINT, ...Object.values(filter)],
         queryFn: ({ signal }) => api<DetectionListItem[]>(ENDPOINT, { params: { ...filter }, signal }),
         placeholderData: keepPreviousData,
@@ -86,14 +83,20 @@ const Component: React.FC<ComponentProps> = ({
         );
     }
 
-    if (isLoading || !data) {
+    if (!data) {
         return <Loader />;
     }
 
     const colsCount = 8 + (selectionShowed ? 1 : 0);
 
     return (
-        <Table caption="Détections de la parcelle" size="sm" bordered busy={isFetching} className={classes.table}>
+        <Table
+            caption={`Détections de la parcelle ${parcelLabel}`}
+            size="sm"
+            bordered
+            busy={isFetching}
+            className={classes.table}
+        >
             <thead>
                 <tr>
                     {selectionShowed ? (
@@ -127,6 +130,7 @@ const Component: React.FC<ComponentProps> = ({
                 {data.map((item) => {
                     const selected = selectedUuids.includes(item.uuid);
                     const checkboxId = `${checkboxIdPrefix}-${item.uuid}`;
+                    const prescriptionStatus = item.detectionPrescriptionStatus || 'NOT_PRESCRIBED';
 
                     return (
                         <tr key={item.uuid} aria-selected={selectionShowed ? selected : undefined}>
@@ -196,16 +200,8 @@ const Component: React.FC<ComponentProps> = ({
                             </td>
                             <td className={classes.nowrap}>
                                 <Badge
-                                    label={
-                                        DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP[
-                                            item.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
-                                        ]
-                                    }
-                                    className={
-                                        DETECTION_PRESCRIPTION_STATUSES_BADGE_CLASSES[
-                                            item.detectionPrescriptionStatus || 'NOT_PRESCRIBED'
-                                        ]
-                                    }
+                                    label={DETECTION_PRESCRIPTION_STATUSES_NAMES_MAP[prescriptionStatus]}
+                                    className={DETECTION_PRESCRIPTION_STATUSES_BADGE_CLASSES[prescriptionStatus]}
                                 />
                             </td>
                             <td className={classes.nowrap}>

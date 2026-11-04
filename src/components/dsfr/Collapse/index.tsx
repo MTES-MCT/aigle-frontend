@@ -14,7 +14,7 @@ interface ComponentProps extends PropsWithChildren {
  *
  * `fr-collapse--expanded` opens the block, but the transition is a negative `margin-top` on
  * a `::before` pseudo-element whose distance comes from `--collapse`. Left at DSFR's
- * `-99999px` default the content flies in over that distance every time — so the height has
+ * `-99999px` default the content flies in over that distance every time, so the height has
  * to be measured. It is measured on the inner wrapper, not on the collapse itself: a
  * collapsed block has `max-height: 0` and would always measure 0, while its child keeps its
  * natural height and simply overflows.

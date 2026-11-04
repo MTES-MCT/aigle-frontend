@@ -1,14 +1,17 @@
+import { webinarEndpoints } from '@/api/endpoints';
 import Tabs, { TabsItem } from '@/components/dsfr/Tabs';
 import LayoutBase from '@/components/LayoutBase';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
+import { Webinar } from '@/models/help-center';
+import api from '@/utils/api';
 import { isBrevoChatEnabled, openBrevoChat } from '@/utils/brevo';
 import { HEADER_HEIGHT_PX } from '@/utils/constants';
 import { trackEvent } from '@/utils/matomo';
+import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { EXERCISES } from './content/exercises';
 import { FAQ_CATEGORIES } from './content/faq';
-import { WEBINARS } from './content/webinars';
 import ExercisesPanel from './ExercisesPanel';
 import FaqPanel from './FaqPanel';
 import FicheDownloadLink from './FicheDownloadLink';
@@ -20,12 +23,14 @@ import {
     trackVideoOpen,
     trackWebinarLink,
 } from './tracking';
+import { useParisNow } from './useParisNow';
 import {
     CONTACT_EMAIL,
-    formatWebinarDate,
-    formatWebinarTimeSlot,
+    formatWebinarSchedule,
+    getWebinarSortKey,
     HELP_CENTER_TABS,
     HelpCenterTab,
+    isWebinarInProgress,
     isWebinarUpcoming,
 } from './utils';
 import VideoModal, { VideoSelection } from './VideoModal';
@@ -75,11 +80,24 @@ const Component: React.FC = () => {
         anchorTarget?.tab === 'faq' ? [anchorTarget.id] : [],
     );
 
-    const upcomingWebinars = WEBINARS.filter(isWebinarUpcoming).sort((a, b) => a.date.localeCompare(b.date));
-    const pastWebinars = WEBINARS.filter((webinar) => !isWebinarUpcoming(webinar)).sort((a, b) =>
-        b.date.localeCompare(a.date),
-    );
-    const nextWebinar = upcomingWebinars[0];
+    const {
+        data: webinars = [],
+        isLoading: isWebinarsLoading,
+        isError: isWebinarsError,
+    } = useQuery({
+        queryKey: [webinarEndpoints.list],
+        queryFn: ({ signal }) => api<Webinar[]>(webinarEndpoints.list, { signal }),
+    });
+    const parisNow = useParisNow();
+    const upcomingWebinars = webinars
+        .filter((webinar) => isWebinarUpcoming(webinar, parisNow))
+        .sort((a, b) => getWebinarSortKey(a).localeCompare(getWebinarSortKey(b)));
+    const pastWebinars = webinars
+        .filter((webinar) => !isWebinarUpcoming(webinar, parisNow))
+        .sort((a, b) => getWebinarSortKey(b).localeCompare(getWebinarSortKey(a)));
+    const inProgressWebinar = upcomingWebinars.find((webinar) => isWebinarInProgress(webinar, parisNow));
+    // The webinar in progress has its own banner in the webinars tab.
+    const nextWebinar = upcomingWebinars.find((webinar) => !isWebinarInProgress(webinar, parisNow));
 
     const setTab = (value: HelpCenterTab) => setUrlFilter({ onglet: value });
 
@@ -156,10 +174,7 @@ const Component: React.FC = () => {
                         <h2 className={clsx('fr-callout__title', classes['callout-title'])}>
                             Prochain webinaire : {nextWebinar.title}
                         </h2>
-                        <p className="fr-callout__text">
-                            {formatWebinarDate(nextWebinar.date)}
-                            {nextWebinar.timeSlot ? `, ${formatWebinarTimeSlot(nextWebinar.timeSlot)}` : ''}
-                        </p>
+                        <p className="fr-callout__text">{formatWebinarSchedule(nextWebinar, ', ')}</p>
                         {nextWebinar.registrationUrl ? (
                             <a
                                 className="fr-btn"
@@ -212,6 +227,9 @@ const Component: React.FC = () => {
                             <WebinarsPanel
                                 upcomingWebinars={upcomingWebinars}
                                 pastWebinars={pastWebinars}
+                                inProgressWebinar={inProgressWebinar}
+                                isLoading={isWebinarsLoading}
+                                isError={isWebinarsError}
                                 onPlay={setVideoSelection}
                             />
                         ) : null}

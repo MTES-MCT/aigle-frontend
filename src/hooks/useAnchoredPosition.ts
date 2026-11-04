@@ -3,8 +3,6 @@ import { RefObject, useCallback, useLayoutEffect, useState } from 'react';
 export interface AnchorRect {
     top: number;
     left: number;
-    // distance from the viewport's right edge, for a popup that aligns to the anchor's right
-    right: number;
     width: number;
 }
 
@@ -23,7 +21,6 @@ export const useAnchoredPosition = (anchorRef: RefObject<HTMLElement>, active: b
         setPosition({
             top: rect.bottom,
             left: rect.left,
-            right: document.documentElement.clientWidth - rect.right,
             width: rect.width,
         });
     }, [anchorRef]);

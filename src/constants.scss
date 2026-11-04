@@ -11,7 +11,7 @@ $margin-map-elements: 10px;
 // the button cards of the map: distance to the map edges, space between cards, and their shadow
 $map-control-inset: 16px;
 $map-control-gap: 8px;
-$map-control-shadow: 0 2px 6px 0 rgba(0, 0, 18, 0.16);
+$map-control-shadow: var(--overlap-shadow);
 
 $map-side-panel-width: 380px;
 $map-side-panel-rail-width: 48px;
@@ -22,19 +22,20 @@ $map-side-panel-rail-top: 16px;
 // the bottom-left year list, from the map edge with the side panel closed, from the panel open
 $map-year-list-offset: 14px;
 $map-year-list-offset-panel-open: 11px;
+$map-year-list-panel-slide: $map-side-panel-width + $map-year-list-offset-panel-open - $map-year-list-offset;
 
 $border-radius-medium: 24px;
 $border-radius-small: 8px;
 
 $detection-detail-panel-width: 500px;
+// the detail panel floats this far from the map edges
+$detection-detail-panel-inset: 10px;
 $detection-detail-panel-padding: 24px;
 
 $tile-preview-detail-gap: 8px;
 $tile-preview-detail-size: calc(
     ($detection-detail-panel-width - $detection-detail-panel-padding) / 3 - 2 * $tile-preview-detail-gap
 );
-
-$map-control-padding: 24px;
 
 // The map side panel overlays the map from the left. The icon rail sits to the right of the
 // panel but only paints at the top of that edge, so a control anchored to the top must always
@@ -50,11 +51,6 @@ $map-control-padding: 24px;
 // slid with a transform rather than a margin, so the panel opening does not lay the row out again
 @mixin map-control-offset-bottom-left {
     margin-left: $map-year-list-offset;
-    transform: translateX(
-        calc(
-            var(--map-side-panel-open, 0) * #{$map-side-panel-width + $map-year-list-offset-panel-open -
-                $map-year-list-offset}
-        )
-    );
+    transform: translateX(calc(var(--map-side-panel-open, 0) * #{$map-year-list-panel-slide}));
     transition: transform $map-side-panel-slide-duration ease;
 }

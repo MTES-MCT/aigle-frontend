@@ -10,22 +10,9 @@
     margin-bottom: 0;
 }
 
-.actions {
-    width: 100%;
-
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-
 // the DSFR text size and spacing, which index.scss overrides app-wide
 .form [class~='fr-alert'] p {
     --text-spacing: 0 0 0.25rem;
 
     font-size: 1rem;
-}
-
-// the close button 1rem from the edge, as the design draws it (DSFR leaves 2rem)
-.body [class~='fr-modal__header'] {
-    padding-right: 1rem;
 }
