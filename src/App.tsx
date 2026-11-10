@@ -236,6 +236,7 @@ const FILTER_DIMENSION_TRACKING_NAMES: Record<ObjectsFilterLinkDimension, string
     statuses: 'statuts',
     objectTypes: 'types d’objets',
     zones: 'zones',
+    controlPlan: 'plan de contrôle',
 };
 
 // Bootstrap runs again on a login after a session expiry, and twice under StrictMode.
@@ -300,7 +301,7 @@ const keepEntryLinkAcrossLogout = () => {
 };
 
 /** How the page was entered: a detection link, a filtered view, a link whose filter could not be applied. */
-const trackEntryLink = (pathname: string, search: string, mapSettings: MapSettings) => {
+const trackEntryLink = (pathname: string, search: string, mapSettings: MapSettings, canAccessControlPlan: boolean) => {
     if (entryLinkHandled) {
         return;
     }
@@ -334,6 +335,7 @@ const trackEntryLink = (pathname: string, search: string, mapSettings: MapSettin
         Array.from(visibleObjectTypesUuids),
         getInitialMapGeoCustomZoneLayers(mapSettings).flatMap(({ customZoneUuids }) => customZoneUuids),
         allObjectTypes.map(({ uuid }) => uuid),
+        canAccessControlPlan,
     );
 
     // Every load writes the filter into the url, so a plain bookmark holds the default one.
@@ -499,9 +501,10 @@ const App: React.FC = () => {
             }
 
             const mapSettings = await api<MapSettings>(mapEndpoints.settings);
-            setMapSettings(mapSettings);
-            setStatisticsMapSettings(mapSettings);
-            trackEntryLink(entryPathname, entrySearch, mapSettings);
+            const canAccessControlPlan = useAuth.getState().canAccessControlPlan();
+            setMapSettings(mapSettings, canAccessControlPlan);
+            setStatisticsMapSettings(mapSettings, canAccessControlPlan);
+            trackEntryLink(entryPathname, entrySearch, mapSettings, canAccessControlPlan);
             removeDetectionObjectUuidFromUrl();
         } catch (err) {
             console.error(err);

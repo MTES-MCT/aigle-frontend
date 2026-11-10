@@ -54,10 +54,13 @@ const useNavigateKeepingScope = () => {
 const MainNav: React.FC = () => {
     const { pathname } = useLocation();
     const handleNavigate = useNavigateKeepingScope();
+    // subscribed to userMe so that the entry follows a refreshed profile
+    const { userMe, canAccessControlPlan } = useAuth();
 
     const items = [
         { path: '/map', label: 'Carte' },
         { path: '/table', label: 'Tableau' },
+        ...(userMe && canAccessControlPlan() ? [{ path: '/control-plan', label: 'Plan de contrôle' }] : []),
         { path: '/statistics', label: 'Statistiques' },
     ];
 

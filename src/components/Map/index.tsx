@@ -410,7 +410,7 @@ interface MapBounds {
 
 const getAnnotationGridFilters = (objectsFilter: ObjectsFilter) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { detectionValidationStatuses, ...annotationFilter } = objectsFilter;
+    const { detectionValidationStatuses, controlPlan, ...annotationFilter } = objectsFilter;
     return annotationFilter;
 };
 

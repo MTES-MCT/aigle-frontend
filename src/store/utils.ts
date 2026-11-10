@@ -128,13 +128,14 @@ export const getInitialStatisticsLayers = (settings: MapSettings): MapTileSetLay
     return layers;
 };
 
-export const getCommonMapSettingsData = (settings: MapSettings) => {
+export const getCommonMapSettingsData = (settings: MapSettings, canAccessControlPlan: boolean) => {
     const { allObjectTypes, visibleObjectTypesUuids, otherObjectTypesUuids } = extractObjectTypesFromSettings(settings);
     const initialMapGeoCustomZoneLayers = getInitialMapGeoCustomZoneLayers(settings);
     const { objectsFilter, detectionObjectUuid } = getInitialObjectFilters(
         Array.from(visibleObjectTypesUuids),
         initialMapGeoCustomZoneLayers.map(({ customZoneUuids }) => customZoneUuids).flat(),
         allObjectTypes.map(({ uuid }) => uuid),
+        canAccessControlPlan,
     );
 
     return {

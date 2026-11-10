@@ -18,6 +18,7 @@ export const TRACKING_CATEGORIES = {
     errors: 'Erreurs',
     support: 'Support',
     admin: 'Administration',
+    controlPlan: 'Plan de contrôle',
 } as const;
 
 export type SignalementSource =
@@ -59,6 +60,7 @@ export const PAGE_TRACKING_TITLES: Record<string, string> = {
     '/reset-password/:uid/:token': 'Nouveau mot de passe',
     '/map': 'Carte',
     '/table': 'Tableau',
+    '/control-plan': 'Plan de contrôle',
     '/statistics': 'Statistiques',
     '/help': 'Centre d’aide',
     '/admin/users': 'Administration - Utilisateurs',

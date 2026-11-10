@@ -1,0 +1,28 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.summary,
+.message {
+    margin: 0;
+
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+}
+
+.message {
+    color: var(--text-mention-grey);
+}
+
+.loader {
+    margin: 1rem 0;
+}
+
+/* the imagery years side by side, wrapping on a narrow screen */
+.previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}

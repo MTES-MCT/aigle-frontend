@@ -1,0 +1,66 @@
+/* The page reads as a document: same width and rhythm as the help center. */
+.container {
+    max-width: 75rem;
+    margin: 0 auto;
+    padding: 1.5rem 0 3rem;
+
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    h1 {
+        margin: 0;
+
+        font-size: 2rem;
+        line-height: 2.5rem;
+    }
+}
+
+.lead {
+    margin: 0;
+
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    text-wrap: pretty;
+}
+
+.group-select {
+    max-width: 24rem;
+}
+
+.loader {
+    margin: 1.5rem 0;
+}
+
+.container .alert {
+    margin: 0;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.section-title {
+    margin: 0;
+
+    font-size: 1.75rem;
+    line-height: 2.25rem;
+}
+
+.steps {
+    margin: 0;
+}
+
+.hint {
+    margin: 0;
+
+    color: var(--text-mention-grey);
+}

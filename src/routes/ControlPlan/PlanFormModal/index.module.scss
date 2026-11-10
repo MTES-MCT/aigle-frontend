@@ -1,0 +1,21 @@
+.intro {
+    margin-bottom: 1.5rem;
+}
+
+.field {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* the two dates side by side, stacked on a phone */
+.dates {
+    display: flex;
+    gap: 1rem;
+}
+
+@media (max-width: 35.99em) {
+    .dates {
+        flex-direction: column;
+        gap: 0;
+    }
+}

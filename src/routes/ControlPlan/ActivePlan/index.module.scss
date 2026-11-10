@@ -1,0 +1,37 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+
+    /* the group trims its own bottom margin, the header gap spaces it */
+    > ul {
+        margin: 0;
+    }
+}
+
+.heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.title {
+    margin: 0;
+
+    font-size: 1.75rem;
+    line-height: 2.25rem;
+}
+
+.period {
+    margin: 0;
+
+    color: var(--text-mention-grey);
+}

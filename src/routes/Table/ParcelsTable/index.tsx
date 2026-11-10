@@ -182,7 +182,10 @@ const Component = <T_FILTER extends object>({
                                         <TagsCell labels={item.zoneNames} />
                                     </td>
                                     <td>
-                                        <DetectionCountCell parcel={item} />
+                                        <DetectionCountCell
+                                            count={item.detectionsCount}
+                                            countsByObjectType={item.detectionsCountByObjectType}
+                                        />
                                     </td>
                                     <td>
                                         <span className="fr-cell__title">{parcelLabel}</span>

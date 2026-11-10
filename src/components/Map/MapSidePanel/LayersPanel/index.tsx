@@ -1,13 +1,9 @@
 import React, { useId, useMemo, useState } from 'react';
 
 import Collapse from '@/components/dsfr/Collapse';
-import LayerRow, {
-    ExpandButton,
-    LayerRowSortableProps,
-    VisibilityButton,
-} from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
-import SortableLayerRows from '@/components/Map/MapSidePanel/LayersPanel/SortableLayerRows';
+import LayerRow, { ExpandButton, VisibilityButton } from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
 import { getZoneLayerTrackingName } from '@/components/Map/utils/tracking';
+import SortableRows, { SortableRowProps } from '@/components/SortableRows';
 import { MapGeoCustomZoneLayer, MapTileSetLayer } from '@/models/map-layer';
 import { TileSetType } from '@/models/tile-set';
 import { useMap } from '@/store/slices/map';
@@ -27,6 +23,7 @@ type IndicativeRow = { kind: 'grid' } | { kind: 'tileSet'; layer: MapTileSetLaye
 
 const ANNOTATION_GRID_ROW_KEY = 'annotation-grid';
 const ANNOTATION_GRID_NAME = "Grille d'annotation";
+const LAYER_MOVE_HINT = 'Flèches haut et bas pour déplacer la couche';
 
 const TILE_SET_TYPE_ICONS: Record<OverlayTileSetType, string> = {
     PARTIAL: 'fr-icon-image-line',
@@ -162,7 +159,7 @@ const Component: React.FC<ComponentProps> = ({
         setAnnotationGridUnder(rowAboveGrid?.kind === 'tileSet' ? rowAboveGrid.layer.tileSet.uuid : null);
     };
 
-    const renderAnnotationGridRow = (sortable?: LayerRowSortableProps) => (
+    const renderAnnotationGridRow = (sortable?: SortableRowProps) => (
         <LayerRow
             name={ANNOTATION_GRID_NAME}
             icon="fr-icon-layout-grid-line"
@@ -176,7 +173,7 @@ const Component: React.FC<ComponentProps> = ({
         />
     );
 
-    const renderTileSetRow = (layer: MapTileSetLayer, sortable: LayerRowSortableProps) => (
+    const renderTileSetRow = (layer: MapTileSetLayer, sortable: SortableRowProps) => (
         <LayerRow
             name={layer.tileSet.name}
             icon={TILE_SET_TYPE_ICONS[layer.tileSet.tileSetType as OverlayTileSetType]}
@@ -190,8 +187,9 @@ const Component: React.FC<ComponentProps> = ({
     );
 
     const renderTileSetRows = (type: OverlayTileSetType) => (
-        <SortableLayerRows
+        <SortableRows
             items={layersMap[type]}
+            hint={LAYER_MOVE_HINT}
             getKey={({ tileSet }) => tileSet.uuid}
             getName={({ tileSet }) => tileSet.name}
             onMove={(layer, target) => moveTileSetLayer(layer.tileSet.uuid, target.tileSet.uuid)}
@@ -226,8 +224,9 @@ const Component: React.FC<ComponentProps> = ({
                 }}
             >
                 {indicativeRows.length > 1 ? (
-                    <SortableLayerRows
+                    <SortableRows
                         items={indicativeRows}
+                        hint={LAYER_MOVE_HINT}
                         getKey={(row) => (row.kind === 'grid' ? ANNOTATION_GRID_ROW_KEY : row.layer.tileSet.uuid)}
                         getName={(row) => (row.kind === 'grid' ? ANNOTATION_GRID_NAME : row.layer.tileSet.name)}
                         onMove={moveIndicativeRow}
@@ -253,8 +252,9 @@ const Component: React.FC<ComponentProps> = ({
                         );
                     }}
                 >
-                    <SortableLayerRows
+                    <SortableRows
                         items={customZoneLayers}
+                        hint={LAYER_MOVE_HINT}
                         getKey={getCustomZoneLayerKey}
                         getName={({ name }) => name}
                         onMove={(layer, target) => moveCustomZoneLayer(layer.customZoneUuids, target.customZoneUuids)}

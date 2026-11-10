@@ -1,5 +1,6 @@
 import Collapse from '@/components/dsfr/Collapse';
 import Range from '@/components/dsfr/Range';
+import { SortableRowProps } from '@/components/SortableRows';
 import { getCustomZoneOpacities, withAlpha } from '@/utils/colors';
 import { DEFAULT_CUSTOM_ZONE_LAYER_OPACITY } from '@/utils/constants';
 import clsx from 'clsx';
@@ -7,8 +8,6 @@ import React, { useId, useState } from 'react';
 import classes from './index.module.scss';
 
 const formatOpacity = (opacity: number) => `${Math.round(opacity)} %`;
-
-export type DropPosition = 'before' | 'after';
 
 interface VisibilityButtonProps {
     displayed: boolean;
@@ -60,19 +59,6 @@ export const ExpandButton: React.FC<ExpandButtonProps> = ({ name, expanded, cont
     );
 };
 
-export interface LayerRowSortableProps {
-    dragged: boolean;
-    dropPosition?: DropPosition;
-    describedBy: string;
-    handleRef: (handle: HTMLButtonElement | null) => void;
-    onHandleKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
-    onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
-    onDragEnd: () => void;
-}
-
 interface ComponentProps {
     name: string;
     displayed: boolean;
@@ -80,7 +66,7 @@ interface ComponentProps {
     icon?: string;
     description?: string | null;
     opacity?: number;
-    sortable?: LayerRowSortableProps;
+    sortable?: SortableRowProps;
     // in a sortable section without being movable itself: keeps the handle's slot so the rows line up
     pinned?: boolean;
     onToggleDisplayed: (displayed: boolean) => void;
@@ -101,8 +87,6 @@ const Component: React.FC<ComponentProps> = ({
 }: ComponentProps) => {
     const detailsId = `layer-details-${useId()}`;
     const [expanded, setExpanded] = useState(false);
-    // Only a drag started from the handle moves the row: the rest of it holds buttons and a slider.
-    const [dragArmed, setDragArmed] = useState(false);
     const expandable = onOpacityChange !== undefined || !!description;
     const swatchOpacities = getCustomZoneOpacities(opacity ?? DEFAULT_CUSTOM_ZONE_LAYER_OPACITY);
 
@@ -113,15 +97,12 @@ const Component: React.FC<ComponentProps> = ({
                 sortable?.dragged && classes['layer-dragged'],
                 sortable?.dropPosition && classes[`layer-drop-${sortable.dropPosition}`],
             )}
-            draggable={dragArmed}
+            draggable={sortable?.draggable}
             onDragStart={sortable?.onDragStart}
             onDragOver={sortable?.onDragOver}
             onDragLeave={sortable?.onDragLeave}
             onDrop={sortable?.onDrop}
-            onDragEnd={() => {
-                setDragArmed(false);
-                sortable?.onDragEnd();
-            }}
+            onDragEnd={sortable?.onDragEnd}
         >
             <div className={classes.header}>
                 {sortable ? (
@@ -135,21 +116,7 @@ const Component: React.FC<ComponentProps> = ({
                         title={`Déplacer ${name}`}
                         aria-keyshortcuts="ArrowUp ArrowDown"
                         aria-describedby={sortable.describedBy}
-                        onPointerDown={(event) => {
-                            if (event.button !== 0) {
-                                return;
-                            }
-
-                            setDragArmed(true);
-                            // pointercancel when the drag starts or the touch scrolls, no pointerup then
-                            const disarm = () => {
-                                setDragArmed(false);
-                                document.removeEventListener('pointerup', disarm);
-                                document.removeEventListener('pointercancel', disarm);
-                            };
-                            document.addEventListener('pointerup', disarm);
-                            document.addEventListener('pointercancel', disarm);
-                        }}
+                        onPointerDown={sortable.onHandlePointerDown}
                         onKeyDown={sortable.onHandleKeyDown}
                     >
                         {`Déplacer ${name}`}

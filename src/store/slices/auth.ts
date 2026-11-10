@@ -20,6 +20,8 @@ interface AuthState {
     logout: (redirectTo?: string) => Promise<void>;
     getUserGroupType: () => UserGroupType;
     hasFeatureFlag: (featureFlag: FeatureFlag) => boolean;
+    // internal users have it whatever their groups hold, as long as they belong to one: a plan is a group's
+    canAccessControlPlan: () => boolean;
     getAccessibleGeozones: (geoZoneType?: GeoZoneType) => GeoZone[];
 
     isAuthenticated: () => boolean;
@@ -100,6 +102,9 @@ const useAuth = create<AuthState>()(
                 // gets one back on the next /users/me.
                 return get().userMe?.featureFlags?.includes(featureFlag) === true;
             },
+            canAccessControlPlan: () =>
+                (get().userMe?.isStaff === true && !!get().userMe?.userUserGroups.length) ||
+                get().hasFeatureFlag('PLAN_DE_CONTROLE'),
             getAccessibleGeozones: (geoZoneType?: GeoZoneType) => {
                 const userMe = get().userMe;
 

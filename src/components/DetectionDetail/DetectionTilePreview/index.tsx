@@ -6,14 +6,14 @@ import { ActionIcon, Overlay, Tooltip } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
 import { IconPencil, IconPhotoOff, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import clsx from 'clsx';
-import { Polygon, Position } from 'geojson';
+import { MultiPolygon, Polygon, Position } from 'geojson';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, MapEvent, MapRef, MapSourceDataEvent, MapStyle, Source } from 'react-map-gl';
 import classes from './index.module.scss';
 
 interface PreviewGeometry {
     color: string;
-    geometry: Polygon;
+    geometry: Polygon | MultiPolygon;
 }
 
 interface ClassNames {

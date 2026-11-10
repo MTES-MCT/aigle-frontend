@@ -39,6 +39,12 @@ export const getFiltersToMakeVisible = (
 
     // we do not update score as it's bypassed when object is set to force visible
 
+    // An object « À contrôler » always passes the control plan filter; any other may lie outside the plan
+    // (whether its parcel is planned is unknown here), so the filter is dropped for it.
+    if (currentObjectsFilters.controlPlan && invisibleDetection.detectionData.detectionControlStatus !== 'TO_CONTROL') {
+        objectFiltersUpdated.controlPlan = false;
+    }
+
     if (
         (invisibleDetection.detectionData.detectionPrescriptionStatus === 'NOT_PRESCRIBED' &&
             currentObjectsFilters.prescripted) ||
@@ -83,6 +89,7 @@ export const getForceVisibleTrackingName = (
             currentObjectsFilters.detectionControlStatuses.length && 'Contrôle',
         objectFiltersUpdated.prescripted !== currentObjectsFilters.prescripted && 'Prescription',
         objectFiltersUpdated.customZonesUuids.length !== currentObjectsFilters.customZonesUuids.length && 'Zones',
+        !!currentObjectsFilters.controlPlan && !objectFiltersUpdated.controlPlan && 'Plan de contrôle',
     ].filter(Boolean);
 
     return widenedFilters.length ? widenedFilters.join(' + ') : 'Aucun';

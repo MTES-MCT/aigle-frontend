@@ -1,27 +1,33 @@
 import React from 'react';
 
-import { ParcelListItem } from '@/models/parcel';
+import { ParcelListItemDetectionCountByObjectType } from '@/models/parcel';
 import ObjectTypeSquare from '@/routes/Table/ObjectTypeSquare';
 import classes from './index.module.scss';
 
 interface ComponentProps {
-    parcel: ParcelListItem;
+    count: number;
+    countsByObjectType: ParcelListItemDetectionCountByObjectType[];
+    // singular and plural
+    unit?: [string, string];
 }
-const Component: React.FC<ComponentProps> = ({ parcel }: ComponentProps) => {
+
+const Component: React.FC<ComponentProps> = ({
+    count,
+    countsByObjectType,
+    unit = ['détection', 'détections'],
+}: ComponentProps) => {
     return (
         <div>
             <p className="fr-cell__title">
-                {parcel.detectionsCount} {parcel.detectionsCount > 1 ? 'détections' : 'détection'}
+                {count} {count > 1 ? unit[1] : unit[0]}
             </p>
             <ul className={classes['detection-count-list']}>
-                {parcel.detectionsCountByObjectType.map(
-                    ({ objectTypeName, objectTypeUuid, objectTypeColor, count }) => (
-                        <li key={objectTypeUuid} className={classes['detection-count-list-item']}>
-                            <ObjectTypeSquare color={objectTypeColor} />
-                            {objectTypeName} : {count}
-                        </li>
-                    ),
-                )}
+                {countsByObjectType.map(({ objectTypeName, objectTypeUuid, objectTypeColor, count }) => (
+                    <li key={objectTypeUuid} className={classes['detection-count-list-item']}>
+                        <ObjectTypeSquare color={objectTypeColor} />
+                        {objectTypeName} : {count}
+                    </li>
+                ))}
             </ul>
         </div>
     );

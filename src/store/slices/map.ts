@@ -33,7 +33,7 @@ interface MapState {
     initialDetectionObjectUuid?: string;
     isDetailFetching?: boolean; // we want to prioritize the detail fetching over the detections fetching
 
-    setMapSettings: (settings: MapSettings) => void;
+    setMapSettings: (settings: MapSettings, canAccessControlPlan: boolean) => void;
     clearInitialDetectionObjectUuid: () => void;
     resetLayers: () => void;
     getDisplayedTileSetUrls: () => string[];
@@ -78,7 +78,7 @@ const updateCustomZoneLayer = (
 
 const useMap = create<MapState>()((set, get) => ({
     annotationGridUnder: null,
-    setMapSettings: (settings: MapSettings) => {
+    setMapSettings: (settings: MapSettings, canAccessControlPlan: boolean) => {
         const { layers, backgroundLayerYears } = getInitialMapLayers(settings);
         const {
             allObjectTypes,
@@ -86,7 +86,7 @@ const useMap = create<MapState>()((set, get) => ({
             initialMapGeoCustomZoneLayers,
             objectsFilter,
             detectionObjectUuid,
-        } = getCommonMapSettingsData(settings);
+        } = getCommonMapSettingsData(settings, canAccessControlPlan);
 
         set(() => ({
             settings,

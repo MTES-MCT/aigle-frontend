@@ -1,6 +1,23 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 
-import { DropPosition, LayerRowSortableProps } from '@/components/Map/MapSidePanel/LayersPanel/LayerRow';
+export type DropPosition = 'before' | 'after';
+
+// What a row needs to be dragged by its handle, or moved with the arrow keys on it.
+export interface SortableRowProps {
+    // on the row: true once its handle is pressed, so a drag elsewhere in the row moves nothing
+    draggable: boolean;
+    dragged: boolean;
+    dropPosition?: DropPosition;
+    describedBy: string;
+    handleRef: (handle: HTMLButtonElement | null) => void;
+    onHandlePointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
+    onHandleKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
+    onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
+    onDragEnd: () => void;
+}
 
 interface DropTarget {
     key: string;
@@ -13,12 +30,15 @@ interface ComponentProps<T> {
     getName: (item: T) => string;
     // moves the item to the place the target holds
     onMove: (item: T, target: T) => void;
-    renderRow: (item: T, sortable: LayerRowSortableProps) => React.ReactNode;
+    renderRow: (item: T, sortable: SortableRowProps) => React.ReactNode;
+    // read by screen readers on the handles, e.g. « Flèches haut et bas pour déplacer la couche »
+    hint: string;
 }
 
-// The rows of one section, reordered by dragging their handle or with the arrow keys on it.
-const Component = <T,>({ items, getKey, getName, onMove, renderRow }: ComponentProps<T>) => {
+// The rows of one list, reordered by dragging their handle or with the arrow keys on it.
+const Component = <T,>({ items, getKey, getName, onMove, renderRow, hint }: ComponentProps<T>) => {
     const keys = items.map(getKey);
+    const [armedKey, setArmedKey] = useState<string | null>(null);
     const [draggedKey, setDraggedKey] = useState<string | null>(null);
     const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
     const [announcement, setAnnouncement] = useState('');
@@ -48,6 +68,7 @@ const Component = <T,>({ items, getKey, getName, onMove, renderRow }: ComponentP
     };
 
     const endDrag = () => {
+        setArmedKey(null);
         draggedKeyRef.current = null;
         setDraggedKey(null);
         updateDropTarget(null);
@@ -64,7 +85,8 @@ const Component = <T,>({ items, getKey, getName, onMove, renderRow }: ComponentP
         return to === from ? null : to;
     };
 
-    const getSortableProps = (key: string): LayerRowSortableProps => ({
+    const getSortableProps = (key: string): SortableRowProps => ({
+        draggable: armedKey === key,
         dragged: draggedKey === key,
         dropPosition: dropTarget?.key === key ? dropTarget.position : undefined,
         describedBy: hintId,
@@ -74,6 +96,21 @@ const Component = <T,>({ items, getKey, getName, onMove, renderRow }: ComponentP
             } else {
                 handlesRef.current.delete(key);
             }
+        },
+        onHandlePointerDown: (event) => {
+            if (event.button !== 0) {
+                return;
+            }
+
+            setArmedKey(key);
+            // pointercancel when the drag starts or the touch scrolls, no pointerup then
+            const disarm = () => {
+                setArmedKey(null);
+                document.removeEventListener('pointerup', disarm);
+                document.removeEventListener('pointercancel', disarm);
+            };
+            document.addEventListener('pointerup', disarm);
+            document.addEventListener('pointercancel', disarm);
         },
         onHandleKeyDown: (event) => {
             if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
@@ -160,7 +197,7 @@ const Component = <T,>({ items, getKey, getName, onMove, renderRow }: ComponentP
                 <React.Fragment key={keys[index]}>{renderRow(item, getSortableProps(keys[index]))}</React.Fragment>
             ))}
             <p id={hintId} className="fr-sr-only">
-                Flèches haut et bas pour déplacer la couche
+                {hint}
             </p>
             <p className="fr-sr-only" aria-live="polite">
                 {announcement}

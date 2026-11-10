@@ -1,6 +1,7 @@
 export * from '../types';
 export * from './admin';
 export * from './auth';
+export * from './control-plan';
 export * from './detection';
 export * from './geo';
 export * from './help-center';

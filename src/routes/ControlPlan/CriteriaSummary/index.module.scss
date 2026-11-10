@@ -1,0 +1,28 @@
+.list {
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    gap: 1rem;
+
+    dt {
+        font-weight: 700;
+    }
+
+    dd {
+        margin: 0;
+    }
+}
+
+@media (max-width: 35.99em) {
+    .row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}

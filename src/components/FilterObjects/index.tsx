@@ -13,6 +13,7 @@ import {
 import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType, ObjectTypeMinimal } from '@/models/object-type';
+import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { getCustomZoneOpacities, getObjectTypeSquareColor, withAlpha } from '@/utils/colors';
 import {
@@ -119,6 +120,7 @@ const Component: React.FC<ComponentProps> = ({
 }: ComponentProps) => {
     const { isExpanded, toggleSection } = useExpandedSections(ALL_SECTIONS);
     const { settings } = useMap();
+    const { canAccessControlPlan } = useAuth();
     const scoreTrackingRef = useRef<{ timer: ReturnType<typeof setTimeout>; from: number; send: () => void } | null>(
         null,
     );
@@ -251,6 +253,24 @@ const Component: React.FC<ComponentProps> = ({
 
     return (
         <div className={classes.container}>
+            {canAccessControlPlan() ? (
+                <Checkbox
+                    className={classes['control-plan']}
+                    label={
+                        <>
+                            Uniquement mon plan de contrôle
+                            <span className="fr-hint-text">
+                                Parcelles du plan de contrôle en cours et objets « À contrôler » hors plan
+                            </span>
+                        </>
+                    }
+                    checked={!!objectsFilter.controlPlan}
+                    onChange={(checked) => {
+                        trackFilterEvent('Filtre modifié', `Plan de contrôle : ${checked ? '+' : '-'}`);
+                        updateFromUser({ controlPlan: checked });
+                    }}
+                />
+            ) : null}
             <div className={clsx('fr-select-group', classes.preset)}>
                 <label className="fr-label" htmlFor="objects-filter-preset">
                     Filtres rapides

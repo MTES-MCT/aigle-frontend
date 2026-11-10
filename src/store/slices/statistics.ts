@@ -14,11 +14,11 @@ interface StatisticsState {
     otherObjectTypesUuids?: Set<string>;
     customZoneLayers?: MapGeoCustomZoneLayer[];
 
-    setMapSettings: (settings: MapSettings) => void;
+    setMapSettings: (settings: MapSettings, canAccessControlPlan: boolean) => void;
 }
 
 const useStatistics = create<StatisticsState>()((set) => ({
-    setMapSettings: (settings: MapSettings) => {
+    setMapSettings: (settings: MapSettings, canAccessControlPlan: boolean) => {
         const layers = getInitialStatisticsLayers(settings);
         const {
             allObjectTypes,
@@ -26,7 +26,7 @@ const useStatistics = create<StatisticsState>()((set) => ({
             otherObjectTypesUuids,
             initialMapGeoCustomZoneLayers,
             objectsFilter,
-        } = getCommonMapSettingsData(settings);
+        } = getCommonMapSettingsData(settings, canAccessControlPlan);
 
         useObjectsFilter.getState().updateObjectsFilter(objectsFilter);
 

@@ -12,6 +12,12 @@ import { xor } from 'lodash';
 type QueryParams = Record<string, string>;
 
 const DETECTION_OBJECT_UUID_PARAM = 'detectionObjectUuid';
+const CONTROL_PLAN_PARAM = 'controlPlan';
+
+// A link carrying the filter to someone without the feature falls back to the whole territory.
+// The access is passed in: importing the auth store here makes an import cycle (auth > tracking > presets).
+const isControlPlanParamApplied = (params: QueryParams, canAccessControlPlan: boolean) =>
+    params[CONTROL_PLAN_PARAM] === 'true' && canAccessControlPlan;
 
 /**
  * `objectTypesUuids` make the default filter, `knownObjectTypesUuids` are all the object types of
@@ -21,6 +27,7 @@ export const getInitialObjectFilters = (
     objectTypesUuids: string[],
     customZonesUuids: string[],
     knownObjectTypesUuids: string[],
+    canAccessControlPlan: boolean,
 ): {
     objectsFilter: ObjectsFilter;
     detectionObjectUuid?: string;
@@ -33,7 +40,13 @@ export const getInitialObjectFilters = (
         detectionObjectUuid = detectionObjectUuidParam;
     }
     return {
-        objectsFilter: paramsToObjectsFilter(params, objectTypesUuids, customZonesUuids, knownObjectTypesUuids),
+        objectsFilter: paramsToObjectsFilter(
+            params,
+            objectTypesUuids,
+            customZonesUuids,
+            knownObjectTypesUuids,
+            canAccessControlPlan,
+        ),
         detectionObjectUuid,
     };
 };
@@ -57,6 +70,10 @@ export const setObjectFilters = (objectsFilter: ObjectsFilter) => {
     Object.entries(params).forEach(([key, value]) => {
         url.searchParams.set(key, value);
     });
+    // only written when on, so that the urls of everyone else stay as they were
+    if (!objectsFilter.controlPlan) {
+        url.searchParams.delete(CONTROL_PLAN_PARAM);
+    }
 
     window.history.replaceState({}, '', url.toString());
 };
@@ -79,6 +96,7 @@ const getObjectsFilterDefault = (objectTypesUuids: string[], customZonesUuids: s
     prescripted: DEFAULT_PRESCRIPTED,
     interfaceDrawn: 'ALL',
     customZonesUuids: customZonesUuids,
+    controlPlan: false,
 });
 
 const paramsToObjectsFilter = (
@@ -86,6 +104,7 @@ const paramsToObjectsFilter = (
     objectTypesUuids: string[],
     customZonesUuids: string[],
     knownObjectTypesUuids: string[],
+    canAccessControlPlan: boolean,
 ): ObjectsFilter => {
     const objectsFilterDefault = getObjectsFilterDefault(objectTypesUuids, customZonesUuids);
 
@@ -116,6 +135,8 @@ const paramsToObjectsFilter = (
 
         customZonesUuids:
             parsedCustomZones && parsedCustomZones.length ? parsedCustomZones : objectsFilterDefault.customZonesUuids,
+
+        controlPlan: isControlPlanParamApplied(params, canAccessControlPlan),
     };
 };
 
@@ -128,10 +149,11 @@ const objectsFilterToParams = (objectsFilter: ObjectsFilter): QueryParams => {
         prescripted: String(objectsFilter.prescripted),
         interfaceDrawn: 'ALL',
         customZonesUuids: objectsFilter.customZonesUuids.join(','),
+        ...(objectsFilter.controlPlan ? { [CONTROL_PLAN_PARAM]: 'true' } : {}),
     };
 };
 
-export type ObjectsFilterLinkDimension = 'statuses' | 'objectTypes' | 'zones';
+export type ObjectsFilterLinkDimension = 'statuses' | 'objectTypes' | 'zones' | 'controlPlan';
 
 export interface ObjectsFilterLink {
     objectsFilter: ObjectsFilter;
@@ -157,7 +179,8 @@ export const isObjectsFilterDefault = (
     haveSameValues(objectsFilter.detectionValidationStatuses, DEFAULT_DETECTION_VALIDATION_STATUSES) &&
     haveSameValues(objectsFilter.detectionControlStatuses, DEFAULT_DETECTION_CONTROL_STATUSES) &&
     objectsFilter.prescripted === DEFAULT_PRESCRIPTED &&
-    haveSameValues(objectsFilter.customZonesUuids, defaultCustomZonesUuids);
+    haveSameValues(objectsFilter.customZonesUuids, defaultCustomZonesUuids) &&
+    !objectsFilter.controlPlan;
 
 /**
  * What a landing query string (a shared link, a bookmark) turns into, compared with the default
@@ -168,9 +191,16 @@ export const getObjectsFilterLink = (
     objectTypesUuids: string[],
     customZonesUuids: string[],
     knownObjectTypesUuids: string[],
+    canAccessControlPlan: boolean,
 ): ObjectsFilterLink => {
     const params = Object.fromEntries(new URLSearchParams(search));
-    const objectsFilter = paramsToObjectsFilter(params, objectTypesUuids, customZonesUuids, knownObjectTypesUuids);
+    const objectsFilter = paramsToObjectsFilter(
+        params,
+        objectTypesUuids,
+        customZonesUuids,
+        knownObjectTypesUuids,
+        canAccessControlPlan,
+    );
     const objectsFilterDefault = getObjectsFilterDefault(objectTypesUuids, customZonesUuids);
 
     const scopeChanged =
@@ -182,7 +212,8 @@ export const getObjectsFilterLink = (
         !haveSameValues(objectsFilter.detectionControlStatuses, objectsFilterDefault.detectionControlStatuses) ||
         objectsFilter.score !== objectsFilterDefault.score ||
         objectsFilter.prescripted !== objectsFilterDefault.prescripted ||
-        objectsFilter.interfaceDrawn !== objectsFilterDefault.interfaceDrawn;
+        objectsFilter.interfaceDrawn !== objectsFilterDefault.interfaceDrawn ||
+        !!objectsFilter.controlPlan;
 
     const unresolved: ObjectsFilterLinkDimension[] = [];
     if (
@@ -196,6 +227,9 @@ export const getObjectsFilterLink = (
     }
     if (hasUnknownValues(params.customZonesUuids, customZonesUuids)) {
         unresolved.push('zones');
+    }
+    if (params[CONTROL_PLAN_PARAM] === 'true' && !objectsFilter.controlPlan) {
+        unresolved.push('controlPlan');
     }
 
     return { objectsFilter, differsFromDefault, scopeChanged, unresolved };

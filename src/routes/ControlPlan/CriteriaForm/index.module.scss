@@ -1,0 +1,146 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.title {
+    margin: 0;
+
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+
+.hint {
+    margin: 0;
+
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    color: var(--text-mention-grey);
+}
+
+.fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    border: 0;
+}
+
+.legend {
+    margin: 0;
+    padding: 0;
+
+    font-weight: 700;
+}
+
+.select-all {
+    align-self: flex-start;
+}
+
+/* the checkboxes on two to four columns from a tablet up */
+.columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 0.75rem 1.5rem;
+}
+
+.checkbox {
+    margin: 0;
+}
+
+/* the swatch follows the name: on its left it read as a second checkbox */
+.type-label,
+.zone-label {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.zone-square {
+    flex: 0 0 auto;
+
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.25rem;
+
+    border: 2px dashed;
+}
+
+/* the sortable rows sit on a framed list, like the layers panel */
+.list {
+    max-width: 40rem;
+
+    border-top: 1px solid var(--border-default-grey);
+}
+
+/* the zone order unfolds under its ranking criterion, indented to the criterion's label */
+.nested {
+    padding: 0.75rem 0.5rem 1rem 4.75rem;
+
+    background-color: var(--background-alt-grey);
+    box-shadow: inset 0 -1px 0 0 var(--border-default-grey);
+
+    .list {
+        border-top-color: var(--border-default-grey);
+    }
+}
+
+.nested-title {
+    margin: 0 0 0.5rem;
+
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.5rem;
+}
+
+.number-field {
+    max-width: 20rem;
+    margin: 0;
+}
+
+.error {
+    margin: 0;
+}
+
+/* the DSFR accordion draws its own top and bottom rules */
+.advanced {
+    margin-top: -1rem;
+}
+
+.advanced-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.advanced-summary {
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5rem;
+    color: var(--text-mention-grey);
+}
+
+.advanced-content {
+    padding: 0.5rem 0 1rem;
+
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+@media (max-width: 35.99em) {
+    .nested {
+        padding-left: 1rem;
+    }
+}

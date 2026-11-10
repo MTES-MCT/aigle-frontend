@@ -2,7 +2,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { OTHER_OBJECT_TYPE } from '@/utils/constants';
 
 export const objectsFilterToApiParams = (
-    objectsFilter: ObjectsFilter,
+    { controlPlan, ...objectsFilter }: ObjectsFilter,
     otherObjectTypesUuids: Set<string>,
 ): ObjectsFilter => {
     const objectTypesUuids = [...objectsFilter.objectTypesUuids];
@@ -17,5 +17,7 @@ export const objectsFilterToApiParams = (
     return {
         ...objectsFilter,
         objectTypesUuids,
+        // sent only when on, as the other pages do not know the param
+        ...(controlPlan ? { controlPlan } : {}),
     };
 };
