@@ -1,3 +1,5 @@
+@use '@/constants.scss' as constants;
+
 .marianne-logo {
     height: 32px;
     width: auto;
@@ -39,4 +41,16 @@
     white-space: nowrap;
 
     background-color: var(--background-overlap-grey);
+}
+
+// higher specificity than the global `header.fr-header` height
+header.header-without-nav:global(.fr-header) {
+    height: constants.$header-body-height;
+
+    // on desktop the menu modal is the nav row: nothing left to show in it
+    @media (min-width: 62em) {
+        :global(.fr-header__menu) {
+            display: none;
+        }
+    }
 }

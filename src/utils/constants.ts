@@ -13,6 +13,8 @@ export const DEFAULT_ROUTE = '/';
 
 // Must match $header-height in constants.scss — used to offset scroll targets under the fixed header.
 export const HEADER_HEIGHT_PX = 128;
+// Must match $header-body-height: the header without its nav row, as in the admin section.
+export const HEADER_BODY_HEIGHT_PX = 72;
 
 export const TILES_URL_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 

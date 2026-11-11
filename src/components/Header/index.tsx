@@ -307,7 +307,12 @@ const useMenuModal = () => {
     return { opened, setOpened, menuRef, buttonRef };
 };
 
-const Component: React.FC = () => {
+interface ComponentProps {
+    // the admin section has its own navigation: no nav row there
+    mainNav?: boolean;
+}
+
+const Component: React.FC<ComponentProps> = ({ mainNav = true }) => {
     const handleNavigate = useNavigateKeepingScope();
     const menu = useMenuModal();
 
@@ -322,15 +327,17 @@ const Component: React.FC = () => {
                                 Contenu
                             </a>
                         </li>
-                        <li>
-                            <a className="fr-link" href={`#${MENU_ID}`}>
-                                Menu
-                            </a>
-                        </li>
+                        {mainNav ? (
+                            <li>
+                                <a className="fr-link" href={`#${MENU_ID}`}>
+                                    Menu
+                                </a>
+                            </li>
+                        ) : null}
                     </ul>
                 </nav>
             </div>
-            <header role="banner" className="fr-header">
+            <header role="banner" className={clsx('fr-header', !mainNav && classes['header-without-nav'])}>
                 <div className="fr-header__body">
                     <div className="fr-container">
                         <div className="fr-header__body-row">
@@ -409,7 +416,7 @@ const Component: React.FC = () => {
                         <div className="fr-header__menu-links">
                             <QuickAccessLinks onChatOpen={() => menu.setOpened(false)} />
                         </div>
-                        <MainNav />
+                        {mainNav ? <MainNav /> : null}
                     </div>
                 </div>
             </header>
