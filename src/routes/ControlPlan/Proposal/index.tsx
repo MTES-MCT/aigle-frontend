@@ -28,12 +28,21 @@ const Component: React.FC<ComponentProps> = ({ controlPlanUuid, wave, canEdit }:
     return (
         <div className={classes.container}>
             {wave.eligibleParcelsCount ? (
-                <p className={classes.summary}>
-                    {formatCount(wave.eligibleParcelsCount, 'parcelle répond', 'parcelles répondent')} à vos critères :
-                    Aigle en propose {formatBigInt(proposal.proposedCount)} sur les {formatBigInt(wave.parcelsCount)}{' '}
-                    demandées, par ordre de priorité. Écartez celles que vous savez légales : la suivante de la liste
-                    d’attente prend leur place.
-                </p>
+                <div className={classes.summary}>
+                    <p>
+                        {formatCount(wave.eligibleParcelsCount, 'parcelle répond', 'parcelles répondent')} à vos
+                        critères : Aigle en propose {formatBigInt(proposal.proposedCount - proposal.addedCount)} sur les{' '}
+                        {formatBigInt(wave.parcelsCount)} demandées, par ordre de priorité
+                        {proposal.addedCount
+                            ? `, et vous en avez ajouté ${formatBigInt(proposal.addedCount)} depuis la liste d’attente.`
+                            : '.'}
+                    </p>
+                    <p className={classes.hint}>
+                        Écartez celles qui n’ont pas besoin d’un contrôle : la suivante de la liste d’attente prend leur
+                        place. Une parcelle de la liste d’attente vous intéresse ? Ajoutez-la au plan, en plus des
+                        parcelles demandées.
+                    </p>
+                </div>
             ) : (
                 <div className="fr-alert fr-alert--warning fr-alert--sm">
                     <p>Aucune parcelle ne répond à vos critères : modifiez-les pour élargir la recherche.</p>

@@ -4,8 +4,16 @@
     align-items: stretch;
     gap: 1.5rem;
 
+    /* the back link's icon on the edge of the content, not its padding */
     > button {
         align-self: flex-start;
+
+        margin-left: -0.75rem;
+    }
+
+    /* the container's gap spaces the stepper */
+    > [class~='fr-stepper'] {
+        margin-bottom: 0;
     }
 }
 

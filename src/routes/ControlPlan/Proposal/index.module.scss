@@ -5,5 +5,15 @@
 }
 
 .summary {
-    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    p {
+        margin: 0;
+    }
+}
+
+.hint {
+    color: var(--text-mention-grey);
 }

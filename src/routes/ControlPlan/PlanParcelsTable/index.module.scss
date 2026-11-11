@@ -13,6 +13,8 @@
 
 .table[class~='fr-table'] {
     margin-top: 0;
+    /* the tab panel's padding closes it */
+    margin-bottom: 0;
 
     font-variant-numeric: tabular-nums;
 }
@@ -33,6 +35,10 @@
     background-color: var(--background-default-grey-hover);
 }
 
+.block {
+    display: block;
+}
+
 .secondary {
     display: block;
 
@@ -50,7 +56,6 @@
 
 .actions {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
@@ -68,7 +73,9 @@
     margin-bottom: 0;
 }
 
-.nowrap {
+.nowrap,
+.cell-objects,
+.table .badge {
     white-space: nowrap;
 }
 
@@ -141,8 +148,15 @@
         }
     }
 
-    .row-end,
+    .row-end {
+        justify-content: space-between;
+    }
+
+    /* the buttons wrap, the toggle stays on the right of the first line */
     .actions {
+        flex: 1 1 auto;
+        flex-wrap: wrap;
         justify-content: flex-start;
+        min-width: 0;
     }
 }

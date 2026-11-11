@@ -13,14 +13,14 @@ export type ControlPlanWaveStatus = (typeof controlPlanWaveStatuses)[number];
 export const controlPlanParcelStatuses = ['PROPOSED', 'EXCLUDED', 'PLANNED', 'REMOVED'] as const;
 export type ControlPlanParcelStatus = (typeof controlPlanParcelStatuses)[number];
 
-// PROPOSED and WAITING split the proposals of the draft wave at its parcels count
+// PROPOSED and WAITING split the proposals of the draft wave at its parcels count (plus the agent's additions)
 export const controlPlanParcelSections = ['PROPOSED', 'WAITING', 'EXCLUDED', 'PLANNED', 'REMOVED'] as const;
 export type ControlPlanParcelSection = (typeof controlPlanParcelSections)[number];
 
 export const controlPlanFollowUpStatuses = ['TO_CONTROL', 'CONTROLLED', 'RELEASED'] as const;
 export type ControlPlanFollowUpStatus = (typeof controlPlanFollowUpStatuses)[number];
 
-export const controlPlanRankingCriteria = ['ZONE_PRIORITY', 'OBJECTS_COUNT', 'NEW_OBJECTS_COUNT'] as const;
+export const controlPlanRankingCriteria = ['OBJECTS_COUNT', 'NEW_OBJECTS_COUNT'] as const;
 export type ControlPlanRankingCriterion = (typeof controlPlanRankingCriteria)[number];
 
 export const controlPlanValidationStatuses = [
@@ -58,7 +58,7 @@ export interface ControlPlanCriteria {
     scoreMin: number;
     validationStatuses: ControlPlanValidationStatus[];
     includePrescribed: boolean;
-    // the selected zone groups, by priority (index 0 first)
+    // the selected zone groups: a filter, not an order
     customZoneGroups: string[][];
     excludeAuthorizedParcels: boolean;
     excludeOfficialReportParcels: boolean;
@@ -70,6 +70,8 @@ export interface ControlPlanCriteria {
 export interface ControlPlanProposal {
     proposedCount: number;
     waitingCount: number;
+    // pulled from the waiting list by an agent, counted in proposedCount
+    addedCount: number;
     excludedCount: number;
     objectsCount: number;
     unverifiedObjectsCount: number;
@@ -143,6 +145,8 @@ export interface ControlPlanCriteriaOptions {
     customZoneGroups: ControlPlanCriteriaOptionZoneGroup[];
     // the communes or EPCIs of a collectivity group, empty for a DDTM or a department
     defaultPerimeter: { communes: ControlPlanPerimeterZone[]; epcis: ControlPlanPerimeterZone[] };
+    // the only commune of the group's territory: no perimeter to choose
+    singleCommune: ControlPlanPerimeterZone | null;
 }
 
 export interface ControlPlanParcelCommune {
@@ -172,8 +176,8 @@ export interface ControlPlanParcel extends Uuided {
     objectsCount: number;
     newObjectsCount: number;
     unverifiedObjectsCount: number;
-    // index into the wave's customZoneGroups, null when only drawn objects outside the zones
-    zonePriority: number | null;
+    // pulled from the waiting list by an agent, on top of the parcels count
+    addedByAgent: boolean;
     zoneNames: string[];
     objectTypes: ControlPlanParcelObjectType[];
     detectionObjectUuids: string[];
@@ -207,11 +211,22 @@ export interface ControlPlanParcelPreviewObject {
     detectionValidationStatus: DetectionValidationStatus;
 }
 
+export interface ControlPlanParcelPreviewYearObject {
+    uuid: string;
+    objectTypeName: string;
+    objectTypeColor: string;
+    geometry: Polygon | MultiPolygon | Point;
+}
+
 export interface ControlPlanParcelPreview {
     parcelGeometry: Polygon | MultiPolygon | null;
     bounds: [number, number, number, number] | null;
+    // the objects as they are now
     detectionObjects: ControlPlanParcelPreviewObject[];
-    tileSetPreviews: DetectionObjectDetailTilesetPreview[];
+    // each year with the objects as detected on it
+    tileSetPreviews: (DetectionObjectDetailTilesetPreview & {
+        detectionObjects: ControlPlanParcelPreviewYearObject[];
+    })[];
 }
 
 export interface ControlPlanWaveInput {

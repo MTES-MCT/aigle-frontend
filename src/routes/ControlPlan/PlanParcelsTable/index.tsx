@@ -34,16 +34,20 @@ import classes from './index.module.scss';
 
 const LIMITS = [10, 20, 50];
 
-type ParcelAction = 'exclude' | 'restore' | 'remove';
+type ParcelAction = 'exclude' | 'include' | 'putBack' | 'restore' | 'remove';
 
 const ACTION_ENDPOINTS: Record<ParcelAction, (uuid: string) => string> = {
     exclude: controlPlanParcelEndpoints.exclude,
+    include: controlPlanParcelEndpoints.include,
+    putBack: controlPlanParcelEndpoints.putBack,
     restore: controlPlanParcelEndpoints.restore,
     remove: controlPlanParcelEndpoints.remove,
 };
 
 const ACTION_TRACKING_NAMES: Record<ParcelAction, string> = {
     exclude: 'Parcelle écartée',
+    include: 'Parcelle ajoutée',
+    putBack: 'Parcelle remise en attente',
     restore: 'Parcelle réintégrée',
     remove: 'Parcelle retirée',
 };
@@ -58,9 +62,17 @@ const getActionAnnouncement = (parcel: ControlPlanParcel, action: ParcelAction, 
     const name = getParcelName(parcel);
 
     if (action === 'exclude') {
-        return section === 'PROPOSED'
+        return section === 'PROPOSED' && !parcel.addedByAgent
             ? `Parcelle ${name} écartée : la suivante de la liste d’attente prend sa place.`
             : `Parcelle ${name} écartée.`;
+    }
+
+    if (action === 'include') {
+        return `Parcelle ${name} ajoutée aux parcelles proposées.`;
+    }
+
+    if (action === 'putBack') {
+        return `Parcelle ${name} remise en liste d’attente.`;
     }
 
     return action === 'restore' ? `Parcelle ${name} réintégrée.` : `Parcelle ${name} retirée du plan.`;
@@ -202,39 +214,40 @@ const Component: React.FC<ComponentProps> = ({
             </a>
         ) : null;
 
+        const renderButton = (
+            parcelAction: ParcelAction,
+            label: string,
+            ariaLabel: string,
+            className = 'fr-btn--secondary',
+        ) => (
+            <button
+                key={parcelAction}
+                type="button"
+                className={clsx('fr-btn fr-btn--sm', className)}
+                disabled={pending}
+                data-row-action
+                aria-label={`${ariaLabel} ${getParcelName(parcel)}`}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    mutation.mutate({ parcel, action: parcelAction });
+                }}
+            >
+                {label}
+            </button>
+        );
+
         let action: React.ReactNode = null;
-        if (canEdit && (section === 'PROPOSED' || section === 'WAITING')) {
-            action = (
-                <button
-                    type="button"
-                    className="fr-btn fr-btn--secondary fr-btn--sm"
-                    disabled={pending}
-                    data-row-action
-                    aria-label={`Écarter la parcelle ${getParcelName(parcel)}`}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        mutation.mutate({ parcel, action: 'exclude' });
-                    }}
-                >
-                    Écarter
-                </button>
-            );
+        if (canEdit && section === 'PROPOSED' && parcel.addedByAgent) {
+            action = renderButton('putBack', 'Remettre en attente', 'Remettre en liste d’attente la parcelle');
+        } else if (canEdit && section === 'WAITING') {
+            action = [
+                renderButton('include', 'Ajouter au plan', 'Ajouter au plan la parcelle'),
+                renderButton('exclude', 'Écarter', 'Écarter la parcelle', 'fr-btn--tertiary'),
+            ];
+        } else if (canEdit && section === 'PROPOSED') {
+            action = renderButton('exclude', 'Écarter', 'Écarter la parcelle');
         } else if (canEdit && datedSection) {
-            action = (
-                <button
-                    type="button"
-                    className="fr-btn fr-btn--secondary fr-btn--sm"
-                    disabled={pending}
-                    data-row-action
-                    aria-label={`Réintégrer la parcelle ${getParcelName(parcel)}`}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        mutation.mutate({ parcel, action: 'restore' });
-                    }}
-                >
-                    Réintégrer
-                </button>
-            );
+            action = renderButton('restore', 'Réintégrer', 'Réintégrer la parcelle');
         } else if (canEdit && section === 'PLANNED' && parcel.followUpStatus !== 'CONTROLLED') {
             action = (
                 <button
@@ -254,9 +267,10 @@ const Component: React.FC<ComponentProps> = ({
         }
 
         return (
+            // the map link last: it stays aligned from row to row whatever the action
             <div className={classes.actions}>
-                {mapLink}
                 {action}
+                {mapLink}
             </div>
         );
     };
@@ -365,6 +379,17 @@ const Component: React.FC<ComponentProps> = ({
                                         {ranked ? (
                                             <td data-label="Rang">
                                                 <span className="fr-cell__title">{formatBigInt(parcel.rank)}</span>
+                                                {section === 'PROPOSED' && parcel.addedByAgent ? (
+                                                    <span
+                                                        className={clsx(
+                                                            'fr-cell__desc',
+                                                            classes.secondary,
+                                                            classes.nowrap,
+                                                        )}
+                                                    >
+                                                        Ajoutée
+                                                    </span>
+                                                ) : null}
                                                 {section === 'PLANNED' && parcel.waveNumber ? (
                                                     <span
                                                         className={clsx(
@@ -379,13 +404,16 @@ const Component: React.FC<ComponentProps> = ({
                                             </td>
                                         ) : null}
                                         <td data-label="Commune">
-                                            <OptionalText
-                                                text={
-                                                    parcel.commune
-                                                        ? `${parcel.commune.name} (${parcel.commune.code})`
-                                                        : null
-                                                }
-                                            />
+                                            {parcel.commune ? (
+                                                <>
+                                                    <span className={classes.block}>{parcel.commune.name}</span>
+                                                    <span className={clsx('fr-cell__desc', classes.secondary)}>
+                                                        {parcel.commune.code}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <OptionalText />
+                                            )}
                                         </td>
                                         <td data-label="Parcelle">
                                             <span className="fr-cell__title">{parcelLabel}</span>
@@ -396,7 +424,10 @@ const Component: React.FC<ComponentProps> = ({
                                         <td data-label="Zones à enjeux" className={classes['cell-wide']}>
                                             <TagsCell labels={parcel.zoneNames} />
                                         </td>
-                                        <td data-label="Objets" className={classes['cell-wide']}>
+                                        <td
+                                            data-label="Objets"
+                                            className={clsx(classes['cell-wide'], classes['cell-objects'])}
+                                        >
                                             <DetectionCountCell
                                                 count={parcel.objectsCount}
                                                 countsByObjectType={getObjectTypeCounts(parcel)}
@@ -415,6 +446,7 @@ const Component: React.FC<ComponentProps> = ({
                                                         className={clsx(
                                                             'fr-badge fr-badge--sm fr-badge--no-icon',
                                                             FOLLOW_UP_BADGE_CLASSES[parcel.followUpStatus],
+                                                            classes.badge,
                                                         )}
                                                     >
                                                         {FOLLOW_UP_LABELS[parcel.followUpStatus]}

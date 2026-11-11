@@ -48,11 +48,15 @@
     align-self: flex-start;
 }
 
-/* the checkboxes on two to four columns from a tablet up */
-.columns {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    gap: 0.75rem 1.5rem;
+/* one option per line: a name reads with its swatch, never with its neighbour's */
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.value {
+    margin: 0;
 }
 
 .checkbox {
@@ -79,34 +83,15 @@
 
 /* the sortable rows sit on a framed list, like the layers panel */
 .list {
-    max-width: 40rem;
-
     border-top: 1px solid var(--border-default-grey);
 }
 
-/* the zone order unfolds under its ranking criterion, indented to the criterion's label */
-.nested {
-    padding: 0.75rem 0.5rem 1rem 4.75rem;
-
-    background-color: var(--background-alt-grey);
-    box-shadow: inset 0 -1px 0 0 var(--border-default-grey);
-
-    .list {
-        border-top-color: var(--border-default-grey);
-    }
-}
-
-.nested-title {
-    margin: 0 0 0.5rem;
-
-    font-size: 0.875rem;
-    font-weight: 700;
-    line-height: 1.5rem;
-}
-
 .number-field {
-    max-width: 20rem;
     margin: 0;
+
+    input {
+        max-width: 20rem;
+    }
 }
 
 .error {
@@ -137,10 +122,4 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
-}
-
-@media (max-width: 35.99em) {
-    .nested {
-        padding-left: 1rem;
-    }
 }

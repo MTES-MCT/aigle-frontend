@@ -16,7 +16,6 @@ import {
     MAX_PARCELS_COUNT,
     moveItem,
     toggleZoneGroup,
-    ZoneGroupRow,
 } from '@/routes/ControlPlan/criteria';
 import NoZoneAlert from '@/routes/ControlPlan/NoZoneAlert';
 import SortableCheckboxRow from '@/routes/ControlPlan/SortableCheckboxRow';
@@ -135,15 +134,6 @@ const Component: React.FC<ComponentProps> = ({
             : types;
     }, [options]);
 
-    // the checkboxes keep the order of the options, the state holds the priority order
-    const zoneGroupsByName = useMemo(
-        () =>
-            options.customZoneGroups
-                .map(({ key }) => state.zoneGroups.find((group) => group.key === key))
-                .filter((group): group is ZoneGroupRow => !!group),
-        [options, state.zoneGroups],
-    );
-
     const toggle = <T,>(values: T[], value: T, checked: boolean): T[] =>
         checked ? [...values, value] : values.filter((item) => item !== value);
 
@@ -159,39 +149,8 @@ const Component: React.FC<ComponentProps> = ({
         [CRITERIA_FIELD_ATTRIBUTE]: field,
     });
 
-    const selectedZoneGroups = state.zoneGroups.filter(({ selected }) => selected);
     const activeRankingCriteria = state.rankingCriteria.filter(({ active }) => active);
     const advancedDefault = isAdvancedDefault(state);
-
-    const renderZoneOrder = () => (
-        <div className={classes.nested} role="group" aria-labelledby={`${id}-zone-order`}>
-            <p id={`${id}-zone-order`} className={classes['nested-title']}>
-                Ordre des zones à enjeux
-            </p>
-            <div className={classes.list}>
-                <SortableRows
-                    items={selectedZoneGroups}
-                    hint="Flèches haut et bas pour changer la priorité de la zone"
-                    getKey={({ key }) => key}
-                    getName={({ name }) => name}
-                    onMove={(group, target) => update({ zoneGroups: moveItem(state.zoneGroups, group, target) })}
-                    renderRow={(group, sortable) => (
-                        <SortableCheckboxRow
-                            name={group.name}
-                            label={
-                                <span className={classes['zone-label']}>
-                                    {group.name}
-                                    <ZoneSwatch color={group.color} />
-                                </span>
-                            }
-                            position={selectedZoneGroups.indexOf(group) + 1}
-                            sortable={sortable}
-                        />
-                    )}
-                />
-            </div>
-        </div>
-    );
 
     return (
         <div className={classes.container}>
@@ -199,23 +158,35 @@ const Component: React.FC<ComponentProps> = ({
                 <h4 id={`${id}-where`} className={classes.title}>
                     Où chercher
                 </h4>
-                <fieldset className={classes.fieldset}>
-                    <legend className={classes.legend}>Périmètre</legend>
-                    <p className={classes.hint}>Sans commune ni EPCI, le plan couvre tout le territoire du groupe.</p>
-                    {perimeterLabelsLoading ? (
-                        <p className={classes.hint}>Chargement du périmètre…</p>
-                    ) : (
-                        <PerimeterField
-                            communesUuids={state.communesUuids}
-                            epcisUuids={state.epcisUuids}
-                            labels={labels}
-                            onChange={(communesUuids, epcisUuids, selectedLabels) => {
-                                onPerimeterLabelsChange({ ...labels, ...selectedLabels });
-                                update({ communesUuids, epcisUuids });
-                            }}
-                        />
-                    )}
-                </fieldset>
+                {options.singleCommune ? (
+                    <div>
+                        <p className={classes.legend}>Périmètre</p>
+                        <p className={classes.value}>
+                            {options.singleCommune.name} ({options.singleCommune.code}), la seule commune de votre
+                            groupe.
+                        </p>
+                    </div>
+                ) : (
+                    <fieldset className={classes.fieldset}>
+                        <legend className={classes.legend}>Périmètre</legend>
+                        <p className={classes.hint}>
+                            Sans commune ni EPCI, le plan couvre tout le territoire du groupe.
+                        </p>
+                        {perimeterLabelsLoading ? (
+                            <p className={classes.hint}>Chargement du périmètre…</p>
+                        ) : (
+                            <PerimeterField
+                                communesUuids={state.communesUuids}
+                                epcisUuids={state.epcisUuids}
+                                labels={labels}
+                                onChange={(communesUuids, epcisUuids, selectedLabels) => {
+                                    onPerimeterLabelsChange({ ...labels, ...selectedLabels });
+                                    update({ communesUuids, epcisUuids });
+                                }}
+                            />
+                        )}
+                    </fieldset>
+                )}
 
                 <fieldset
                     className={classes.fieldset}
@@ -228,8 +199,8 @@ const Component: React.FC<ComponentProps> = ({
                         agent.
                     </p>
                     {state.zoneGroups.length ? (
-                        <div className={classes.columns}>
-                            {zoneGroupsByName.map((group) => (
+                        <div className={classes.options}>
+                            {state.zoneGroups.map((group) => (
                                 <Checkbox
                                     key={group.key}
                                     className={classes.checkbox}
@@ -276,7 +247,7 @@ const Component: React.FC<ComponentProps> = ({
                     >
                         {state.objectTypesUuids.length ? 'Tout désélectionner' : 'Tout sélectionner'}
                     </button>
-                    <div className={classes.columns}>
+                    <div className={classes.options}>
                         {objectTypesToDisplay.map(({ uuid, name, color }) => (
                             <Checkbox
                                 key={uuid}
@@ -316,27 +287,21 @@ const Component: React.FC<ComponentProps> = ({
                             update({ rankingCriteria: moveItem(state.rankingCriteria, row, target) })
                         }
                         renderRow={(row, sortable) => (
-                            <>
-                                <SortableCheckboxRow
-                                    name={RANKING_CRITERIA_LABELS[row.criterion].label}
-                                    label={RANKING_CRITERIA_LABELS[row.criterion].label}
-                                    hint={RANKING_CRITERIA_LABELS[row.criterion].hint}
-                                    position={activeRankingCriteria.indexOf(row) + 1}
-                                    checked={row.active}
-                                    onCheckedChange={(active) =>
-                                        update({
-                                            rankingCriteria: state.rankingCriteria.map((item) =>
-                                                item.criterion === row.criterion ? { ...item, active } : item,
-                                            ),
-                                        })
-                                    }
-                                    sortable={sortable}
-                                />
-                                {/* a sibling of the row, not a child: its own drags never reach the outer list */}
-                                {row.criterion === 'ZONE_PRIORITY' && row.active && selectedZoneGroups.length > 1
-                                    ? renderZoneOrder()
-                                    : null}
-                            </>
+                            <SortableCheckboxRow
+                                name={RANKING_CRITERIA_LABELS[row.criterion].label}
+                                label={RANKING_CRITERIA_LABELS[row.criterion].label}
+                                hint={RANKING_CRITERIA_LABELS[row.criterion].hint}
+                                position={activeRankingCriteria.indexOf(row) + 1}
+                                checked={row.active}
+                                onCheckedChange={(active) =>
+                                    update({
+                                        rankingCriteria: state.rankingCriteria.map((item) =>
+                                            item.criterion === row.criterion ? { ...item, active } : item,
+                                        ),
+                                    })
+                                }
+                                sortable={sortable}
+                            />
                         )}
                     />
                 </div>
@@ -377,6 +342,7 @@ const Component: React.FC<ComponentProps> = ({
 
             <div className={classes.advanced}>
                 <Accordion
+                    flush
                     titleAs="h4"
                     expanded={advancedExpanded}
                     onToggle={onAdvancedExpandedChange}
@@ -450,14 +416,7 @@ const Component: React.FC<ComponentProps> = ({
                             <legend className={classes.legend}>Objets et parcelles à écarter</legend>
                             <Checkbox
                                 className={classes.checkbox}
-                                label={
-                                    <>
-                                        Inclure les objets prescrits
-                                        <span className="fr-hint-text">
-                                            Par exemple sur une commune où tous les objets sont prescrits.
-                                        </span>
-                                    </>
-                                }
+                                label="Inclure les objets prescrits"
                                 checked={state.includePrescribed}
                                 onChange={(includePrescribed) => update({ includePrescribed })}
                             />

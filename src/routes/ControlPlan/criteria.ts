@@ -32,7 +32,7 @@ export interface CriteriaFormState {
     scoreMin: number;
     validationStatuses: ControlPlanValidationStatus[];
     includePrescribed: boolean;
-    // every zone group of the plan's group, by priority
+    // every zone group of the plan's group, in the order of the options
     zoneGroups: ZoneGroupRow[];
     excludeAuthorizedParcels: boolean;
     excludeOfficialReportParcels: boolean;
@@ -53,35 +53,21 @@ const toDisplayedObjectTypesUuids = (options: ControlPlanCriteriaOptions, object
     return objectTypesUuids.some((uuid) => otherUuids.has(uuid)) ? [...displayed, OTHER_OBJECT_TYPE.uuid] : displayed;
 };
 
-// The groups a previous wave picked come first, in its order; the zones it did not know follow, unticked.
+// Every zone group is ticked by default; a previous wave ticks those it picked (a zone it did not know stays unticked).
 const getZoneGroupRows = (options: ControlPlanCriteriaOptions, criteria?: ControlPlanCriteria): ZoneGroupRow[] => {
-    if (!criteria) {
-        return options.customZoneGroups.map((group) => ({ ...group, selected: true }));
-    }
+    const pickedUuids = criteria ? new Set(criteria.customZoneGroups.flat()) : null;
 
-    const selected: ZoneGroupRow[] = [];
-    criteria.customZoneGroups.forEach((uuids) => {
-        const group = options.customZoneGroups.find(
-            (option) =>
-                !selected.some(({ key }) => key === option.key) &&
-                option.customZoneUuids.some((uuid) => uuids.includes(uuid)),
-        );
-
-        if (group) {
-            selected.push({ ...group, selected: true });
-        }
-    });
-
-    return [
-        ...selected,
-        ...options.customZoneGroups
-            .filter(({ key }) => !selected.some((group) => group.key === key))
-            .map((group) => ({ ...group, selected: false })),
-    ];
+    return options.customZoneGroups.map((group) => ({
+        ...group,
+        selected: !pickedUuids || group.customZoneUuids.some((uuid) => pickedUuids.has(uuid)),
+    }));
 };
 
 const getRankingCriteriaRows = (criteria?: ControlPlanCriteria): RankingCriterionRow[] => {
-    const active = criteria ? criteria.rankingCriteria : [...controlPlanRankingCriteria];
+    // a wave stored before a criterion was dropped may still name it
+    const active = criteria
+        ? criteria.rankingCriteria.filter((criterion) => controlPlanRankingCriteria.includes(criterion))
+        : [...controlPlanRankingCriteria];
 
     return [
         ...active.map((criterion) => ({ criterion, active: true })),
@@ -180,21 +166,8 @@ export const moveItem = <T>(items: T[], item: T, target: T): T[] => {
     return moved;
 };
 
-// A zone ticked in « Où chercher » joins the end of the priority order.
-export const toggleZoneGroup = (zoneGroups: ZoneGroupRow[], key: string, selected: boolean): ZoneGroupRow[] => {
-    const toggled = zoneGroups.map((group) => (group.key === key ? { ...group, selected } : group));
-
-    if (!selected) {
-        return toggled;
-    }
-
-    const row = toggled.find((group) => group.key === key) as ZoneGroupRow;
-    const others = toggled.filter((group) => group.key !== key);
-    const lastSelectedIndex = others.map(({ selected }) => selected).lastIndexOf(true);
-    others.splice(lastSelectedIndex + 1, 0, row);
-
-    return others;
-};
+export const toggleZoneGroup = (zoneGroups: ZoneGroupRow[], key: string, selected: boolean): ZoneGroupRow[] =>
+    zoneGroups.map((group) => (group.key === key ? { ...group, selected } : group));
 
 // on the container of a field: the focus goes to its first control when it holds an error
 export const CRITERIA_FIELD_ATTRIBUTE = 'data-criteria-field';
@@ -302,16 +275,20 @@ export const describeCriteria = (
     const selectedZones = state.zoneGroups.filter(({ selected }) => selected);
     const activeCriteria = state.rankingCriteria.filter(({ active }) => active);
 
+    let perimeter: string;
+    if (options.singleCommune) {
+        perimeter = options.singleCommune.name;
+    } else if (perimeterNames.length || unnamedCount) {
+        perimeter = formatList([
+            ...perimeterNames,
+            ...(unnamedCount ? [`${unnamedCount} ${unnamedCount > 1 ? 'collectivités' : 'collectivité'}`] : []),
+        ]);
+    } else {
+        perimeter = 'Tout le territoire du groupe';
+    }
+
     return {
-        perimeter:
-            perimeterNames.length || unnamedCount
-                ? formatList([
-                      ...perimeterNames,
-                      ...(unnamedCount
-                          ? [`${unnamedCount} ${unnamedCount > 1 ? 'collectivités' : 'collectivité'}`]
-                          : []),
-                  ])
-                : 'Tout le territoire du groupe',
+        perimeter,
         zones: selectedZones.length ? formatList(selectedZones.map(({ name }) => name)) : 'Aucune zone',
         objectTypes:
             selectedTypes.length === displayedTypes.length

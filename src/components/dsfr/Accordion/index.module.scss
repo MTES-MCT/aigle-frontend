@@ -12,3 +12,21 @@
         padding-left: 0.25rem;
     }
 }
+
+.flush {
+    [class~='fr-accordion__btn'] {
+        padding-left: 0;
+    }
+
+    /* DSFR's -0.25rem margin keeps room for the focus rings: the padding only gives it back
+       (`> div`: above DSFR's `.fr-accordion .fr-collapse`, loaded after) */
+    > div[class~='fr-collapse'] {
+        padding-right: 0.25rem;
+        padding-left: 0.25rem;
+    }
+
+    .content {
+        padding-right: 0;
+        padding-left: 0;
+    }
+}

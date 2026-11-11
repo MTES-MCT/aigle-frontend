@@ -37,10 +37,6 @@ export const invalidateControlPlanQueries = async (queryClient: QueryClient, { d
 };
 
 export const RANKING_CRITERIA_LABELS: Record<ControlPlanRankingCriterion, { label: string; hint: string }> = {
-    ZONE_PRIORITY: {
-        label: 'Zone à enjeux prioritaire',
-        hint: 'les parcelles des zones classées en tête passent devant',
-    },
     OBJECTS_COUNT: {
         label: 'Nombre d’objets sur la parcelle',
         hint: 'les parcelles qui portent le plus d’objets passent devant',

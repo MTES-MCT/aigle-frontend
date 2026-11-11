@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { controlPlanParcelEndpoints } from '@/api/endpoints';
 import DetectionTilePreview from '@/components/DetectionDetail/DetectionTilePreview';
 import Loader from '@/components/ui/Loader';
-import { ControlPlanParcel, ControlPlanParcelPreview } from '@/models/control-plan';
+import { ControlPlanParcel, ControlPlanParcelPreview, ControlPlanParcelPreviewYearObject } from '@/models/control-plan';
 import { formatCount } from '@/routes/ControlPlan/utils';
 import api from '@/utils/api';
 import { PARCEL_COLOR } from '@/utils/constants';
@@ -33,19 +33,6 @@ const Component: React.FC<ComponentProps> = ({ parcel }: ComponentProps) => {
             api<ControlPlanParcelPreview>(controlPlanParcelEndpoints.preview(parcel.uuid), { signal }),
     });
 
-    const geometries: PreviewGeometry[] = useMemo(() => {
-        if (!data) {
-            return [];
-        }
-
-        // a point cannot be outlined: the previews draw lines
-        const objects = data.detectionObjects.flatMap(({ geometry, objectTypeColor }) =>
-            geometry.type === 'Point' ? [] : [{ geometry, color: objectTypeColor }],
-        );
-
-        return data.parcelGeometry ? [...objects, { geometry: data.parcelGeometry, color: PARCEL_COLOR }] : objects;
-    }, [data]);
-
     const bounds = useMemo(() => {
         if (data?.bounds) {
             return extendBbox(data.bounds, BOUNDS_EXTENSION);
@@ -58,13 +45,24 @@ const Component: React.FC<ComponentProps> = ({ parcel }: ComponentProps) => {
         return undefined;
     }, [data]);
 
-    const tileSetPreviews = useMemo(
-        () =>
-            (data?.tileSetPreviews ?? [])
-                .filter(({ preview }) => preview)
-                .sort((first, second) => first.tileSet.date.localeCompare(second.tileSet.date)),
-        [data],
-    );
+    // each year shows the objects as detected on it, not today's outlines
+    const tileSetPreviews = useMemo(() => {
+        const toGeometries = (objects: ControlPlanParcelPreviewYearObject[]): PreviewGeometry[] => {
+            // a point cannot be outlined: the previews draw lines
+            const outlines = objects.flatMap(({ geometry, objectTypeColor }) =>
+                geometry.type === 'Point' ? [] : [{ geometry, color: objectTypeColor }],
+            );
+
+            return data?.parcelGeometry
+                ? [...outlines, { geometry: data.parcelGeometry, color: PARCEL_COLOR }]
+                : outlines;
+        };
+
+        return (data?.tileSetPreviews ?? [])
+            .filter(({ preview }) => preview)
+            .sort((first, second) => first.tileSet.date.localeCompare(second.tileSet.date))
+            .map(({ tileSet, detectionObjects }) => ({ tileSet, geometries: toGeometries(detectionObjects) }));
+    }, [data]);
 
     if (isLoading) {
         return <Loader className={classes.loader} />;
@@ -86,7 +84,7 @@ const Component: React.FC<ComponentProps> = ({ parcel }: ComponentProps) => {
             </p>
             {bounds && tileSetPreviews.length ? (
                 <div className={classes.previews}>
-                    {tileSetPreviews.map(({ tileSet }) => (
+                    {tileSetPreviews.map(({ tileSet, geometries }) => (
                         <DetectionTilePreview
                             key={tileSet.uuid}
                             tileSet={tileSet}

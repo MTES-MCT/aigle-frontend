@@ -13,6 +13,8 @@
 
 .table[class~='fr-table'] {
     margin-top: 0;
+    /* the tab panel's padding closes it */
+    margin-bottom: 0;
 
     font-variant-numeric: tabular-nums;
 }

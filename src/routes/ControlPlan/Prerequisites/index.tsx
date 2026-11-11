@@ -57,7 +57,7 @@ const Component: React.FC<ComponentProps> = ({ userGroupUuid, titleAs: Title = '
                         </li>
                         {data.objectsWithoutParcelCount ? (
                             <li>
-                                {`${formatCount(data.objectsWithoutParcelCount, 'objet')} sans parcelle cadastrale ne ${
+                                {`${formatCount(data.objectsWithoutParcelCount, 'objet')} sans parcelle associée ne ${
                                     data.objectsWithoutParcelCount > 1 ? 'peuvent' : 'peut'
                                 } pas entrer dans un plan.`}
                             </li>

@@ -24,6 +24,8 @@ export const controlPlanWaveEndpoints = {
 export const controlPlanParcelEndpoints = {
     list: BASE_CONTROL_PLAN_PARCEL,
     exclude: (uuid: string) => `${BASE_CONTROL_PLAN_PARCEL}${uuid}/exclude/`,
+    include: (uuid: string) => `${BASE_CONTROL_PLAN_PARCEL}${uuid}/include/`,
+    putBack: (uuid: string) => `${BASE_CONTROL_PLAN_PARCEL}${uuid}/put-back/`,
     restore: (uuid: string) => `${BASE_CONTROL_PLAN_PARCEL}${uuid}/restore/`,
     remove: (uuid: string) => `${BASE_CONTROL_PLAN_PARCEL}${uuid}/remove/`,
     preview: (uuid: string) => `${BASE_CONTROL_PLAN_PARCEL}${uuid}/preview/`,

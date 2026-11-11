@@ -30,11 +30,14 @@ const NoPlan: React.FC<{ group: ControlPlanGroup }> = ({ group }) => {
             <ol className={classes.steps}>
                 <li>Vous choisissez et classez vos critères : types d’objets, zones à enjeux, prescription, PV…</li>
                 <li>
-                    Aigle propose les parcelles à contrôler en priorité, que vous ajustez en écartant celles à garder.
+                    Aigle propose les parcelles à contrôler en priorité. Vous écartez celles qui n’ont pas besoin d’un
+                    contrôle, et ajoutez celles de la liste d’attente qui vous intéressent.
                 </li>
                 <li>
-                    À la validation, les objets des parcelles retenues passent «&nbsp;À contrôler&nbsp;», et le plan se
-                    suit au fil des contrôles avec les membres de votre groupe.
+                    Une fois le plan de contrôle validé, les objets des parcelles retenues passent «&nbsp;À
+                    contrôler&nbsp;». Vous et les membres de votre groupe voyez ensuite quelles parcelles restent à
+                    contrôler : une parcelle passe «&nbsp;Contrôlée&nbsp;» dès que le contrôle de ses objets est saisi
+                    dans Aigle.
                 </li>
             </ol>
             <Prerequisites userGroupUuid={group.uuid} titleAs="h3" />
