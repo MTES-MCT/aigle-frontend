@@ -4,7 +4,7 @@ import { useMap } from '@/store/slices/map';
 import api, { ApiError } from '@/utils/api';
 import { useQuery } from '@tanstack/react-query';
 import { centroid, getCoord } from '@turf/turf';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 const MAX_RETRIES = 3;
 
@@ -38,10 +38,6 @@ export const useDetectionObjectDetail = (
         queryFn: async ({ signal }) => {
             const detectionObject = await fetchDetectionObject(signal);
 
-            if (jumpToDetection) {
-                eventEmitter.emit('JUMP_TO', getCoord(centroid(detectionObject.detections[0].geometry)));
-            }
-
             if (onSuccess) {
                 onSuccess(detectionObject);
             }
@@ -54,9 +50,28 @@ export const useDetectionObjectDetail = (
             !(error instanceof ApiError && error.status < 500) && failureCount < MAX_RETRIES,
     });
 
+    // once per opened object: a refetch (after an edit, a multiple edit elsewhere on the map)
+    // must not pull the map back to it
+    const jumpedUuidRef = useRef<string>();
+    useEffect(() => {
+        if (
+            !jumpToDetection ||
+            detectionObject?.uuid !== detectionObjectUuid ||
+            jumpedUuidRef.current === detectionObjectUuid
+        ) {
+            return;
+        }
+
+        jumpedUuidRef.current = detectionObjectUuid;
+        eventEmitter.emit('JUMP_TO', getCoord(centroid(detectionObject.detections[0].geometry)));
+    }, [detectionObject, detectionObjectUuid, jumpToDetection, eventEmitter]);
+
     useEffect(() => {
         setIsDetailFetching(isFetching);
     }, [isFetching, setIsDetailFetching]);
+
+    // the flag holds back the map's detections: closing the panel mid-fetch must not leave it set
+    useEffect(() => () => setIsDetailFetching(false), [setIsDetailFetching]);
 
     useEffect(() => {
         const handleUpdate = () => {

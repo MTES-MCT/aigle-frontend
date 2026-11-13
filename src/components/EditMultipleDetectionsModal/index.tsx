@@ -1,4 +1,4 @@
-import { detectionEndpoints } from '@/api/endpoints';
+import { detectionEndpoints, detectionObjectEndpoints } from '@/api/endpoints';
 import Modal from '@/components/dsfr/Modal';
 import {
     DetectionControlStatus,
@@ -130,6 +130,7 @@ const Form: React.FC<FormProps> = ({
     onDirtyChange,
 }) => {
     const { eventEmitter } = useMap();
+    const queryClient = useQueryClient();
     const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
     const [errors, setErrors] = useState<FormErrors>({});
     // in the modal: a notification would open under it, the modal being in the top layer
@@ -164,6 +165,11 @@ const Form: React.FC<FormProps> = ({
             }
 
             eventEmitter.emit('UPDATE_DETECTIONS');
+            // the detail panel open on one of them (a link always opens one) showed the old statuses
+            queryClient.invalidateQueries({
+                predicate: ({ queryKey: [key] }) =>
+                    typeof key === 'string' && key.startsWith(detectionObjectEndpoints.list),
+            });
             notifications.show({
                 title: 'Edition multiple',
                 message: 'Les détections ont été modifiés avec succès',

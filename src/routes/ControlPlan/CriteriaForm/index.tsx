@@ -229,8 +229,7 @@ const Component: React.FC<ComponentProps> = ({
                 >
                     <legend className={classes.legend}>Zones à enjeux</legend>
                     <p id={`${id}-zones-hint`} className={classes.hint}>
-                        Seuls les objets situés dans les zones cochées sont retenus, ainsi que ceux dessinés par un
-                        agent.
+                        Seuls les objets situés dans les zones cochées sont retenus, même ceux dessinés par un agent.
                     </p>
                     {state.zoneGroups.length ? (
                         <div className={classes.options}>

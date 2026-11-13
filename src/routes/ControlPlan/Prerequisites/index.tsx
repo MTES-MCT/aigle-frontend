@@ -52,8 +52,8 @@ const Component: React.FC<ComponentProps> = ({ userGroupUuid, titleAs: Title = '
                     <ul className={classes.counts}>
                         <li>
                             {data.unverifiedObjectsCount
-                                ? `Il reste ${formatCount(data.unverifiedObjectsCount, 'objet')} «\u00a0Non vérifié\u00a0» sur votre territoire.`
-                                : 'Aucun objet «\u00a0Non vérifié\u00a0» ne reste sur votre territoire.'}
+                                ? `Il reste ${formatCount(data.unverifiedObjectsCount, 'objet')} «\u00a0Non vérifié\u00a0» dans vos zones à enjeux.`
+                                : 'Aucun objet «\u00a0Non vérifié\u00a0» ne reste dans vos zones à enjeux.'}
                         </li>
                         {data.objectsWithoutParcelCount ? (
                             <li>
