@@ -6,9 +6,9 @@ import SoloAccordion from '@/components/SoloAccordion';
 import DateInfo from '@/components/ui/DateInfo';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { DataDeploymentBatchItem } from '@/models/data-deployment';
-import { Anchor, Group, Input, Table } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
-import { DeployStatusBadge, ItemDeployButton } from './shared';
+import { Anchor, Group, Table } from '@mantine/core';
+import { DeployStatusBadge, ItemDeployButton, SearchInput } from './shared';
+import { GEOZONE_SEARCH_MATCHES } from './utils';
 
 interface DataFilter {
     q: string;
@@ -28,14 +28,11 @@ const Component: React.FC = () => {
             layout="auto"
             SoloAccordion={
                 <SoloAccordion indicatorShown={!!filter.q}>
-                    <Input
-                        placeholder="Rechercher un batch"
-                        leftSection={<IconSearch size={16} />}
+                    <SearchInput
+                        placeholder="Rechercher un batch, une collectivité, un id…"
+                        matches={['nom du batch', 'id de batch, de run ou de plan', ...GEOZONE_SEARCH_MATCHES]}
                         value={filter.q}
-                        onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setFilter((filter) => ({ ...filter, q: value }));
-                        }}
+                        onChange={(q) => setFilter((filter) => ({ ...filter, q }))}
                     />
                 </SoloAccordion>
             }

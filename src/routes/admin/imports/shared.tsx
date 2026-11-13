@@ -1,26 +1,63 @@
 import React, { useState } from 'react';
 
-import { dataDeploymentEndpoints } from '@/api/endpoints/admin';
-import { DataDeploymentItemRunResult, DataDeploymentStatus } from '@/models/data-deployment';
+import { DataDeploymentItemRunResult, DataDeploymentPlanStatus } from '@/models/data-deployment';
 import api, { ApiError } from '@/utils/api';
-import { Alert, Badge, Button, Checkbox, Group, List, Modal, Stack, Text } from '@mantine/core';
+import { Alert, Badge, Button, Checkbox, Group, Input, List, Modal, Stack, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconRocket } from '@tabler/icons-react';
+import { IconInfoCircle, IconRocket, IconSearch } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import GeozoneSelect from './GeozoneSelect';
+import { invalidateDeploymentLists } from './utils';
 
-const DEPLOYMENT_STATUS: Record<DataDeploymentStatus, { label: string; color: string }> = {
+const DEPLOYMENT_STATUS: Record<DataDeploymentPlanStatus, { label: string; color: string }> = {
     NOT_DEPLOYED: { label: 'Non déployé', color: 'red' },
     DEPLOYMENT_RUNNING: { label: 'Déploiement en cours', color: 'orange' },
     DEPLOYED: { label: 'Déployé', color: 'green' },
+    PARTIALLY_DEPLOYED: { label: 'Partiellement déployé', color: 'yellow' },
+    NO_BATCH: { label: 'Aucun batch', color: 'gray' },
 };
 
 // the nested tables have a fixed layout, which would give an id column an even share of the width
 export const ID_COLUMN_WIDTH = 80;
 
-export const DeployStatusBadge: React.FC<{ status: DataDeploymentStatus }> = ({ status }) => (
+export const DeployStatusBadge: React.FC<{ status: DataDeploymentPlanStatus }> = ({ status }) => (
     <Badge color={DEPLOYMENT_STATUS[status].color}>{DEPLOYMENT_STATUS[status].label}</Badge>
+);
+
+// The `q` of the listings. `matches` lists what the API searches, shown in the tooltip.
+export const SearchInput: React.FC<{
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    matches: string[];
+}> = ({ value, onChange, placeholder, matches }) => (
+    <Input
+        placeholder={placeholder}
+        leftSection={<IconSearch size={16} />}
+        rightSectionPointerEvents="all"
+        rightSection={
+            <Tooltip
+                multiline
+                w={280}
+                withArrow
+                label={
+                    <>
+                        Recherche sur :
+                        <List size="xs" c="inherit">
+                            {matches.map((match) => (
+                                <List.Item key={match}>{match}</List.Item>
+                            ))}
+                        </List>
+                    </>
+                }
+            >
+                <IconInfoCircle size={16} aria-label="Champs recherchés" />
+            </Tooltip>
+        }
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+    />
 );
 
 // label completes "Cette action va, pour {label} :"
@@ -96,10 +133,7 @@ export const ItemDeployButton: React.FC<{
                 message: `${result.queuedCommands.length} commande(s) en file d'attente.`,
                 color: 'green',
             });
-            // the three listings all derive their statuses from the same data
-            [dataDeploymentEndpoints.list, dataDeploymentEndpoints.batches, dataDeploymentEndpoints.zae].forEach(
-                (endpoint) => queryClient.invalidateQueries({ queryKey: [endpoint] }),
-            );
+            invalidateDeploymentLists(queryClient);
         },
         onError: (error) => {
             notifications.show({

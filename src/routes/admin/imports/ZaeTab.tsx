@@ -2,14 +2,13 @@ import React from 'react';
 
 import { dataDeploymentEndpoints } from '@/api/endpoints/admin';
 import DataTable from '@/components/DataTable';
-import borderedClasses from '@/components/DataTable/borderedContainer.module.scss';
 import SoloAccordion from '@/components/SoloAccordion';
-import DateInfo from '@/components/ui/DateInfo';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { DataDeploymentZaeGroup } from '@/models/data-deployment';
-import { ActionIcon, Group, Input, Stack, Table, Text, Tooltip } from '@mantine/core';
-import { IconChevronDown, IconSearch } from '@tabler/icons-react';
-import { DeployStatusBadge, ID_COLUMN_WIDTH, ItemDeployButton } from './shared';
+import { ActionIcon, Stack, Table, Tooltip } from '@mantine/core';
+import { IconChevronDown } from '@tabler/icons-react';
+import { ZaeLayersTable } from './DeploymentTables';
+import { SearchInput } from './shared';
 
 interface DataFilter {
     q: string;
@@ -21,64 +20,13 @@ const DATA_FILTER_INITIAL_VALUE: DataFilter = {
 
 const ExpandedContent: React.FC<{ group: DataDeploymentZaeGroup }> = ({ group }) => (
     <Stack gap="lg" py="md">
-        {group.zaeLayers.length === 0 ? (
-            <Text c="dimmed" size="sm">
-                Aucune zone à enjeux
-            </Text>
-        ) : (
-            <div className={borderedClasses.container}>
-                <Table layout="fixed">
-                    <Table.Thead>
-                        <Table.Tr>
-                            <Table.Th w={ID_COLUMN_WIDTH}>Id</Table.Th>
-                            <Table.Th>Date création</Table.Th>
-                            <Table.Th>Zone à enjeux</Table.Th>
-                            <Table.Th>Type</Table.Th>
-                            <Table.Th>Année</Table.Th>
-                            <Table.Th>Statut déploiement</Table.Th>
-                            <Table.Th />
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {group.zaeLayers.map((zaeLayer) => (
-                            <Table.Tr key={zaeLayer.id}>
-                                <Table.Td>{zaeLayer.id}</Table.Td>
-                                <Table.Td>{zaeLayer.createdAt ? <DateInfo date={zaeLayer.createdAt} /> : '—'}</Table.Td>
-                                <Table.Td>{zaeLayer.name ?? '—'}</Table.Td>
-                                <Table.Td>{zaeLayer.typeName ?? zaeLayer.type ?? '—'}</Table.Td>
-                                <Table.Td>{zaeLayer.year ?? '—'}</Table.Td>
-                                <Table.Td>
-                                    <DeployStatusBadge status={zaeLayer.deployStatus} />
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group justify="flex-end">
-                                        <ItemDeployButton
-                                            endpoint={
-                                                group.geozoneId
-                                                    ? dataDeploymentEndpoints.runZae(
-                                                          String(group.geozoneId),
-                                                          zaeLayer.id,
-                                                      )
-                                                    : null
-                                            }
-                                            kind="zae"
-                                            name={zaeLayer.name}
-                                            // zae layers are always deployable — an
-                                            // already-deployed one is redeployed by
-                                            // overriding the zone it produced. (The API
-                                            // never reports DEPLOYMENT_RUNNING for them:
-                                            // the import is queued, not tracked.)
-                                            deployable
-                                            alreadyDeployed={zaeLayer.deployStatus === 'DEPLOYED'}
-                                        />
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </div>
-        )}
+        <ZaeLayersTable
+            title=""
+            zaeLayers={group.zaeLayers}
+            zaeEndpoint={(zaeId) =>
+                group.geozoneId ? dataDeploymentEndpoints.runZae(String(group.geozoneId), zaeId) : null
+            }
+        />
     </Stack>
 );
 
@@ -94,14 +42,16 @@ const Component: React.FC = () => {
             layout="auto"
             SoloAccordion={
                 <SoloAccordion indicatorShown={!!filter.q}>
-                    <Input
-                        placeholder="Rechercher une zone à enjeux"
-                        leftSection={<IconSearch size={16} />}
+                    <SearchInput
+                        placeholder="Rechercher une zone à enjeux, un département, un id…"
+                        matches={[
+                            'nom de la zone à enjeux',
+                            'type (code ou libellé, ex. « inondables »)',
+                            'id de la zone à enjeux',
+                            'nom ou code du département (toutes ses zones)',
+                        ]}
                         value={filter.q}
-                        onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setFilter((filter) => ({ ...filter, q: value }));
-                        }}
+                        onChange={(q) => setFilter((filter) => ({ ...filter, q }))}
                     />
                 </SoloAccordion>
             }

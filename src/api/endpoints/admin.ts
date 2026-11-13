@@ -52,9 +52,11 @@ export const dataDeploymentEndpoints = {
     list: BASE_DATA_DEPLOYMENT,
     batches: `${BASE_DATA_DEPLOYMENT}batches/`,
     zae: `${BASE_DATA_DEPLOYMENT}zae/`,
+    plans: `${BASE_DATA_DEPLOYMENT}plans/`,
     run: (geozoneId: string) => `${BASE_DATA_DEPLOYMENT}${geozoneId}/run/`,
     runBatch: (geozoneId: string, batchId: number) => `${BASE_DATA_DEPLOYMENT}${geozoneId}/batch/${batchId}/run/`,
     // onto the collectivity given in the body, whatever the batch's own
     runBatchOnGeozone: (batchId: number) => `${BASE_DATA_DEPLOYMENT}batch/${batchId}/run/`,
     runZae: (geozoneId: string, zaeId: number) => `${BASE_DATA_DEPLOYMENT}${geozoneId}/zae/${zaeId}/run/`,
+    runPlan: (planId: number) => `${BASE_DATA_DEPLOYMENT}plan/${planId}/run/`,
 };

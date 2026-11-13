@@ -46,6 +46,43 @@ export interface DataDeploymentRun {
     zaeLayers: DataDeploymentZaeLayer[];
 }
 
+// a plan's status derives from its batches'
+export type DataDeploymentPlanStatus = DataDeploymentStatus | 'PARTIALLY_DEPLOYED' | 'NO_BATCH';
+
+export interface DataDeploymentPlanRun {
+    id: number;
+    name: string | null;
+    type: string | null;
+    // ML pipeline status: pending, running, done, error...
+    status: string | null;
+    year: number | null;
+    createdAt: string | null;
+}
+
+// "Plans" listing, one row per detections.plan
+export interface DataDeploymentPlan {
+    uuid: string;
+    id: number;
+    createdAt: string;
+    // commune iso / epci siren / department insee code
+    geozoneCode: string | null;
+    // pending until the ML pipeline has created its runs, then done
+    status: string | null;
+    mode: string | null;
+    type: string | null;
+    // null when the code matches no collectivity of the app: not deployable
+    geozoneId: number | null;
+    geozoneName: string | null;
+    geozoneType: string | null;
+    departmentCode: string | null;
+    departmentName: string | null;
+    // newest first
+    runs: DataDeploymentPlanRun[];
+    batches: DataDeploymentBatch[];
+    zaeLayers: DataDeploymentZaeLayer[];
+    deployStatus: DataDeploymentPlanStatus;
+}
+
 export interface DataDeploymentRunResult {
     geozoneName: string;
     userGroupName: string;
