@@ -12,7 +12,7 @@ import { xor } from 'lodash';
 type QueryParams = Record<string, string>;
 
 const DETECTION_OBJECT_UUID_PARAM = 'detectionObjectUuid';
-const CONTROL_PLAN_PARAM = 'controlPlan';
+export const CONTROL_PLAN_PARAM = 'controlPlan';
 
 // A link carrying the filter to someone without the feature falls back to the whole territory.
 // The access is passed in: importing the auth store here makes an import cycle (auth > tracking > presets).

@@ -10,6 +10,8 @@ import { ApiError } from '@/utils/api';
 import { DEFAULT_DATE_FORMAT } from '@/utils/constants';
 import { formatBigInt, formatDateOnly } from '@/utils/format';
 import { trackEvent } from '@/utils/matomo';
+import { CONTROL_PLAN_PARAM } from '@/utils/objects-filter';
+import { OBJECTS_FILTER_PRESETS } from '@/utils/objects-filter-presets';
 import { getErrorTrackingName, isNetworkError, TRACKING_CATEGORIES } from '@/utils/tracking';
 import { QueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -34,6 +36,25 @@ export const invalidateControlPlanQueries = async (queryClient: QueryClient, { d
     }
 
     await Promise.all(keys.map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
+};
+
+/** The map under a quick filter of the Filtres panel, with « Uniquement mon plan de contrôle » if asked. */
+export const getMapLink = (presetId: string, { controlPlan = false }: { controlPlan?: boolean } = {}) => {
+    const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === presetId);
+    const params = new URLSearchParams(
+        preset
+            ? {
+                  detectionValidationStatuses: preset.filter.detectionValidationStatuses.join(','),
+                  detectionControlStatuses: preset.filter.detectionControlStatuses.join(','),
+                  prescripted: String(preset.filter.prescripted),
+              }
+            : {},
+    );
+    if (controlPlan) {
+        params.set(CONTROL_PLAN_PARAM, 'true');
+    }
+
+    return `/map?${params.toString()}`;
 };
 
 export const RANKING_CRITERIA_LABELS: Record<ControlPlanRankingCriterion, { label: string; hint: string }> = {

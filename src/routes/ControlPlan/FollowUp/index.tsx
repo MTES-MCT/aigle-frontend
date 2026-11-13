@@ -6,7 +6,7 @@ import { ControlPlan, ControlPlanValidationReport, OutOfPlanParcel } from '@/mod
 import { Paginated } from '@/models/data';
 import OutOfPlanTable from '@/routes/ControlPlan/OutOfPlanTable';
 import PlanParcelsTable from '@/routes/ControlPlan/PlanParcelsTable';
-import { CONTROL_PLAN_QUERY_KEY, formatCount, trackControlPlanEvent } from '@/routes/ControlPlan/utils';
+import { CONTROL_PLAN_QUERY_KEY, formatCount, getMapLink, trackControlPlanEvent } from '@/routes/ControlPlan/utils';
 import api from '@/utils/api';
 import { formatBigInt, formatDateOnly } from '@/utils/format';
 import { scrollBelowHeader } from '@/utils/html';
@@ -86,6 +86,9 @@ const Component: React.FC<ComponentProps> = ({
     const treatedCount = counters.planned - counters.toControl;
     const progress = counters.planned ? Math.round((treatedCount / counters.planned) * 100) : 0;
 
+    // the callout above carries it once every parcel is treated
+    const addShown = canEdit && !draftWave && (!!counters.toControl || !counters.planned);
+
     const { data: outOfPlanCount } = useQuery({
         queryKey: [CONTROL_PLAN_QUERY_KEY, 'out-of-plan-count', plan.uuid],
         queryFn: async ({ signal }) => {
@@ -96,6 +99,8 @@ const Component: React.FC<ComponentProps> = ({
             return page.count;
         },
     });
+
+    const mapLinkShown = !!counters.toControl || !!outOfPlanCount;
 
     const tabs: TabsItem<FollowUpTab>[] = [
         { value: 'PLANNED', label: `Au plan (${formatBigInt(counters.planned)})` },
@@ -198,15 +203,40 @@ const Component: React.FC<ComponentProps> = ({
                         {counters.released > 1 ? 'sorties du plan' : 'sortie du plan'}
                     </li>
                 </ul>
-                {/* the callout above carries it once every parcel is treated */}
-                {canEdit && !draftWave && (counters.toControl || !counters.planned) ? (
-                    <button
-                        type="button"
-                        className="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-add-line"
-                        onClick={onOpenWave}
+                {addShown || mapLinkShown ? (
+                    <ul
+                        className={clsx(
+                            'fr-btns-group fr-btns-group--inline-md fr-btns-group--icon-left',
+                            classes.actions,
+                        )}
                     >
-                        Ajouter des parcelles
-                    </button>
+                        {addShown ? (
+                            <li>
+                                <button
+                                    type="button"
+                                    className="fr-btn fr-btn--secondary fr-icon-add-line"
+                                    onClick={onOpenWave}
+                                >
+                                    Ajouter des parcelles
+                                </button>
+                            </li>
+                        ) : null}
+                        {mapLinkShown ? (
+                            <li>
+                                {/* « Au plan » and « Hors plan » together: what is left to control */}
+                                <a
+                                    className="fr-btn fr-btn--secondary fr-icon-map-pin-2-line"
+                                    href={getMapLink('MANAGE_FIELD_CONTROLS', { controlPlan: true })}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Voir les objets à contrôler sur la carte - nouvelle fenêtre"
+                                    onClick={() => trackControlPlanEvent('Carte des objets à contrôler ouverte')}
+                                >
+                                    Voir les objets à contrôler sur la carte
+                                </a>
+                            </li>
+                        ) : null}
+                    </ul>
                 ) : null}
             </section>
 

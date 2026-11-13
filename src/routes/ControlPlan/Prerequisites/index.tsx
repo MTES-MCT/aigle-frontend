@@ -2,26 +2,9 @@ import React from 'react';
 
 import NoZoneAlert from '@/routes/ControlPlan/NoZoneAlert';
 import { hasNoZone, usePrerequisites } from '@/routes/ControlPlan/prerequisites-query';
-import { formatCount, trackControlPlanEvent } from '@/routes/ControlPlan/utils';
-import { OBJECTS_FILTER_PRESETS } from '@/utils/objects-filter-presets';
+import { formatCount, getMapLink, trackControlPlanEvent } from '@/routes/ControlPlan/utils';
 import clsx from 'clsx';
 import classes from './index.module.scss';
-
-// the map with the « Vérifier les détections IA » quick filter
-const getVerifyDetectionsLink = () => {
-    const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === 'VERIFY_AI_DETECTIONS');
-    const params = new URLSearchParams(
-        preset
-            ? {
-                  detectionValidationStatuses: preset.filter.detectionValidationStatuses.join(','),
-                  detectionControlStatuses: preset.filter.detectionControlStatuses.join(','),
-                  prescripted: String(preset.filter.prescripted),
-              }
-            : {},
-    );
-
-    return `/map?${params.toString()}`;
-};
 
 interface ComponentProps {
     userGroupUuid: string;
@@ -66,7 +49,7 @@ const Component: React.FC<ComponentProps> = ({ userGroupUuid, titleAs: Title = '
                 ) : null}
                 <a
                     className="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-map-pin-2-line"
-                    href={getVerifyDetectionsLink()}
+                    href={getMapLink('VERIFY_AI_DETECTIONS')}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Vérifier les détections sur la carte - nouvelle fenêtre"
