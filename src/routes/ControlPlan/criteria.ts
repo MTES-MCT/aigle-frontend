@@ -7,6 +7,7 @@ import {
     ControlPlanValidationStatus,
     controlPlanValidationStatuses,
     ControlPlanWaveInput,
+    defaultControlPlanRankingCriteria,
 } from '@/models/control-plan';
 import { RANKING_CRITERIA_LABELS } from '@/routes/ControlPlan/utils';
 import { DETECTION_VALIDATION_STATUSES_NAMES_MAP, OTHER_OBJECT_TYPE } from '@/utils/constants';
@@ -27,7 +28,8 @@ export interface RankingCriterionRow {
 export interface CriteriaFormState {
     communesUuids: string[];
     epcisUuids: string[];
-    // as the filters panel shows them: OTHER_OBJECT_TYPE.uuid stands for the « Autres » types
+    // as the filters panel shows them: OTHER_OBJECT_TYPE.uuid stands for the « Autres » types.
+    // By priority: a type ticked again goes last.
     objectTypesUuids: string[];
     scoreMin: number;
     validationStatuses: ControlPlanValidationStatus[];
@@ -46,11 +48,11 @@ export type CriteriaFormErrors = Partial<Record<keyof CriteriaFormState, string>
 const getOtherObjectTypesUuids = (options: ControlPlanCriteriaOptions) =>
     options.objectTypes.filter(({ status }) => status === 'OTHER_CATEGORY').map(({ uuid }) => uuid);
 
+// « Autres » takes the place of the first of its types, the priority order is kept
 const toDisplayedObjectTypesUuids = (options: ControlPlanCriteriaOptions, objectTypesUuids: string[]) => {
     const otherUuids = new Set(getOtherObjectTypesUuids(options));
-    const displayed = objectTypesUuids.filter((uuid) => !otherUuids.has(uuid));
 
-    return objectTypesUuids.some((uuid) => otherUuids.has(uuid)) ? [...displayed, OTHER_OBJECT_TYPE.uuid] : displayed;
+    return Array.from(new Set(objectTypesUuids.map((uuid) => (otherUuids.has(uuid) ? OTHER_OBJECT_TYPE.uuid : uuid))));
 };
 
 // Every zone group is ticked by default; a previous wave ticks those it picked (a zone it did not know stays unticked).
@@ -67,7 +69,7 @@ const getRankingCriteriaRows = (criteria?: ControlPlanCriteria): RankingCriterio
     // a wave stored before a criterion was dropped may still name it
     const active = criteria
         ? criteria.rankingCriteria.filter((criterion) => controlPlanRankingCriteria.includes(criterion))
-        : [...controlPlanRankingCriteria];
+        : defaultControlPlanRankingCriteria;
 
     return [
         ...active.map((criterion) => ({ criterion, active: true })),
@@ -158,6 +160,15 @@ export const criteriaFormStateToInput = (
         },
     };
 };
+
+// the ticked types, by priority
+export const getPrioritizedObjectTypes = <T extends { uuid: string }>(
+    state: Pick<CriteriaFormState, 'objectTypesUuids'>,
+    displayedTypes: T[],
+): T[] =>
+    state.objectTypesUuids
+        .map((uuid) => displayedTypes.find((type) => type.uuid === uuid))
+        .filter((type): type is T => !!type);
 
 // moves `item` to the place `target` holds, as the sortable lists report it
 export const moveItem = <T>(items: T[], item: T, target: T): T[] => {
@@ -271,6 +282,7 @@ export const describeCriteria = (
         ...(options.objectTypes.some(({ status }) => status === 'OTHER_CATEGORY') ? [OTHER_OBJECT_TYPE] : []),
     ];
     const selectedTypes = displayedTypes.filter(({ uuid }) => state.objectTypesUuids.includes(uuid));
+    const prioritizedTypeNames = getPrioritizedObjectTypes(state, displayedTypes).map(({ name }) => name);
 
     const selectedZones = state.zoneGroups.filter(({ selected }) => selected);
     const activeCriteria = state.rankingCriteria.filter(({ active }) => active);
@@ -303,7 +315,10 @@ export const describeCriteria = (
         ranking: activeCriteria.length
             ? activeCriteria
                   .map(({ criterion }, index) => {
-                      const label = RANKING_CRITERIA_LABELS[criterion].label;
+                      let label = RANKING_CRITERIA_LABELS[criterion].label;
+                      if (criterion === 'OBJECT_TYPE_PRIORITY' && prioritizedTypeNames.length > 1) {
+                          label = `${label} (${prioritizedTypeNames.join(' > ')})`;
+                      }
                       return index ? `puis ${label.charAt(0).toLowerCase()}${label.slice(1)}` : label;
                   })
                   .join(', ')

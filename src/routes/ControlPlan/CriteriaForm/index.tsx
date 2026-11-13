@@ -12,6 +12,7 @@ import {
     CriteriaFormErrors,
     CriteriaFormState,
     describeAdvancedCriteria,
+    getPrioritizedObjectTypes,
     isAdvancedDefault,
     MAX_PARCELS_COUNT,
     moveItem,
@@ -137,6 +138,38 @@ const Component: React.FC<ComponentProps> = ({
     const toggle = <T,>(values: T[], value: T, checked: boolean): T[] =>
         checked ? [...values, value] : values.filter((item) => item !== value);
 
+    const renderObjectTypeOrder = () => (
+        <div className={classes.nested} role="group" aria-labelledby={`${id}-object-type-order`}>
+            <p id={`${id}-object-type-order`} className={classes['nested-title']}>
+                Ordre des types d’objets
+            </p>
+            <div className={classes.list}>
+                <SortableRows
+                    items={prioritizedTypes}
+                    hint="Flèches haut et bas pour changer la priorité du type d’objet"
+                    getKey={({ uuid }) => uuid}
+                    getName={({ name }) => name}
+                    onMove={(type, target) =>
+                        update({ objectTypesUuids: moveItem(state.objectTypesUuids, type.uuid, target.uuid) })
+                    }
+                    renderRow={(type, sortable) => (
+                        <SortableCheckboxRow
+                            name={type.name}
+                            label={
+                                <span className={classes['type-label']}>
+                                    {type.name}
+                                    <ObjectTypeSquare color={type.color} />
+                                </span>
+                            }
+                            position={prioritizedTypes.indexOf(type) + 1}
+                            sortable={sortable}
+                        />
+                    )}
+                />
+            </div>
+        </div>
+    );
+
     const renderError = (field: keyof CriteriaFormState) =>
         errors[field] ? (
             <p className={clsx('fr-message fr-message--error', classes.error)} id={`${id}-${field}-error`}>
@@ -150,6 +183,7 @@ const Component: React.FC<ComponentProps> = ({
     });
 
     const activeRankingCriteria = state.rankingCriteria.filter(({ active }) => active);
+    const prioritizedTypes = getPrioritizedObjectTypes(state, objectTypesToDisplay);
     const advancedDefault = isAdvancedDefault(state);
 
     return (
@@ -287,21 +321,27 @@ const Component: React.FC<ComponentProps> = ({
                             update({ rankingCriteria: moveItem(state.rankingCriteria, row, target) })
                         }
                         renderRow={(row, sortable) => (
-                            <SortableCheckboxRow
-                                name={RANKING_CRITERIA_LABELS[row.criterion].label}
-                                label={RANKING_CRITERIA_LABELS[row.criterion].label}
-                                hint={RANKING_CRITERIA_LABELS[row.criterion].hint}
-                                position={activeRankingCriteria.indexOf(row) + 1}
-                                checked={row.active}
-                                onCheckedChange={(active) =>
-                                    update({
-                                        rankingCriteria: state.rankingCriteria.map((item) =>
-                                            item.criterion === row.criterion ? { ...item, active } : item,
-                                        ),
-                                    })
-                                }
-                                sortable={sortable}
-                            />
+                            <>
+                                <SortableCheckboxRow
+                                    name={RANKING_CRITERIA_LABELS[row.criterion].label}
+                                    label={RANKING_CRITERIA_LABELS[row.criterion].label}
+                                    hint={RANKING_CRITERIA_LABELS[row.criterion].hint}
+                                    position={activeRankingCriteria.indexOf(row) + 1}
+                                    checked={row.active}
+                                    onCheckedChange={(active) =>
+                                        update({
+                                            rankingCriteria: state.rankingCriteria.map((item) =>
+                                                item.criterion === row.criterion ? { ...item, active } : item,
+                                            ),
+                                        })
+                                    }
+                                    sortable={sortable}
+                                />
+                                {/* a sibling of the row, not a child: its own drags never reach the outer list */}
+                                {row.criterion === 'OBJECT_TYPE_PRIORITY' && row.active && prioritizedTypes.length > 1
+                                    ? renderObjectTypeOrder()
+                                    : null}
+                            </>
                         )}
                     />
                 </div>

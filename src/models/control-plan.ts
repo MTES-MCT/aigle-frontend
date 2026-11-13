@@ -20,8 +20,15 @@ export type ControlPlanParcelSection = (typeof controlPlanParcelSections)[number
 export const controlPlanFollowUpStatuses = ['TO_CONTROL', 'CONTROLLED', 'RELEASED'] as const;
 export type ControlPlanFollowUpStatus = (typeof controlPlanFollowUpStatuses)[number];
 
-export const controlPlanRankingCriteria = ['OBJECTS_COUNT', 'NEW_OBJECTS_COUNT'] as const;
+export const controlPlanRankingCriteria = [
+    'OBJECTS_COUNT',
+    'NEW_OBJECTS_COUNT',
+    'OBJECT_TYPE_PRIORITY',
+    'SMALL_PARCELS',
+] as const;
 export type ControlPlanRankingCriterion = (typeof controlPlanRankingCriteria)[number];
+// the ones a first wave starts with
+export const defaultControlPlanRankingCriteria: ControlPlanRankingCriterion[] = ['OBJECTS_COUNT', 'NEW_OBJECTS_COUNT'];
 
 export const controlPlanValidationStatuses = [
     'DETECTED_NOT_VERIFIED',
@@ -54,6 +61,7 @@ export interface ControlPlanCriteria {
     // perimeter: both empty means the whole territory of the group
     communesUuids: string[];
     epcisUuids: string[];
+    // by priority, for the OBJECT_TYPE_PRIORITY ranking
     objectTypesUuids: string[];
     scoreMin: number;
     validationStatuses: ControlPlanValidationStatus[];
@@ -173,6 +181,8 @@ export interface ControlPlanParcel extends Uuided {
     section: string;
     numParcel: number;
     commune: ControlPlanParcelCommune | null;
+    // m², null once a cadastre re-import dropped the parcel
+    contenance: number | null;
     objectsCount: number;
     newObjectsCount: number;
     unverifiedObjectsCount: number;

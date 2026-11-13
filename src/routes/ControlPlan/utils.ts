@@ -45,6 +45,14 @@ export const RANKING_CRITERIA_LABELS: Record<ControlPlanRankingCriterion, { labe
         label: 'Nouveaux objets',
         hint: 'les parcelles où le dernier millésime fait apparaître le plus d’objets passent devant',
     },
+    OBJECT_TYPE_PRIORITY: {
+        label: 'Types d’objets prioritaires',
+        hint: 'les parcelles qui portent le type d’objet le plus important passent devant, dans l’ordre choisi',
+    },
+    SMALL_PARCELS: {
+        label: 'Petites parcelles',
+        hint: 'les parcelles les plus petites passent devant, par tranche de surface (moins de 1\u00a0000\u00a0m², de 2\u00a0500\u00a0m², de 5\u00a0000\u00a0m², d’1\u00a0ha)',
+    },
 };
 
 export const FOLLOW_UP_LABELS: Record<ControlPlanFollowUpStatus, string> = {

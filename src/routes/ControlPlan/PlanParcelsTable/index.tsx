@@ -420,6 +420,11 @@ const Component: React.FC<ComponentProps> = ({
                                             <span className={clsx('fr-cell__desc', classes.secondary)}>
                                                 {parcel.idParcellaire}
                                             </span>
+                                            {parcel.contenance !== null ? (
+                                                <span className={clsx('fr-cell__desc', classes.secondary)}>
+                                                    {formatBigInt(parcel.contenance)}&nbsp;m²
+                                                </span>
+                                            ) : null}
                                         </td>
                                         <td data-label="Zones à enjeux" className={classes['cell-wide']}>
                                             <TagsCell labels={parcel.zoneNames} />
