@@ -94,6 +94,8 @@ interface ComponentProps {
     emptyText: string;
     // the PLANNED parcels can be narrowed to one follow-up state
     followUpFilterShown?: boolean;
+    // the wave a PLANNED parcel came with: noise while the plan has a single one
+    waveShown?: boolean;
 }
 
 const Component: React.FC<ComponentProps> = ({
@@ -103,6 +105,7 @@ const Component: React.FC<ComponentProps> = ({
     caption,
     emptyText,
     followUpFilterShown = false,
+    waveShown = true,
 }: ComponentProps) => {
     const tableRef = useRef<HTMLTableElement>(null);
     const queryClient = useQueryClient();
@@ -318,17 +321,22 @@ const Component: React.FC<ComponentProps> = ({
                         </p>
                     }
                     footerStart={
-                        <Select
-                            label="Nombre de lignes par page"
-                            labelHidden
-                            className={classes['limit-select']}
-                            value={String(pagination.limit)}
-                            options={LIMITS.map((limit) => ({
-                                value: String(limit),
-                                label: `${limit} lignes par page`,
-                            }))}
-                            onChange={(limit) => setPagination((previous) => ({ ...previous, limit: Number(limit) }))}
-                        />
+                        // nothing to page through while every row fits on the smallest page
+                        (pagination.total ?? 0) > LIMITS[0] ? (
+                            <Select
+                                label="Nombre de lignes par page"
+                                labelHidden
+                                className={classes['limit-select']}
+                                value={String(pagination.limit)}
+                                options={LIMITS.map((limit) => ({
+                                    value: String(limit),
+                                    label: `${limit} lignes par page`,
+                                }))}
+                                onChange={(limit) =>
+                                    setPagination((previous) => ({ ...previous, limit: Number(limit) }))
+                                }
+                            />
+                        ) : null
                     }
                     footerMiddle={
                         paginationPage ? (
@@ -390,7 +398,7 @@ const Component: React.FC<ComponentProps> = ({
                                                         Ajoutée
                                                     </span>
                                                 ) : null}
-                                                {section === 'PLANNED' && parcel.waveNumber ? (
+                                                {section === 'PLANNED' && waveShown && parcel.waveNumber ? (
                                                     <span
                                                         className={clsx(
                                                             'fr-cell__desc',
@@ -535,9 +543,9 @@ const Component: React.FC<ComponentProps> = ({
                     ) : null}
                 </p>
                 <p>
-                    Ses objets encore «&nbsp;À contrôler&nbsp;» repassent «&nbsp;Non contrôlé&nbsp;», et ceux que le
-                    plan avait fait passer de «&nbsp;Non vérifié&nbsp;» à «&nbsp;Suspect&nbsp;» redeviennent «&nbsp;Non
-                    vérifié&nbsp;». Une vague suivante ne la proposera plus, sauf si vous la réintégrez.
+                    Ses objets encore «&nbsp;À&nbsp;contrôler&nbsp;» repassent «&nbsp;Non contrôlé&nbsp;», et ceux que
+                    le plan avait fait passer de «&nbsp;Non vérifié&nbsp;» à «&nbsp;Suspect&nbsp;» redeviennent
+                    «&nbsp;Non vérifié&nbsp;». Une vague suivante ne la proposera plus, sauf si vous la réintégrez.
                 </p>
             </ConfirmModal>
         </div>

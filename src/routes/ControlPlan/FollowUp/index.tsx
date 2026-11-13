@@ -37,7 +37,8 @@ const ValidationReport: React.FC<ValidationReportProps> = ({ report, onDismiss }
             </h3>
             <p>
                 {formatCount(report.plannedParcelsCount, 'parcelle ajoutée', 'parcelles ajoutées')} au plan,{' '}
-                {formatCount(report.switchedObjectsCount, 'objet passé', 'objets passés')} «&nbsp;À contrôler&nbsp;».
+                {formatCount(report.switchedObjectsCount, 'objet passé', 'objets passés')}{' '}
+                «&nbsp;À&nbsp;contrôler&nbsp;».
             </p>
             {report.skippedParcels.length ? (
                 <>
@@ -226,6 +227,7 @@ const Component: React.FC<ComponentProps> = ({
                         caption="Parcelles du plan"
                         emptyText="Aucune parcelle"
                         followUpFilterShown
+                        waveShown={plan.validatedWavesCount > 1}
                     />
                 ) : null}
                 {tab === 'OUT_OF_PLAN' ? <OutOfPlanTable controlPlanUuid={plan.uuid} /> : null}

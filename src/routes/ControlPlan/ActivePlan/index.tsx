@@ -82,7 +82,7 @@ const Component: React.FC<ComponentProps> = ({ plan, group }: ComponentProps) =>
                     </p>
                 </div>
                 {plan.canEdit ? (
-                    <ul className="fr-btns-group fr-btns-group--inline-sm fr-btns-group--sm fr-btns-group--icon-left">
+                    <ul className="fr-btns-group fr-btns-group--inline fr-btns-group--sm fr-btns-group--icon-left">
                         <li>
                             <button
                                 type="button"
@@ -169,8 +169,8 @@ const Component: React.FC<ComponentProps> = ({ plan, group }: ComponentProps) =>
                         </p>
                         {plan.counters.toControl ? (
                             <p>
-                                {formatCount(plan.counters.toControl, 'parcelle reste', 'parcelles restent')} «&nbsp;À
-                                contrôler&nbsp;» :{' '}
+                                {formatCount(plan.counters.toControl, 'parcelle reste', 'parcelles restent')}{' '}
+                                «&nbsp;À&nbsp;contrôler&nbsp;» :{' '}
                                 {plan.counters.toControl > 1
                                     ? 'elles gardent ce statut et apparaîtront'
                                     : 'elle garde ce statut et apparaîtra'}{' '}

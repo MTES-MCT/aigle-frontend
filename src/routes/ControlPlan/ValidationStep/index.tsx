@@ -48,7 +48,7 @@ const Component: React.FC<ComponentProps> = ({ plan, wave, criteriaSummary, onBa
                     ? `Cette vague ajoutera au plan «\u00a0${plan.name}\u00a0» `
                     : `Le plan «\u00a0${plan.name}\u00a0» comptera `}
                 <b>{formatCount(proposal.proposedCount, 'parcelle')}</b> : leurs{' '}
-                <b>{formatCount(proposal.objectsCount, 'objet')}</b> passeront «&nbsp;À contrôler&nbsp;».
+                <b>{formatCount(proposal.objectsCount, 'objet')}</b> passeront «&nbsp;À&nbsp;contrôler&nbsp;».
             </p>
             <ul className={classes.list}>
                 {proposal.unverifiedObjectsCount ? (
@@ -70,8 +70,8 @@ const Component: React.FC<ComponentProps> = ({ plan, wave, criteriaSummary, onBa
                     </li>
                 ) : null}
                 <li>
-                    Vous pourrez retirer une parcelle du plan à tout moment : ses objets encore «&nbsp;À
-                    contrôler&nbsp;» reviendront «&nbsp;Non contrôlé&nbsp;».
+                    Vous pourrez retirer une parcelle du plan à tout moment : ses objets encore
+                    «&nbsp;À&nbsp;contrôler&nbsp;» reviendront «&nbsp;Non contrôlé&nbsp;».
                 </li>
             </ul>
 

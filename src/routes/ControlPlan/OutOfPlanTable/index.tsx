@@ -40,8 +40,8 @@ const Component: React.FC<ComponentProps> = ({ controlPlanUuid }: ComponentProps
     return (
         <div className={classes.container}>
             <p className={classes.intro}>
-                Parcelles de votre territoire dont des objets sont «&nbsp;À contrôler&nbsp;» sans être passés par ce
-                plan : mis à contrôler depuis la carte ou le tableau, par le plan d’un autre groupe ou par un plan
+                Parcelles de votre territoire dont des objets sont «&nbsp;À&nbsp;contrôler&nbsp;» sans être passés par
+                ce plan : mis à contrôler depuis la carte ou le tableau, par le plan d’un autre groupe ou par un plan
                 précédent.
             </p>
             {error ? (

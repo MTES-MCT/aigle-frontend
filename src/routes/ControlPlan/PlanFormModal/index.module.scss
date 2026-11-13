@@ -11,11 +11,20 @@
 .dates {
     display: flex;
     gap: 1rem;
+
+    /* DSFR's margin under the first one stretched the row: the gap spaces them */
+    .field:not(:last-child) {
+        margin-bottom: 0;
+    }
+}
+
+.dates + * {
+    margin-top: 1.5rem;
 }
 
 @media (max-width: 35.99em) {
     .dates {
         flex-direction: column;
-        gap: 0;
+        gap: 1.5rem;
     }
 }

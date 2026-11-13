@@ -75,6 +75,21 @@
     }
 }
 
+@media (max-width: 35.99em) {
+    .counters {
+        width: 100%;
+
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1rem;
+
+        > li {
+            flex-direction: column;
+            gap: 0;
+        }
+    }
+}
+
 .counter-value {
     font-size: 1.5rem;
     line-height: 2rem;
