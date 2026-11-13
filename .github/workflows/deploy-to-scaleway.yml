@@ -36,6 +36,8 @@ jobs:
             - name: Build
               run: npm run build
               env:
+                  # the build with Sentry sourcemaps peaks around 3 GB, over Node's default heap
+                  NODE_OPTIONS: --max-old-space-size=4096
                   VITE_RELEASE: ${{ github.sha }}
                   SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
                   SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
