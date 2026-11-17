@@ -165,7 +165,8 @@ const Component: React.FC<ComponentProps> = ({
 
                     <Text size="xs" c="dimmed">
                         Crée un fond de carte par batch sélectionné et le groupe « Cabanisation », puis met en file les
-                        imports (zones à enjeux sélectionnées, tuiles, parcelles, détections, Sitadel).
+                        imports (zones à enjeux sélectionnées, tuiles, parcelles, détections, rapport de superpositions,
+                        Sitadel).
                     </Text>
 
                     <Group justify="flex-end">

@@ -4,6 +4,7 @@ import AdminTabs, { AdminTab } from '@/components/admin/AdminTabs';
 import LayoutAdminBase from '@/components/admin/LayoutAdminBase';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import BatchesTab from './BatchesTab';
+import OverlapReportsTab from './OverlapReportsTab';
 import PlansTab from './PlansTab';
 import RunsTab from './RunsTab';
 import ZaeTab from './ZaeTab';
@@ -13,6 +14,7 @@ const TABS: AdminTab[] = [
     { value: 'batches', label: 'Batches', content: <BatchesTab /> },
     { value: 'zae', label: 'Zones à enjeux', content: <ZaeTab /> },
     { value: 'plans', label: 'Plans', content: <PlansTab /> },
+    { value: 'overlap-reports', label: 'Superpositions', content: <OverlapReportsTab /> },
 ];
 
 const TAB_INITIAL_VALUE = { tab: TABS[0].value };

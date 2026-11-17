@@ -64,13 +64,16 @@ export const SearchInput: React.FC<{
 const ITEM_KIND = {
     batch: {
         label: (name: string) => `le batch « ${name} »`,
-        steps: ['créer le fond de carte', 'mettre en file les imports (tuiles, détections, Sitadel)'],
+        steps: [
+            'créer le fond de carte',
+            'mettre en file les imports (tuiles, détections, rapport de superpositions, Sitadel)',
+        ],
         // batches don't touch custom zones, so no override to offer
         overrideLabel: null,
     },
     zae: {
         label: (name: string) => `la zone à enjeux « ${name} »`,
-        steps: ['importer la zone à enjeux comme zone personnalisée'],
+        steps: ['importer la zone à enjeux comme zone personnalisée', 'recalculer le rapport de superpositions'],
         overrideLabel: 'Écraser la zone personnalisée existante',
     },
 };

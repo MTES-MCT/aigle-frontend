@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 
-import { getGeoDetailEndpoint } from '@/api/endpoints';
+import { detectionTypeOverlapReportEndpoints, getGeoDetailEndpoint } from '@/api/endpoints';
 import Map from '@/components/Map';
+import DetectionTypeOverlapReportTable from '@/components/admin/DetectionTypeOverlapReport';
 import LayoutAdminForm from '@/components/admin/LayoutAdminForm';
 import UnsavedChangesGuard from '@/components/admin/UnsavedChangesGuard';
 import ErrorCard from '@/components/ui/ErrorCard';
 import Loader from '@/components/ui/Loader';
 import { useFilterNavigation } from '@/hooks/useFilterNavigation';
+import { Paginated } from '@/models/data';
+import { DetectionTypeOverlapReport } from '@/models/detection-type-overlap-report';
 import { CollectivityType, GeoCollectivity, GeoCollectivityDetail, collectivityTypes } from '@/models/geo/_common';
 import { MapTileSetLayer } from '@/models/map-layer';
 import api, { ApiError } from '@/utils/api';
 import { COLLECTIVITY_TYPES_NAMES_MAP, TILES_URL_FALLBACK } from '@/utils/constants';
-import { Button, Card, TextInput } from '@mantine/core';
+import { Button, Card, Text, TextInput } from '@mantine/core';
 import { UseFormReturnType, isNotEmpty, useForm } from '@mantine/form';
 import { IconWorldPlus } from '@tabler/icons-react';
 import { UseMutationResult, useMutation, useQuery } from '@tanstack/react-query';
@@ -72,6 +75,40 @@ const MapPreview: React.FC<MapPreviewProps> = ({ name, geometry }) => {
                     fitBoundsFirstLayer={true}
                 />
             </div>
+        </Card>
+    );
+};
+
+const OverlapReport: React.FC<{ geoZoneUuid: string }> = ({ geoZoneUuid }) => {
+    const { isLoading, error, data } = useQuery({
+        queryKey: [detectionTypeOverlapReportEndpoints.list, geoZoneUuid],
+        queryFn: ({ signal }) =>
+            api<Paginated<DetectionTypeOverlapReport>>(detectionTypeOverlapReportEndpoints.list, {
+                params: { geoZoneUuid, limit: 1 },
+                signal,
+            }),
+    });
+
+    let body: React.ReactNode;
+    if (isLoading) {
+        body = <Loader />;
+    } else if (error) {
+        body = <ErrorCard>{error.message}</ErrorCard>;
+    } else if (!data?.results.length) {
+        body = (
+            <Text size="sm" c="dimmed">
+                Aucun rapport : il est calculé à la fin de chaque import de détections ou de zones à enjeux de la
+                collectivité.
+            </Text>
+        );
+    } else {
+        body = <DetectionTypeOverlapReportTable report={data.results[0]} />;
+    }
+
+    return (
+        <Card withBorder className={classes['overlap-report-container']}>
+            <h2>Superpositions de types</h2>
+            {body}
         </Card>
     );
 };
@@ -213,13 +250,16 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({ collectivityType, uuid,
     }
 
     return (
-        <Form
-            uuid={uuid}
-            initialValues={initialValues}
-            collectivityType={collectivityType}
-            backUrl={backUrl}
-            geometry={initialValues.geometry}
-        />
+        <>
+            <Form
+                uuid={uuid}
+                initialValues={initialValues}
+                collectivityType={collectivityType}
+                backUrl={backUrl}
+                geometry={initialValues.geometry}
+            />
+            <OverlapReport geoZoneUuid={uuid} />
+        </>
     );
 };
 

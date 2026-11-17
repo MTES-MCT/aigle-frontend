@@ -7,6 +7,7 @@ const BASE_RUN_COMMAND = `${BASE_API}run-command/`;
 const BASE_USER_ACTION_LOG = `${BASE_API}user-action-log/`;
 const BASE_DEPLOYED_DATA = `${BASE_API}statistics/deployed-data/`;
 const BASE_DATA_DEPLOYMENT = `${BASE_API}utils/data-deployment/`;
+const BASE_DETECTION_TYPE_OVERLAP_REPORT = `${BASE_API}detection-type-overlap-report/`;
 
 export const objectTypeEndpoints = {
     list: BASE_OBJECT_TYPE,
@@ -41,6 +42,11 @@ export const runCommandEndpoints = {
 export const userActionLogEndpoints = {
     list: BASE_USER_ACTION_LOG,
     detail: (uuid: string) => `${BASE_USER_ACTION_LOG}${uuid}/`,
+};
+
+export const detectionTypeOverlapReportEndpoints = {
+    list: BASE_DETECTION_TYPE_OVERLAP_REPORT,
+    detail: (uuid: string) => `${BASE_DETECTION_TYPE_OVERLAP_REPORT}${uuid}/`,
 };
 
 export const deployedDataEndpoints = {

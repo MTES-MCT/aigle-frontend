@@ -9,3 +9,11 @@
         height: 400px;
     }
 }
+
+.overlap-report-container {
+    margin-top: var(--mantine-spacing-xl);
+
+    h2 {
+        margin-bottom: var(--mantine-spacing-md);
+    }
+}
