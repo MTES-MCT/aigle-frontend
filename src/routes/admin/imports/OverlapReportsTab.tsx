@@ -5,6 +5,7 @@ import DataTable from '@/components/DataTable';
 import SoloAccordion from '@/components/SoloAccordion';
 import DetectionTypeOverlapReportTable from '@/components/admin/DetectionTypeOverlapReport';
 import { formatOverlapRate, formatReportTileSets } from '@/components/admin/DetectionTypeOverlapReport/utils';
+import SortableTh from '@/components/admin/SortableTh';
 import DateInfo from '@/components/ui/DateInfo';
 import { useUrlFilter } from '@/hooks/useUrlFilter';
 import { DetectionTypeOverlapReport } from '@/models/detection-type-overlap-report';
@@ -18,10 +19,13 @@ import { SearchInput } from './shared';
 
 interface DataFilter {
     q: string;
+    // the API `ordering`, '' = most recent report first
+    ordering: string;
 }
 
 const DATA_FILTER_INITIAL_VALUE: DataFilter = {
     q: '',
+    ordering: '',
 };
 
 // reports are only computed for deployed zones: department, epci or commune
@@ -39,6 +43,10 @@ const ExpandedContent: React.FC<{ report: DetectionTypeOverlapReport }> = ({ rep
 
 const Component: React.FC = () => {
     const [filter, setFilter] = useUrlFilter(DATA_FILTER_INITIAL_VALUE);
+    const sortProps = {
+        ordering: filter.ordering,
+        onChange: (ordering: string) => setFilter((filter) => ({ ...filter, ordering })),
+    };
 
     return (
         <DataTable<DetectionTypeOverlapReport, DataFilter>
@@ -58,13 +66,25 @@ const Component: React.FC = () => {
                 </SoloAccordion>
             }
             tableHeader={[
-                <Table.Th key="geoZone">Collectivité</Table.Th>,
+                <SortableTh key="geoZone" field="geoZoneName" firstOrder="asc" {...sortProps}>
+                    Collectivité
+                </SortableTh>,
                 <Table.Th key="type">Type</Table.Th>,
-                <Table.Th key="year">Millésime</Table.Th>,
-                <Table.Th key="reportDate">Date du rapport</Table.Th>,
-                <Table.Th key="detections">Détections</Table.Th>,
-                <Table.Th key="overlapping">Superposées à un autre type</Table.Th>,
-                <Table.Th key="prescribable">… dont l&apos;un est prescriptible</Table.Th>,
+                <SortableTh key="year" field="year" {...sortProps}>
+                    Millésime
+                </SortableTh>,
+                <SortableTh key="reportDate" field="reportDate" {...sortProps}>
+                    Date du rapport
+                </SortableTh>,
+                <SortableTh key="detections" field="detectionsCount" {...sortProps}>
+                    Détections
+                </SortableTh>,
+                <SortableTh key="overlapping" field="overlappingRate" {...sortProps}>
+                    Superposées à un autre type
+                </SortableTh>,
+                <SortableTh key="prescribable" field="overlappingPrescribableRate" {...sortProps}>
+                    … dont l&apos;un est prescriptible
+                </SortableTh>,
                 <Table.Th key="actions" />,
             ]}
             tableBodyRenderFns={[

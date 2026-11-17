@@ -1,0 +1,17 @@
+.button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: inherit;
+    text-align: left;
+}
+
+.icon {
+    flex-shrink: 0;
+    color: var(--mantine-color-dimmed);
+}
+
+.icon-active {
+    flex-shrink: 0;
+    color: var(--mantine-primary-color-filled);
+}
