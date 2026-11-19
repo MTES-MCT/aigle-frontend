@@ -29,9 +29,10 @@ export const usePaginatedData = <TData = unknown, TFilter = Record<string, unkno
     const { data, isLoading, error, refetch } = useQuery({
         queryKey: [endpoint, pagination.page, pagination.limit, filter],
         queryFn: async ({ signal }) => {
+            // the API paginates with limit/offset (DRF LimitOffsetPagination)
             const params = {
-                page: pagination.page,
-                page_size: pagination.limit,
+                limit: pagination.limit,
+                offset: (pagination.page - 1) * pagination.limit,
                 ...filter,
             };
 
