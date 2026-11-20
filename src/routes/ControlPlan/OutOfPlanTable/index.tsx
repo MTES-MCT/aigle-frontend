@@ -4,7 +4,7 @@ import { controlPlanEndpoints } from '@/api/endpoints';
 import Pagination from '@/components/dsfr/Pagination';
 import Table from '@/components/dsfr/Table';
 import Loader from '@/components/ui/Loader';
-import { OutOfPlanParcel } from '@/models/control-plan';
+import { OutOfPlanOrigin, OutOfPlanParcel } from '@/models/control-plan';
 import ErrorAlert from '@/routes/ControlPlan/ErrorAlert';
 import { formatCount, formatPlanParcel, trackControlPlanEvent } from '@/routes/ControlPlan/utils';
 import DetectionCountCell from '@/routes/Table/DetectionCountCell';
@@ -16,13 +16,30 @@ import { getPaginationPage } from '@/utils/pagination';
 import clsx from 'clsx';
 import classes from './index.module.scss';
 
-const COLUMNS_COUNT = 5;
+const COLUMNS_COUNT = 6;
+
+const ORIGIN_LABELS: Record<OutOfPlanOrigin['type'], string> = {
+    PLAN: 'Plan en cours',
+    CLOSED_PLAN: 'Plan clôturé',
+    OTHER_GROUP_PLAN: 'Plan d’un autre groupe',
+    NONE: 'Sans plan',
+};
+
+const renderOrigin = (origin: OutOfPlanOrigin) =>
+    origin.type === 'PLAN' || origin.type === 'CLOSED_PLAN' ? (
+        <li key={origin.uuid}>
+            <span className={classes['origin-name']}>{origin.name}</span>
+            <span className={classes.secondary}>{ORIGIN_LABELS[origin.type]}</span>
+        </li>
+    ) : (
+        <li key={origin.type}>{ORIGIN_LABELS[origin.type]}</li>
+    );
 
 interface ComponentProps {
     controlPlanUuid: string;
 }
 
-// The parcels with objects « À contrôler » that did not come from the plan: set by hand, by another plan...
+// « Autres parcelles à contrôler »: objects « À contrôler » that did not come from this plan, and where from.
 const Component: React.FC<ComponentProps> = ({ controlPlanUuid }: ComponentProps) => {
     const tableRef = useRef<HTMLTableElement>(null);
     const endpoint = controlPlanEndpoints.outOfPlan(controlPlanUuid);
@@ -40,9 +57,10 @@ const Component: React.FC<ComponentProps> = ({ controlPlanUuid }: ComponentProps
     return (
         <div className={classes.container}>
             <p className={classes.intro}>
-                Parcelles de votre territoire dont des objets sont «&nbsp;À&nbsp;contrôler&nbsp;» sans être passés par
-                ce plan : mis à contrôler depuis la carte ou le tableau, par le plan d’un autre groupe ou par un plan
-                précédent.
+                Parcelles de votre territoire dont des objets sont «&nbsp;À&nbsp;contrôler&nbsp;» sans passer par ce
+                plan&nbsp;: par un autre plan de votre groupe, en cours ou clôturé, par le plan d’un autre groupe, ou
+                sans plan (depuis la carte, le suivi ou un import). La liste d’attente d’une proposition n’en fait pas
+                partie&nbsp;: ses parcelles reviennent à la vague suivante.
             </p>
             {error ? (
                 <ErrorAlert
@@ -52,7 +70,7 @@ const Component: React.FC<ComponentProps> = ({ controlPlanUuid }: ComponentProps
                 />
             ) : null}
             <Table
-                caption="Parcelles à contrôler hors plan"
+                caption="Autres parcelles à contrôler"
                 tableRef={tableRef}
                 busy={isFetching}
                 className={classes.table}
@@ -78,8 +96,13 @@ const Component: React.FC<ComponentProps> = ({ controlPlanUuid }: ComponentProps
                     <tr>
                         <th scope="col">Commune</th>
                         <th scope="col">Parcelle</th>
-                        <th scope="col">Zones à enjeux</th>
-                        <th scope="col">Objets à contrôler</th>
+                        <th scope="col">
+                            <span className={classes.nowrap}>Zones à enjeux</span>
+                        </th>
+                        <th scope="col">
+                            <span className={classes.nowrap}>Objets à contrôler</span>
+                        </th>
+                        <th scope="col">Origine</th>
                         <th scope="col">
                             <span className="fr-sr-only">Actions</span>
                         </th>
@@ -88,7 +111,7 @@ const Component: React.FC<ComponentProps> = ({ controlPlanUuid }: ComponentProps
                 <tbody>
                     {data?.length === 0 ? (
                         <tr>
-                            <td colSpan={COLUMNS_COUNT}>Aucune parcelle à contrôler hors plan</td>
+                            <td colSpan={COLUMNS_COUNT}>Aucune autre parcelle à contrôler</td>
                         </tr>
                     ) : null}
                     {data?.map((parcel) => (
@@ -97,19 +120,19 @@ const Component: React.FC<ComponentProps> = ({ controlPlanUuid }: ComponentProps
                             <td data-label="Parcelle">
                                 <span className="fr-cell__title">{formatPlanParcel(parcel)}</span>
                                 <span className={clsx('fr-cell__desc', classes.secondary)}>{parcel.idParcellaire}</span>
-                                <p className="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--purple-glycine fr-mt-1v">
-                                    Hors plan
-                                </p>
                             </td>
                             <td data-label="Zones à enjeux" className={classes['cell-wide']}>
                                 <TagsCell labels={parcel.zoneNames} />
                             </td>
-                            <td data-label="Objets à contrôler" className={classes['cell-wide']}>
+                            <td data-label="Objets à contrôler" className={clsx(classes['cell-wide'], classes.objects)}>
                                 <DetectionCountCell
                                     count={parcel.detectionsCount}
                                     countsByObjectType={parcel.detectionsCountByObjectType}
                                     unit={['objet', 'objets']}
                                 />
+                            </td>
+                            <td data-label="Origine" className={classes['cell-wide']}>
+                                <ul className={classes.origins}>{parcel.origins.map(renderOrigin)}</ul>
                             </td>
                             <td className={clsx('fr-cell--right', classes['cell-wide'])}>
                                 {parcel.detectionObjectUuids.length ? (

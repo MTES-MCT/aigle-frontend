@@ -6,12 +6,21 @@ import { ControlPlan, ControlPlanValidationReport, OutOfPlanParcel } from '@/mod
 import { Paginated } from '@/models/data';
 import OutOfPlanTable from '@/routes/ControlPlan/OutOfPlanTable';
 import PlanParcelsTable from '@/routes/ControlPlan/PlanParcelsTable';
-import { CONTROL_PLAN_QUERY_KEY, formatCount, getMapLink, trackControlPlanEvent } from '@/routes/ControlPlan/utils';
+import {
+    CONTROL_PLAN_QUERY_KEY,
+    formatCount,
+    getFollowUpPageLink,
+    getMapLink,
+    trackControlPlanEvent,
+} from '@/routes/ControlPlan/utils';
+import { useObjectsFilter } from '@/store/slices/objects-filter';
 import api from '@/utils/api';
 import { formatBigInt, formatDateOnly } from '@/utils/format';
 import { scrollBelowHeader } from '@/utils/html';
+import { rememberControlPlanView } from '@/utils/objects-filter';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
+import { useNavigate } from 'react-router-dom';
 import classes from './index.module.scss';
 
 type FollowUpTab = 'PLANNED' | 'OUT_OF_PLAN' | 'EXCLUDED_REMOVED';
@@ -83,6 +92,8 @@ const Component: React.FC<ComponentProps> = ({
 }: ComponentProps) => {
     const [tab, setTab] = useState<FollowUpTab>('PLANNED');
     const { counters, draftWave, canEdit } = plan;
+    const navigate = useNavigate();
+    const { objectsFilter, updateObjectsFilter } = useObjectsFilter();
     const treatedCount = counters.planned - counters.toControl;
     const progress = counters.planned ? Math.round((treatedCount / counters.planned) * 100) : 0;
 
@@ -100,13 +111,15 @@ const Component: React.FC<ComponentProps> = ({
         },
     });
 
-    const mapLinkShown = !!counters.toControl || !!outOfPlanCount;
-
     const tabs: TabsItem<FollowUpTab>[] = [
         { value: 'PLANNED', label: `Au plan (${formatBigInt(counters.planned)})` },
         {
             value: 'OUT_OF_PLAN',
-            label: outOfPlanCount === undefined ? 'Hors plan' : `Hors plan (${formatBigInt(outOfPlanCount)})`,
+            label:
+                outOfPlanCount === undefined
+                    ? 'Autres parcelles à contrôler'
+                    : `Autres parcelles à contrôler (${formatBigInt(outOfPlanCount)})`,
+            shortLabel: 'Autres',
         },
         {
             value: 'EXCLUDED_REMOVED',
@@ -124,8 +137,8 @@ const Component: React.FC<ComponentProps> = ({
             {plan.isExpired ? (
                 <div className={clsx('fr-alert fr-alert--warning fr-alert--sm', classes.alert)}>
                     <p>
-                        La période de ce plan s’est terminée le {formatDateOnly(plan.endDate)}.
-                        {canEdit ? ' Clôturez-le pour préparer le plan suivant.' : ''}
+                        La période de ce plan s’est terminée le {formatDateOnly(plan.endDate ?? '')}.
+                        {canEdit ? ' Clôturez-le, ou modifiez sa période pour le prolonger.' : ''}
                     </p>
                 </div>
             ) : null}
@@ -203,13 +216,55 @@ const Component: React.FC<ComponentProps> = ({
                         {counters.released > 1 ? 'sorties du plan' : 'sortie du plan'}
                     </li>
                 </ul>
-                {addShown || mapLinkShown ? (
+                {counters.planned || addShown ? (
                     <ul
                         className={clsx(
                             'fr-btns-group fr-btns-group--inline-md fr-btns-group--icon-left',
                             classes.actions,
                         )}
                     >
+                        {counters.planned ? (
+                            <>
+                                <li>
+                                    {/* in the app when the filter store is up: the Suivi page reads it */}
+                                    <a
+                                        className="fr-btn fr-icon-table-line"
+                                        href={getFollowUpPageLink(plan.uuid)}
+                                        onClick={(event) => {
+                                            trackControlPlanEvent('Suivi du plan ouvert');
+                                            if (!objectsFilter) {
+                                                return;
+                                            }
+                                            event.preventDefault();
+                                            rememberControlPlanView(true);
+                                            updateObjectsFilter({
+                                                ...objectsFilter,
+                                                controlPlan: true,
+                                                controlPlanUuid: plan.uuid,
+                                            });
+                                            navigate(`/table${window.location.search}`);
+                                        }}
+                                    >
+                                        Suivre ce plan
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="fr-btn fr-btn--secondary fr-icon-map-pin-2-line"
+                                        href={getMapLink('MANAGE_FIELD_CONTROLS', {
+                                            controlPlan: true,
+                                            controlPlanUuid: plan.uuid,
+                                        })}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Voir ce plan sur la carte - nouvelle fenêtre"
+                                        onClick={() => trackControlPlanEvent('Carte des objets à contrôler ouverte')}
+                                    >
+                                        Voir sur la carte
+                                    </a>
+                                </li>
+                            </>
+                        ) : null}
                         {addShown ? (
                             <li>
                                 <button
@@ -219,21 +274,6 @@ const Component: React.FC<ComponentProps> = ({
                                 >
                                     Ajouter des parcelles
                                 </button>
-                            </li>
-                        ) : null}
-                        {mapLinkShown ? (
-                            <li>
-                                {/* « Au plan » and « Hors plan » together: what is left to control */}
-                                <a
-                                    className="fr-btn fr-btn--secondary fr-icon-map-pin-2-line"
-                                    href={getMapLink('MANAGE_FIELD_CONTROLS', { controlPlan: true })}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="Voir les objets à contrôler sur la carte - nouvelle fenêtre"
-                                    onClick={() => trackControlPlanEvent('Carte des objets à contrôler ouverte')}
-                                >
-                                    Voir les objets à contrôler sur la carte
-                                </a>
                             </li>
                         ) : null}
                     </ul>

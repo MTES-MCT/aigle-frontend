@@ -11,6 +11,15 @@
     margin: 1.5rem 0;
 }
 
+.notice {
+    max-width: var(--control-plan-measure);
+    margin-bottom: 1rem;
+}
+
+.prescription-badge {
+    margin-top: 0.25rem;
+}
+
 .table[class~='fr-table'] {
     margin-top: 0;
     /* the tab panel's padding closes it */

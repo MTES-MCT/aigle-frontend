@@ -1,4 +1,5 @@
 import { Webinar } from '@/models/help-center';
+import { CONTROL_PLAN_PARAM } from '@/utils/objects-filter';
 import { AppFilterLink, ContentBlock } from './content/types';
 
 export const HELP_CENTER_PATH = '/help';
@@ -25,6 +26,11 @@ export const buildAppFilterUrl = ({ path, filter }: AppFilterLink): string => {
     }
     if (filter.prescripted !== undefined) {
         params.set('prescripted', String(filter.prescripted));
+    }
+
+    // the exercises list all the parcels: the Suivi page would open on the control plans
+    if (path === '/table') {
+        params.set(CONTROL_PLAN_PARAM, 'false');
     }
 
     return `${path}?${params.toString()}`;

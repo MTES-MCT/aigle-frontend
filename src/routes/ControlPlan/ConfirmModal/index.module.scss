@@ -1,0 +1,11 @@
+/* index.scss zeroes the margins of the paragraphs: the gap sets them apart */
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    p {
+        margin: 0;
+        text-wrap: pretty;
+    }
+}

@@ -10,6 +10,9 @@ export interface ObjectsFilter {
     prescripted: boolean | null;
     interfaceDrawn: InterfaceDrawnFilter;
     customZonesUuids: string[];
-    // « Uniquement mon plan de contrôle »: the parcels of the group's plan and the objects « À contrôler »
+    // « Uniquement mes plans de contrôle »: the parcels of the active plans of the user's groups and the
+    // objects « À contrôler »
     controlPlan?: boolean;
+    // with `controlPlan`, only the parcels of this active plan
+    controlPlanUuid?: string | null;
 }

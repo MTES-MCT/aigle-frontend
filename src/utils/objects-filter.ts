@@ -13,6 +13,7 @@ type QueryParams = Record<string, string>;
 
 const DETECTION_OBJECT_UUID_PARAM = 'detectionObjectUuid';
 export const CONTROL_PLAN_PARAM = 'controlPlan';
+export const CONTROL_PLAN_UUID_PARAM = 'controlPlanUuid';
 
 // A link carrying the filter to someone without the feature falls back to the whole territory.
 // The access is passed in: importing the auth store here makes an import cycle (auth > tracking > presets).
@@ -74,8 +75,37 @@ export const setObjectFilters = (objectsFilter: ObjectsFilter) => {
     if (!objectsFilter.controlPlan) {
         url.searchParams.delete(CONTROL_PLAN_PARAM);
     }
+    if (!objectsFilter.controlPlan || !objectsFilter.controlPlanUuid) {
+        url.searchParams.delete(CONTROL_PLAN_UUID_PARAM);
+    }
 
     window.history.replaceState({}, '', url.toString());
+};
+
+// The view the agent last picked between its control plans and all the parcels: the Suivi page opens on the
+// plans unless « Toutes les parcelles » was chosen.
+const CONTROL_PLAN_VIEW_STORAGE_KEY = 'aigle.control-plan-view';
+
+export const rememberControlPlanView = (controlPlan: boolean) => {
+    try {
+        localStorage.setItem(CONTROL_PLAN_VIEW_STORAGE_KEY, controlPlan ? 'PLANS' : 'ALL');
+    } catch {
+        // storage unavailable: the Suivi page opens on the plans again
+    }
+};
+
+// `controlPlan=false`: a link to a filter over all the parcels, which the Suivi page must not narrow to the
+// plans. Read at page load: the bootstrap rewrites the query from the filter, which drops the param.
+const ALL_PARCELS_VIEW_REQUESTED = new URLSearchParams(window.location.search).get(CONTROL_PLAN_PARAM) === 'false';
+
+export const isAllParcelsViewRequested = () => ALL_PARCELS_VIEW_REQUESTED;
+
+export const isAllParcelsViewChosen = () => {
+    try {
+        return localStorage.getItem(CONTROL_PLAN_VIEW_STORAGE_KEY) === 'ALL';
+    } catch {
+        return false;
+    }
 };
 
 export const DEFAULT_DETECTION_VALIDATION_STATUSES: DetectionValidationStatus[] = [
@@ -97,6 +127,7 @@ const getObjectsFilterDefault = (objectTypesUuids: string[], customZonesUuids: s
     interfaceDrawn: 'ALL',
     customZonesUuids: customZonesUuids,
     controlPlan: false,
+    controlPlanUuid: null,
 });
 
 const paramsToObjectsFilter = (
@@ -137,6 +168,12 @@ const paramsToObjectsFilter = (
             parsedCustomZones && parsedCustomZones.length ? parsedCustomZones : objectsFilterDefault.customZonesUuids,
 
         controlPlan: isControlPlanParamApplied(params, canAccessControlPlan),
+        // a plan that is closed meanwhile is dropped once the active plans are known
+        controlPlanUuid:
+            isControlPlanParamApplied(params, canAccessControlPlan) &&
+            isValidUUID(params[CONTROL_PLAN_UUID_PARAM] ?? '')
+                ? params[CONTROL_PLAN_UUID_PARAM]
+                : null,
     };
 };
 
@@ -150,6 +187,9 @@ const objectsFilterToParams = (objectsFilter: ObjectsFilter): QueryParams => {
         interfaceDrawn: 'ALL',
         customZonesUuids: objectsFilter.customZonesUuids.join(','),
         ...(objectsFilter.controlPlan ? { [CONTROL_PLAN_PARAM]: 'true' } : {}),
+        ...(objectsFilter.controlPlan && objectsFilter.controlPlanUuid
+            ? { [CONTROL_PLAN_UUID_PARAM]: objectsFilter.controlPlanUuid }
+            : {}),
     };
 };
 

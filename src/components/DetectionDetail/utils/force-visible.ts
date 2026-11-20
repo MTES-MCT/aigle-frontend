@@ -39,10 +39,16 @@ export const getFiltersToMakeVisible = (
 
     // we do not update score as it's bypassed when object is set to force visible
 
-    // An object « À contrôler » always passes the control plan filter; any other may lie outside the plan
-    // (whether its parcel is planned is unknown here), so the filter is dropped for it.
-    if (currentObjectsFilters.controlPlan && invisibleDetection.detectionData.detectionControlStatus !== 'TO_CONTROL') {
+    // An object « À contrôler » always passes the filter of all the plans; any other may lie outside them
+    // (whether its parcel is planned is unknown here), and any object outside the one plan picked: the
+    // filter is dropped for it.
+    if (
+        currentObjectsFilters.controlPlan &&
+        (currentObjectsFilters.controlPlanUuid ||
+            invisibleDetection.detectionData.detectionControlStatus !== 'TO_CONTROL')
+    ) {
         objectFiltersUpdated.controlPlan = false;
+        objectFiltersUpdated.controlPlanUuid = null;
     }
 
     if (

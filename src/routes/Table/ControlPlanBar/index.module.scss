@@ -1,0 +1,69 @@
+/* Above the counts of the table: what the page follows, and how far it is. */
+.container {
+    margin-bottom: 1.5rem;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+
+    /* the DSFR controls carry their own bottom margins: the gap spaces them */
+    > * {
+        margin-bottom: 0;
+    }
+}
+
+.select {
+    min-width: 14rem;
+    max-width: 22rem;
+
+    /* its label is hidden: no gap above the field */
+    [class~='fr-select'] {
+        margin-top: 0;
+    }
+}
+
+.summary {
+    margin: 0;
+
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Beside the side panel rail a phone leaves ~300px: the two views share the line, their labels may wrap. */
+@media (max-width: 47.99em) {
+    .view {
+        width: 100%;
+
+        [class~='fr-segmented__elements'] {
+            width: 100%;
+
+            display: flex;
+        }
+
+        [class~='fr-segmented__element'] {
+            min-width: 0;
+
+            flex: 1 1 0;
+        }
+
+        [class~='fr-label'] {
+            width: 100%;
+            height: 100%;
+            padding: 0.25rem 0.5rem;
+
+            justify-content: center;
+
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            text-align: center;
+            white-space: normal;
+        }
+    }
+
+    .select {
+        width: 100%;
+        max-width: none;
+    }
+}

@@ -18,6 +18,15 @@
         padding-left: 0;
     }
 
+    /* DSFR fills the opened header: with no inset the title would touch the edge of that band.
+       Opened, it keeps the look of the closed one, hover and active included. */
+    [class~='fr-accordion__btn'][aria-expanded='true'] {
+        --hover: var(--background-default-grey-hover);
+        --active: var(--background-default-grey-active);
+
+        background-color: transparent;
+    }
+
     /* DSFR's -0.25rem margin keeps room for the focus rings: the padding only gives it back
        (`> div`: above DSFR's `.fr-accordion .fr-collapse`, loaded after) */
     > div[class~='fr-collapse'] {

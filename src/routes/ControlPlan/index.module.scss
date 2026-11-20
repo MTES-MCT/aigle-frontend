@@ -1,5 +1,8 @@
 /* The page reads as a document: same width and rhythm as the help center. */
 .container {
+    /* texts, notices and forms keep a reading measure; the tables take the page width */
+    --control-plan-measure: 48rem;
+
     max-width: 75rem;
     margin: 0 auto;
     padding: 1.5rem 0 3rem;
@@ -23,6 +26,7 @@
 }
 
 .lead {
+    max-width: var(--control-plan-measure);
     margin: 0;
 
     font-size: 1.125rem;
@@ -30,7 +34,17 @@
     text-wrap: pretty;
 }
 
+/* the group beside the title: the plans start right under them */
+.header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem 2rem;
+}
+
 .group-select {
+    flex: 1 1 16rem;
     max-width: 24rem;
 }
 
@@ -56,10 +70,17 @@
 }
 
 .steps {
+    max-width: var(--control-plan-measure);
     margin: 0;
+
+    /* each step reads as one item, not as a wall of text */
+    > li + li {
+        margin-top: 0.5rem;
+    }
 }
 
 .hint {
+    max-width: var(--control-plan-measure);
     margin: 0;
 
     color: var(--text-mention-grey);

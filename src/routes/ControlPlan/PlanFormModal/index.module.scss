@@ -1,5 +1,13 @@
 .intro {
     margin-bottom: 1.5rem;
+
+    p {
+        margin-bottom: 0.75rem;
+    }
+
+    p:last-child {
+        margin-bottom: 0;
+    }
 }
 
 .field {
@@ -18,7 +26,11 @@
     }
 }
 
-.dates + * {
+.no-end {
+    margin-top: 1rem;
+}
+
+.no-end + * {
     margin-top: 1.5rem;
 }
 

@@ -164,8 +164,8 @@ const Component: React.FC<ComponentProps> = ({ plan, group }: ComponentProps) =>
                 ) : (
                     <>
                         <p>
-                            Le plan passe dans les plans clôturés et la proposition en cours est abandonnée. Vous
-                            pourrez ensuite créer le plan de la période suivante.
+                            Le plan passe dans les plans clôturés et la proposition en cours est abandonnée. Ses
+                            parcelles redeviennent disponibles pour les autres plans du groupe.
                         </p>
                         {plan.counters.toControl ? (
                             <p>
@@ -174,7 +174,7 @@ const Component: React.FC<ComponentProps> = ({ plan, group }: ComponentProps) =>
                                 {plan.counters.toControl > 1
                                     ? 'elles gardent ce statut et apparaîtront'
                                     : 'elle garde ce statut et apparaîtra'}{' '}
-                                hors plan dans le plan suivant.
+                                dans les «&nbsp;Autres parcelles à contrôler&nbsp;» des autres plans du groupe.
                             </p>
                         ) : null}
                     </>

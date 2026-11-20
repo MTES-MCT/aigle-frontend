@@ -10,7 +10,7 @@ import { ApiError } from '@/utils/api';
 import { DEFAULT_DATE_FORMAT } from '@/utils/constants';
 import { formatBigInt, formatDateOnly } from '@/utils/format';
 import { trackEvent } from '@/utils/matomo';
-import { CONTROL_PLAN_PARAM } from '@/utils/objects-filter';
+import { CONTROL_PLAN_PARAM, CONTROL_PLAN_UUID_PARAM } from '@/utils/objects-filter';
 import { OBJECTS_FILTER_PRESETS } from '@/utils/objects-filter-presets';
 import { getErrorTrackingName, isNetworkError, TRACKING_CATEGORIES } from '@/utils/tracking';
 import { QueryClient } from '@tanstack/react-query';
@@ -38,8 +38,14 @@ export const invalidateControlPlanQueries = async (queryClient: QueryClient, { d
     await Promise.all(keys.map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
 };
 
-/** The map under a quick filter of the Filtres panel, with « Uniquement mon plan de contrôle » if asked. */
-export const getMapLink = (presetId: string, { controlPlan = false }: { controlPlan?: boolean } = {}) => {
+/**
+ * The map under a quick filter of the Filtres panel, with « Uniquement mes plans de contrôle » if asked,
+ * narrowed to one plan with `controlPlanUuid`.
+ */
+export const getMapLink = (
+    presetId: string,
+    { controlPlan = false, controlPlanUuid }: { controlPlan?: boolean; controlPlanUuid?: string } = {},
+) => {
     const preset = OBJECTS_FILTER_PRESETS.find(({ id }) => id === presetId);
     const params = new URLSearchParams(
         preset
@@ -52,10 +58,17 @@ export const getMapLink = (presetId: string, { controlPlan = false }: { controlP
     );
     if (controlPlan) {
         params.set(CONTROL_PLAN_PARAM, 'true');
+        if (controlPlanUuid) {
+            params.set(CONTROL_PLAN_UUID_PARAM, controlPlanUuid);
+        }
     }
 
     return `/map?${params.toString()}`;
 };
+
+/** The Suivi page on the parcels of one plan, for a full page load (a new tab). */
+export const getFollowUpPageLink = (controlPlanUuid: string) =>
+    `/table?${new URLSearchParams({ [CONTROL_PLAN_PARAM]: 'true', [CONTROL_PLAN_UUID_PARAM]: controlPlanUuid }).toString()}`;
 
 export const RANKING_CRITERIA_LABELS: Record<ControlPlanRankingCriterion, { label: string; hint: string }> = {
     OBJECTS_COUNT: {
@@ -74,7 +87,20 @@ export const RANKING_CRITERIA_LABELS: Record<ControlPlanRankingCriterion, { labe
         label: 'Petites parcelles',
         hint: 'les parcelles les plus petites passent devant, par tranche de surface (moins de 1\u00a0000\u00a0m², de 2\u00a0500\u00a0m², de 5\u00a0000\u00a0m², d’1\u00a0ha)',
     },
+    PRESCRIPTION_SOON: {
+        label: 'Prescription proche',
+        hint: 'les parcelles dont un objet atteint sa prescription dans moins de 2\u00a0ans passent devant, la plus proche d’abord',
+    },
 };
+
+// Why an estimated prescription is to be checked: shown with the criterion and with the dates it gives.
+export const PRESCRIPTION_ESTIMATE_TITLE = 'Prescription estimée, à vérifier';
+export const PRESCRIPTION_ESTIMATE_TEXT =
+    'Aigle date un objet du premier millésime où il apparaît. Il a pu être construit plus tôt, depuis la prise de vue précédente\u00a0: sa prescription peut alors être plus proche, voire déjà acquise. Les objets déjà visibles sur le plus ancien millésime ne sont pas datés. Vérifiez la date de construction avant d’engager une procédure.';
+
+/** « Prescription d’ici 06/2027 »: the estimate is the latest date the prescription can fall on. */
+export const formatPrescriptionDate = (prescriptionDate: string) =>
+    `Prescription d’ici ${formatDateOnly(prescriptionDate, 'MM/yyyy')}`;
 
 export const FOLLOW_UP_LABELS: Record<ControlPlanFollowUpStatus, string> = {
     TO_CONTROL: 'À contrôler',
@@ -96,7 +122,22 @@ export const getDefaultPlanInput = (): ControlPlanInput => {
 };
 
 export const formatPlanPeriod = ({ startDate, endDate }: Pick<ControlPlan, 'startDate' | 'endDate'>) =>
-    `du ${formatDateOnly(startDate)} au ${formatDateOnly(endDate)}`;
+    endDate
+        ? `du ${formatDateOnly(startDate)} au ${formatDateOnly(endDate)}`
+        : `depuis le ${formatDateOnly(startDate)}, sans date de fin`;
+
+/** Where a plan stands, in a few words. */
+export const getPlanStatus = ({
+    counters,
+    validatedWavesCount,
+    draftWave,
+}: Pick<ControlPlan, 'counters' | 'validatedWavesCount' | 'draftWave'>) => {
+    if (!validatedWavesCount) {
+        return draftWave ? 'Proposition en préparation' : 'Aucune parcelle validée';
+    }
+
+    return `${formatCount(counters.toControl, 'parcelle reste', 'parcelles restent')} à contrôler sur ${formatBigInt(counters.planned)}`;
+};
 
 // The local day of a timestamp (UTC on the API): formatDateOnly would show the UTC day, wrong overseas.
 export const formatTimestampDay = (isoDateTime: string) => format(new Date(isoDateTime), DEFAULT_DATE_FORMAT);

@@ -4,6 +4,7 @@
 }
 
 .intro {
+    max-width: var(--control-plan-measure);
     margin-bottom: 1rem;
 }
 
@@ -85,4 +86,37 @@
             grid-column: 1 / -1;
         }
     }
+}
+
+/* A long plan name wraps in its own column instead of squeezing the others. Set inside the
+   cells: DSFR's no-scroll table forces `white-space: normal` on th and td. */
+@media (min-width: 48em) {
+    .nowrap,
+    .objects > * {
+        white-space: nowrap;
+    }
+}
+
+.origins {
+    --ul-type: none;
+
+    max-width: 24rem;
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    list-style: none;
+
+    > li {
+        padding: 0;
+    }
+}
+
+.origin-name {
+    display: block;
+
+    font-weight: 700;
 }

@@ -79,7 +79,7 @@ export const EXERCISES: Exercise[] = [
                     {
                         type: 'list',
                         items: [
-                            'Ouvrez l’onglet **Tableau**.',
+                            'Ouvrez l’onglet **Suivi**.',
                             'Sélectionnez la commune concernée.',
                             'Appliquez le filtre de validation **Suspect**.',
                             'Appliquez le statut de contrôle **Non contrôlé**.',
@@ -90,7 +90,7 @@ export const EXERCISES: Exercise[] = [
                         type: 'note',
                         text: '**Astuce** : les **filtres rapides** cochent automatiquement les cases des statuts de validation et de contrôle, et règlent l’affichage des objets prescrits. Par exemple, le filtre rapide **Préparer des visites** affiche en un clic les objets suspects non contrôlés, et **Gérer les contrôles terrain** les objets à contrôler.',
                     },
-                    presetLink('Ouvrir le Tableau avec le filtre « Préparer des visites »', '/table', 'PREPARE_VISITS'),
+                    presetLink('Ouvrir le Suivi avec le filtre « Préparer des visites »', '/table', 'PREPARE_VISITS'),
                 ],
             },
             {
@@ -134,7 +134,7 @@ export const EXERCISES: Exercise[] = [
             {
                 title: 'Vérification finale',
                 blocks: [
-                    { type: 'paragraph', text: 'Retournez dans l’onglet **Tableau** et appliquez les filtres :' },
+                    { type: 'paragraph', text: 'Retournez dans l’onglet **Suivi** et appliquez les filtres :' },
                     {
                         type: 'list',
                         items: [
@@ -150,7 +150,7 @@ export const EXERCISES: Exercise[] = [
                     },
                     {
                         type: 'appLink',
-                        label: 'Vérifier dans le Tableau',
+                        label: 'Vérifier dans le Suivi',
                         path: '/table',
                         filter: {
                             detectionValidationStatuses: ['SUSPECT'],
@@ -199,7 +199,7 @@ export const EXERCISES: Exercise[] = [
             {
                 title: '1. Identifier les objets concernés',
                 blocks: [
-                    { type: 'paragraph', text: 'Dans l’onglet **Tableau** :' },
+                    { type: 'paragraph', text: 'Dans l’onglet **Suivi** :' },
                     {
                         type: 'list',
                         items: [
@@ -209,7 +209,7 @@ export const EXERCISES: Exercise[] = [
                         ],
                     },
                     presetLink(
-                        'Ouvrir le Tableau avec le filtre « Envoyer des courriers préalables »',
+                        'Ouvrir le Suivi avec le filtre « Envoyer des courriers préalables »',
                         '/table',
                         'SEND_PRIOR_LETTERS',
                     ),
@@ -257,11 +257,11 @@ export const EXERCISES: Exercise[] = [
                 blocks: [
                     {
                         type: 'paragraph',
-                        text: 'Dans l’onglet **Tableau**, filtrez les résultats avec le statut **Courrier préalable envoyé** et vérifiez que les sept objets apparaissent. Les commentaires ne sont pas affichés dans le tableau : ouvrez la fiche de chaque objet pour vérifier qu’ils ont bien été enregistrés.',
+                        text: 'Dans l’onglet **Suivi**, filtrez les résultats avec le statut **Courrier préalable envoyé** et vérifiez que les sept objets apparaissent. Les commentaires ne sont pas affichés dans le tableau : ouvrez la fiche de chaque objet pour vérifier qu’ils ont bien été enregistrés.',
                     },
                     {
                         type: 'appLink',
-                        label: 'Vérifier dans le Tableau',
+                        label: 'Vérifier dans le Suivi',
                         path: '/table',
                         filter: { detectionControlStatuses: ['PRIOR_LETTER_SENT'], prescripted: null },
                     },
@@ -471,7 +471,7 @@ export const EXERCISES: Exercise[] = [
                         type: 'list',
                         ordered: true,
                         items: [
-                            'Ouvrez l’onglet **Tableau**.',
+                            'Ouvrez l’onglet **Suivi**.',
                             'Filtrez les objets **Suspects** et **Non contrôlés**.',
                             'Triez les parcelles selon le nombre de détections : cliquez deux fois sur l’en-tête de la colonne **Nombre de détections** pour afficher d’abord celles qui en comptent le plus.',
                             'Sélectionnez une parcelle comportant plusieurs objets.',
@@ -482,7 +482,7 @@ export const EXERCISES: Exercise[] = [
                             'Retournez dans le tableau pour vérifier les modifications.',
                         ],
                     },
-                    presetLink('Ouvrir le Tableau avec le filtre « Préparer des visites »', '/table', 'PREPARE_VISITS'),
+                    presetLink('Ouvrir le Suivi avec le filtre « Préparer des visites »', '/table', 'PREPARE_VISITS'),
                 ],
             },
             {
@@ -517,7 +517,7 @@ export const PATH_VALIDATION: ContentBlock[] = [
             'mettre à jour au moins sept objets ;',
             'utiliser l’édition multiple avec précaution ;',
             'retrouver les objets remis en état ou sortis des vues actives ;',
-            'vérifier les modifications depuis l’onglet Tableau.',
+            'vérifier les modifications depuis l’onglet Suivi.',
         ],
     },
 ];

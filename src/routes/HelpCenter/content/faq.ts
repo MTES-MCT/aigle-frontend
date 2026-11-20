@@ -624,7 +624,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
                 id: 'parcelles-avec-le-plus-d-objets',
                 question: 'Comment voir les parcelles comportant le plus d’objets ?',
                 answer: [
-                    { type: 'paragraph', text: 'Ouvrez l’onglet **Tableau**, dans le bandeau supérieur.' },
+                    { type: 'paragraph', text: 'Ouvrez l’onglet **Suivi**, dans le bandeau supérieur.' },
                     {
                         type: 'paragraph',
                         text: 'Vous pouvez ensuite trier les résultats selon le nombre de détections présentes sur chaque parcelle.',
@@ -1111,7 +1111,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
                 answer: [
                     {
                         type: 'paragraph',
-                        text: 'Ouvrez l’onglet **Tableau**, appliquez les filtres souhaités, puis cliquez sur **Télécharger csv** ou sur **Télécharger xlsx**.',
+                        text: 'Ouvrez l’onglet **Suivi**, appliquez les filtres souhaités, puis cliquez sur **Télécharger csv** ou sur **Télécharger xlsx**.',
                     },
                     {
                         type: 'note',
@@ -1284,7 +1284,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
                 id: 'retrouver-objet-sans-numero-parcelle',
                 question: 'Comment retrouver un objet signalé sans connaître son numéro de parcelle ?',
                 answer: [
-                    { type: 'paragraph', text: 'Ouvrez l’onglet **Tableau**, puis utilisez les filtres disponibles :' },
+                    { type: 'paragraph', text: 'Ouvrez l’onglet **Suivi**, puis utilisez les filtres disponibles :' },
                     {
                         type: 'list',
                         items: [
@@ -1347,7 +1347,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
                     },
                     {
                         type: 'paragraph',
-                        text: 'Depuis l’onglet **Tableau**, vous pouvez aussi activer **Édition multiple** et cocher les lignes à modifier.',
+                        text: 'Depuis l’onglet **Suivi**, vous pouvez aussi activer **Édition multiple** et cocher les lignes à modifier.',
                     },
                     { type: 'note', text: 'La sélection est limitée à 500 objets.' },
                 ],

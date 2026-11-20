@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import MapComponent from '@/components/Map';
 import Loader from '@/components/ui/Loader';
+import { useClosedControlPlanReset } from '@/routes/ControlPlan/active-plans-query';
 import { useAuth } from '@/store/slices/auth';
 import { useMap } from '@/store/slices/map';
 import { getPageTitle, MAIN_CONTENT_ID } from '@/utils/html';
@@ -17,6 +18,8 @@ const Component: React.FC = () => {
     const { layers, userLastPosition, initialDetectionObjectUuid, clearInitialDetectionObjectUuid } = useMap();
     // Read once: the store keeps it for the whole page load, and every later mount would reopen that object.
     const [detectionObjectUuidToOpen] = useState(initialDetectionObjectUuid);
+
+    useClosedControlPlanReset();
 
     useEffect(() => {
         if (initialDetectionObjectUuid) {

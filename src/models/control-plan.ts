@@ -25,6 +25,7 @@ export const controlPlanRankingCriteria = [
     'NEW_OBJECTS_COUNT',
     'OBJECT_TYPE_PRIORITY',
     'SMALL_PARCELS',
+    'PRESCRIPTION_SOON',
 ] as const;
 export type ControlPlanRankingCriterion = (typeof controlPlanRankingCriteria)[number];
 // the ones a first wave starts with
@@ -41,7 +42,7 @@ export interface ControlPlanGroup {
     name: string;
     userGroupType: UserGroupType;
     canEdit: boolean;
-    activeControlPlanUuid: string | null;
+    activeControlPlansCount: number;
 }
 
 export interface ControlPlanPrerequisites {
@@ -109,7 +110,8 @@ export interface ControlPlanCounters {
 export interface ControlPlan extends Uuided, Timestamped {
     name: string;
     startDate: string;
-    endDate: string;
+    // null: a follow-up with no end
+    endDate: string | null;
     controlPlanStatus: ControlPlanStatus;
     userGroup: { uuid: string; name: string };
     closedAt: string | null;
@@ -125,7 +127,7 @@ export interface ControlPlan extends Uuided, Timestamped {
 export interface ControlPlanInput {
     name: string;
     startDate: string;
-    endDate: string;
+    endDate: string | null;
 }
 
 export interface ControlPlanCriteriaOptionObjectType {
@@ -191,9 +193,17 @@ export interface ControlPlanParcel extends Uuided {
     zoneNames: string[];
     objectTypes: ControlPlanParcelObjectType[];
     detectionObjectUuids: string[];
+    // the nearest estimated prescription (YYYY-MM-DD), set when the wave ranked on « Prescription proche »
+    prescriptionDate: string | null;
     followUpStatus: ControlPlanFollowUpStatus | null;
     statusChangedAt: string | null;
 }
+
+// Where the objects « À contrôler » of a parcel outside the plan come from.
+export type OutOfPlanOrigin =
+    | { type: 'PLAN' | 'CLOSED_PLAN'; uuid: string; name: string }
+    | { type: 'OTHER_GROUP_PLAN' }
+    | { type: 'NONE' };
 
 export interface OutOfPlanParcel extends Uuided {
     idParcellaire: string;
@@ -210,6 +220,7 @@ export interface OutOfPlanParcel extends Uuided {
         count: number;
     }[];
     detectionObjectUuids: string[];
+    origins: OutOfPlanOrigin[];
 }
 
 export interface ControlPlanParcelPreviewObject {

@@ -22,6 +22,7 @@ import {
     OTHER_OBJECT_TYPE,
 } from '@/utils/constants';
 import { trackEvent } from '@/utils/matomo';
+import { rememberControlPlanView } from '@/utils/objects-filter';
 import {
     CUSTOM_PRESET_ID,
     CUSTOM_PRESET_LABEL,
@@ -258,16 +259,19 @@ const Component: React.FC<ComponentProps> = ({
                     className={classes['control-plan']}
                     label={
                         <>
-                            Uniquement mon plan de contrôle
+                            Uniquement mes plans de contrôle
                             <span className="fr-hint-text">
-                                Parcelles du plan de contrôle en cours et objets « À contrôler » hors plan
+                                {objectsFilter.controlPlan && objectsFilter.controlPlanUuid
+                                    ? 'Les parcelles d’un seul plan, choisi dans le Suivi'
+                                    : 'Parcelles des plans en cours et objets « À contrôler » hors plan'}
                             </span>
                         </>
                     }
                     checked={!!objectsFilter.controlPlan}
                     onChange={(checked) => {
                         trackFilterEvent('Filtre modifié', `Plan de contrôle : ${checked ? '+' : '-'}`);
-                        updateFromUser({ controlPlan: checked });
+                        rememberControlPlanView(checked);
+                        updateFromUser({ controlPlan: checked, controlPlanUuid: null });
                     }}
                 />
             ) : null}

@@ -106,12 +106,26 @@
     line-height: 1.5rem;
 }
 
+.nested-text {
+    max-width: 70ch;
+    margin: 0;
+
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    text-wrap: pretty;
+}
+
 .number-field {
     margin: 0;
 
     input {
         max-width: 20rem;
     }
+}
+
+/* 21 stops: a track across the whole column makes each of them a pixel hunt */
+.range {
+    max-width: 30rem;
 }
 
 .error {

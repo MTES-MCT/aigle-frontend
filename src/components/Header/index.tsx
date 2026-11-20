@@ -57,10 +57,11 @@ const MainNav: React.FC = () => {
     // subscribed to userMe so that the entry follows a refreshed profile
     const { userMe, canAccessControlPlan } = useAuth();
 
+    // the plan is prepared, then followed up: « Suivi » is the parcel table (its url stays /table)
     const items = [
         { path: '/map', label: 'Carte' },
-        { path: '/table', label: 'Tableau' },
         ...(userMe && canAccessControlPlan() ? [{ path: '/control-plan', label: 'Plan de contrôle' }] : []),
+        { path: '/table', label: 'Suivi' },
         { path: '/statistics', label: 'Statistiques' },
     ];
 

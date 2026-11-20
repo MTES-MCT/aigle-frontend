@@ -15,6 +15,7 @@ import { ObjectsFilter } from '@/models/detection-filter';
 import { MapGeoCustomZoneLayer } from '@/models/map-layer';
 import { ObjectType } from '@/models/object-type';
 import { ParcelListItem } from '@/models/parcel';
+import ControlPlanBar from '@/routes/Table/ControlPlanBar';
 import DetectionsTable from '@/routes/Table/DetectionsTable';
 import ParcelsTable, { ParcelsOrder, ParcelsSortField } from '@/routes/Table/ParcelsTable';
 import TableDownloadButton from '@/routes/Table/TableDownloadButton';
@@ -147,7 +148,8 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                         }
                     />
 
-                    <SearchNotice />
+                    {/* the plans are followed without a perimeter */}
+                    {objectsFilter.controlPlan ? null : <SearchNotice />}
                 </div>
             ),
         },
@@ -180,7 +182,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
             className={classes.page}
             style={{ '--table-side-panel-open': sidePanelSection ? 1 : 0 } as React.CSSProperties}
         >
-            <h1 className="fr-sr-only">Tableau des détections</h1>
+            <h1 className="fr-sr-only">Suivi des parcelles</h1>
             <SidePanel
                 layout="column"
                 sections={sidePanelSections}
@@ -189,6 +191,7 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
             />
 
             <div className={classes.content}>
+                <ControlPlanBar objectsFilter={objectsFilter} updateObjectsFilter={updateObjectsFilter} />
                 <TableHeader {...form.getValues()} />
 
                 <div className={classes.toolbar}>
@@ -214,7 +217,12 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
                 <ParcelsTable<DataTableFilter>
                     endpoint={ENDPOINT}
                     filter={filter}
-                    queryEnabled={form.getValues().communesUuids.length > 0 || form.getValues().epcisUuids.length > 0}
+                    queryEnabled={
+                        form.getValues().communesUuids.length > 0 ||
+                        form.getValues().epcisUuids.length > 0 ||
+                        // the plans narrow the list enough: no perimeter needed to follow them
+                        !!objectsFilter.controlPlan
+                    }
                     initialLimit={50}
                     order={order}
                     onOrderChange={(field: ParcelsSortField, sortOrder?: SortOrder) => {
@@ -302,7 +310,7 @@ const Component: React.FC = () => {
 
     if (!objectsFilter || !allObjectTypes || !visibleObjectTypesUuids || !customZoneLayers || !otherObjectTypesUuids) {
         return (
-            <LayoutBase title="Tableau">
+            <LayoutBase title="Suivi">
                 <Loader />
             </LayoutBase>
         );
@@ -310,7 +318,7 @@ const Component: React.FC = () => {
 
     return (
         <>
-            <title>{getPageTitle('Tableau')}</title>
+            <title>{getPageTitle('Suivi')}</title>
             <Header />
             <ComponentInner
                 allObjectTypes={allObjectTypes}

@@ -15,8 +15,11 @@ import {
     FOLLOW_UP_LABELS,
     formatCount,
     formatPlanParcel,
+    formatPrescriptionDate,
     formatTimestampDay,
     invalidateControlPlanQueries,
+    PRESCRIPTION_ESTIMATE_TEXT,
+    PRESCRIPTION_ESTIMATE_TITLE,
     trackControlPlanError,
     trackControlPlanEvent,
 } from '@/routes/ControlPlan/utils';
@@ -306,6 +309,13 @@ const Component: React.FC<ComponentProps> = ({
             {mutation.isError && mutation.variables?.action !== 'remove' ? (
                 <ErrorAlert className="fr-mb-2w" error={mutation.error} fallback="La parcelle n’a pas été modifiée." />
             ) : null}
+            {data?.some(({ prescriptionDate }) => !!prescriptionDate) ? (
+                <div className={clsx('fr-alert fr-alert--info fr-alert--sm', classes.notice)}>
+                    <p>
+                        <b>{PRESCRIPTION_ESTIMATE_TITLE}.</b> {PRESCRIPTION_ESTIMATE_TEXT}
+                    </p>
+                </div>
+            ) : null}
 
             {isLoading ? (
                 <Loader className={classes.loader} />
@@ -450,6 +460,17 @@ const Component: React.FC<ComponentProps> = ({
                                                 <span className={clsx('fr-cell__desc', classes.secondary)}>
                                                     dont {formatCount(parcel.newObjectsCount, 'nouveau', 'nouveaux')}
                                                 </span>
+                                            ) : null}
+                                            {parcel.prescriptionDate ? (
+                                                <p
+                                                    className={clsx(
+                                                        'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--orange-terre-battue',
+                                                        classes.badge,
+                                                        classes['prescription-badge'],
+                                                    )}
+                                                >
+                                                    {formatPrescriptionDate(parcel.prescriptionDate)}
+                                                </p>
                                             ) : null}
                                         </td>
                                         {section === 'PLANNED' ? (

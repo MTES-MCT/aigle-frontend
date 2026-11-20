@@ -128,7 +128,9 @@ const ComponentInner: React.FC<ComponentInnerProps> = ({
     otherObjectTypesUuids,
     ...collectivities
 }: ComponentInnerProps) => {
-    const queryEnabled = collectivities.communesUuids.length > 0 || collectivities.epcisUuids.length > 0;
+    // the plans narrow the list enough: no perimeter needed to follow them
+    const queryEnabled =
+        collectivities.communesUuids.length > 0 || collectivities.epcisUuids.length > 0 || !!objectsFilter.controlPlan;
     const { data, isFetching, error, refetch } = useQuery({
         queryKey: [
             parcelEndpoints.overview,

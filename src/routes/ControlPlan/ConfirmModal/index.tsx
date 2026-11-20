@@ -2,6 +2,7 @@ import React, { PropsWithChildren } from 'react';
 
 import Modal from '@/components/dsfr/Modal';
 import ErrorAlert from '@/routes/ControlPlan/ErrorAlert';
+import classes from './index.module.scss';
 
 interface ComponentProps extends PropsWithChildren {
     opened: boolean;
@@ -42,7 +43,7 @@ const Component: React.FC<ComponentProps> = ({
             </div>
         }
     >
-        {children}
+        <div className={classes.body}>{children}</div>
         {error ? <ErrorAlert className="fr-mt-2w" error={error} fallback={errorFallback} /> : null}
     </Modal>
 );

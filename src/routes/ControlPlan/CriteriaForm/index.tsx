@@ -20,7 +20,11 @@ import {
 } from '@/routes/ControlPlan/criteria';
 import NoZoneAlert from '@/routes/ControlPlan/NoZoneAlert';
 import SortableCheckboxRow from '@/routes/ControlPlan/SortableCheckboxRow';
-import { RANKING_CRITERIA_LABELS } from '@/routes/ControlPlan/utils';
+import {
+    PRESCRIPTION_ESTIMATE_TEXT,
+    PRESCRIPTION_ESTIMATE_TITLE,
+    RANKING_CRITERIA_LABELS,
+} from '@/routes/ControlPlan/utils';
 import ObjectTypeSquare from '@/routes/Table/ObjectTypeSquare';
 import { getCustomZoneOpacities, withAlpha } from '@/utils/colors';
 import {
@@ -340,6 +344,12 @@ const Component: React.FC<ComponentProps> = ({
                                 {row.criterion === 'OBJECT_TYPE_PRIORITY' && row.active && prioritizedTypes.length > 1
                                     ? renderObjectTypeOrder()
                                     : null}
+                                {row.criterion === 'PRESCRIPTION_SOON' && row.active ? (
+                                    <div className={classes.nested}>
+                                        <p className={classes['nested-title']}>{PRESCRIPTION_ESTIMATE_TITLE}</p>
+                                        <p className={classes['nested-text']}>{PRESCRIPTION_ESTIMATE_TEXT}</p>
+                                    </div>
+                                ) : null}
                             </>
                         )}
                     />
@@ -434,17 +444,19 @@ const Component: React.FC<ComponentProps> = ({
                             <p className={classes.legend} id={`${id}-score`}>
                                 Score de fiabilité minimum
                             </p>
-                            <Range
-                                label="Score de fiabilité minimum"
-                                labelHidden
-                                min={0}
-                                max={100}
-                                step={5}
-                                value={Math.round(state.scoreMin * 100)}
-                                formatValue={formatScore}
-                                describedBy={`${id}-score ${id}-score-hint`}
-                                onChange={(value) => update({ scoreMin: value / 100 })}
-                            />
+                            <div className={classes.range}>
+                                <Range
+                                    label="Score de fiabilité minimum"
+                                    labelHidden
+                                    min={0}
+                                    max={100}
+                                    step={5}
+                                    value={Math.round(state.scoreMin * 100)}
+                                    formatValue={formatScore}
+                                    describedBy={`${id}-score ${id}-score-hint`}
+                                    onChange={(value) => update({ scoreMin: value / 100 })}
+                                />
+                            </div>
                             <p id={`${id}-score-hint`} className={classes.hint}>
                                 Plus le score est élevé, plus l’IA est sûre de sa détection. Les objets dessinés ou
                                 rendus visibles par un agent sont retenus quel que soit leur score.
